@@ -1,137 +1,97 @@
 ---
 name: documenting
-description: Produces a structured analysis report and memory entry. Use when you have completed analysis of a subject and need to write it up. Can be invoked standalone (/documenting) or loaded by agents as a format reference.
+description: >
+  Use this skill whenever an agent needs to write an analysis report, ADR (architectural
+  decision record), or implementation plan to the `artifacts/` directory. Defines the
+  filename derivation rules, audience detection, confidence markers, and routes each
+  artifact type to its template file under `templates/`. Triggers include "write a report",
+  "document this", "create an ADR", "draft a plan", or any request that produces a
+  structured artifact for the analyst or architect agents. Invoke standalone via
+  `/documenting`, or load via the `skills:` frontmatter field on an agent.
 ---
 
 # Skill: documenting
 
-Produces a structured, human-readable analysis report and writes a companion memory entry to `.claude/agent-memory/analyst/`.
+Central registry for output format conventions and artifact templates. Agents load this skill to get shared formatting rules and a pointer to the correct template for their artifact type.
 
 ---
 
-## Steps
+## Template registry
 
-Follow in order on every invocation:
+| Artifact type       | Template file                              | Produced by  |
+|---------------------|--------------------------------------------|--------------|
+| Analysis report     | `templates/report.md`                      | analyst      |
+| ADR                 | `templates/adr.md`                         | architect    |
+| Implementation plan | `templates/plan.md`                        | architect    |
 
-1. If the request does not include a subject, analysis notes, or source references, ask: "What should I document? Provide a subject and any notes or sources." Stop until answered.
-2. Determine the audience using the rules in the **Audience** section below.
-3. Derive the short title using the **Filename Derivation** rules below.
-4. Write the report to `artifacts/reports/<derived-short-title>.md` using the **Report Template** below.
-5. Write the memory entry using the **Memory Format** below.
-6. Output a one-paragraph summary: what was produced, where it was written, and whether architect review is flagged.
-
-Agents that load this skill for format reference and have already completed steps 1–2 should skip to step 3.
+Read the template file for your artifact type before writing any output.
 
 ---
 
-## Audience
+## Shared conventions
 
-Determine audience from the request using these rules:
+All agents producing artifacts under this skill must follow these rules regardless of artifact type.
+
+### Audience detection
+
+Determine audience from the request:
 - Contains "stakeholder", "executive", "non-technical", or "business" → **stakeholder** (omit implementation detail)
 - Contains "developer", "engineer", "implementer", or "codebase" → **developer** (include implementation detail)
 - Contains "collaborator" or "team" → **collaborator**
 - Multiple of the above match → ask: "The request matches more than one audience. Which should I write for: [list matches]?"
 - No match → **technical collaborator**
 
----
+Audience detection applies to analysis reports only. ADRs and plans are always written for developers.
 
-## Filename Derivation
+### Filename derivation
 
-Take exactly the first 3 significant words of the subject (ignore articles, prepositions, conjunctions), lowercase them, hyphenate them. If the subject has fewer than 3 significant words, use all of them.
+Apply this algorithm exactly. Do not paraphrase or shortcut steps.
 
-Example: "Analysis of the Auth Middleware" → `auth-middleware-analysis`
+1. Take the **subject noun phrase** from the request — the thing being analysed/designed/planned. Strip any meta verbs like "Analysis of", "Design of", "Plan for", "Review of", "Document".
+2. Lowercase the result.
+3. Remove all tokens that exactly match this stopword list (case-insensitive):
+   `a, an, the, of, for, to, in, on, at, with, and, or, but, by, from, as, into, our, your, my, this, that, these, those`
+4. Replace any non-alphanumeric character with a single hyphen. Collapse runs of hyphens. Trim leading/trailing hyphens.
+5. Keep the first N tokens (after hyphenation):
+   - Analysis reports: N = 3, then append `-analysis`.
+   - ADRs and plans: N between 3 and 5 inclusive — take all remaining tokens if ≤ 5, else the first 5. Do not append a suffix.
+6. For ADRs only: prepend the zero-padded 5-digit sequence number (`NNNNN-`). Scan `artifacts/adr/` for the highest existing number and increment by 1. If `artifacts/adr/` is empty or missing, start at `00001`.
 
-Use this derived short title in all artifact paths and memory file names.
+**Worked examples** (apply each step in order):
 
----
+| Input subject | Step 1 (strip meta) | Step 3 (drop stopwords) | Step 5 (take N) | Final |
+|---|---|---|---|---|
+| "Analysis of the Auth Middleware" | "the Auth Middleware" | "auth middleware" | report, N=3 | `auth-middleware-analysis` |
+| "Design of the Auth Middleware" | "the Auth Middleware" | "auth middleware" | adr/plan, N≤5 | `auth-middleware` (+ `00002-` prefix for ADR) |
+| "Plan for migrating the user service to gRPC" | "migrating the user service to gRPC" | "migrating user service grpc" | adr/plan, N=4 | `migrating-user-service-grpc` |
+| "Stripe webhook idempotency analysis" | "Stripe webhook idempotency" | "stripe webhook idempotency" | report, N=3 | `stripe-webhook-idempotency-analysis` |
 
-## Report Template
+The derived short title must be identical across the paired ADR and plan (ADR adds the numeric prefix, plan does not).
 
-Write `artifacts/reports/<derived-short-title>.md` using this template exactly:
+### Confidence markers
 
-```
-# Analysis: Title
+Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
 
-**Date:** YYYY-MM-DD
-**Audience:** developer | stakeholder | collaborator | <as declared>
-**Sources:** list every source ingested
+1. Direct quote, observable fact, or value readable from the source without reasoning → **[VERIFIED]**
+2. Follows necessarily from one or more VERIFIED facts via explicit deductive steps the reader could reproduce → **[INFERRED]**
+3. Source does not address the finding, or the finding requires assumptions not grounded in the source → **[ASSUMED]**
 
----
+A finding that mixes verifiable and inferred content takes the **weakest** marker that applies to any part of it. Split the finding into separate sub-points if you want the verified parts to remain [VERIFIED].
 
-## Executive Summary
-Exactly 4 sentences in this fixed order: (1) What this subject is. (2) Why it matters or what problem it solves. (3) The single most important finding. (4) What the reader should do with this information. Written for any audience — no jargon.
-
-## Background and Context
-Exactly 2 paragraphs, ≤150 words total. First paragraph: what the subject is and where it lives. Second paragraph: why it exists and what problem it solves. Assume no prior knowledge of this specific subject.
-
-## Structure and Organisation
-One paragraph (≤80 words) describing the overall shape, then a bullet list of components — no more than 10 bullets. For code: list modules, layers, and entry points. For documents: list sections and their purpose. For data: list tables, entities, or event types with their schema shape.
-
-## Key Concepts
-One subsection per Findings theme, capped at 5. For each theme, include its concept only if the term is domain-specific and not defined by common English or a widely-known acronym. If a theme has no such term, skip it — do not pad to reach a count. Each subsection:
-- Names the concept
-- Explains what it is
-- Explains why it matters in this context
-- Gives a concrete example from the source
-
-## Findings
-Detailed walkthrough of what was discovered. This is the verbose core of the report.
-
-Derive the theme list directly from the source structure — do not invent themes:
-- Code: one theme per top-level module, package, or architectural layer.
-- Documents: one theme per top-level section of the source document.
-- Data/logs: one theme per top-level entity, table, or event category.
-
-Each theme is one subsection (### heading) titled exactly as the module/section/entity is named in the source. Each subsection must be at least 2 paragraphs.
-
-Each ### heading must carry a confidence marker assigned by this decision tree — apply the first rule that matches:
-1. The finding is a direct quote, an observable fact, or a value that can be read from the source without reasoning → **[VERIFIED]**
-2. The finding follows necessarily from two or more VERIFIED facts in the source → **[INFERRED]**
-3. The source does not address the finding at all → **[ASSUMED]**
-
-## Dependencies and Relationships
-What this subject depends on, and what depends on it. Always produce a bullet list. If the list has more than 5 items, also add an ASCII diagram below it.
-
-## Risks and Unknowns
-Exactly 5 items total across the three categories. Populate genuine RISK and UNKNOWN items first; fill remaining slots with ASSUMPTION entries documenting what you took to be true during analysis. Never leave a slot empty.
-Each item on its own line: **[RISK | UNKNOWN | ASSUMPTION]** — description.
-
-## Recommendations
-Exactly 4 items, ordered by priority (most important first). Each item must be a concrete, actionable instruction — not a general principle.
-Flag items needing architectural input with [ARCHITECT REVIEW NEEDED].
-
-## Glossary
-One entry per term that meets both conditions: (1) it appears in the Findings section, and (2) it is not a common English word or widely-known acronym (REST, API, JSON, HTTP). Do not add terms that do not appear in Findings. Do not omit terms that do.
-```
+Confidence markers do not apply to ADRs or plans.
 
 ---
 
-## Memory Format
+## Steps (standalone invocation)
 
-Memory directory: `.claude/agent-memory/analyst`
-Index file: `.claude/agent-memory/analyst/MEMORY.md`
+Follow in order when invoked directly as `/documenting`:
 
-Write one memory file per report, after the report is written.
+1. If the request does not include a subject, analysis notes, or source references, ask: "What should I document? Provide a subject and any notes or sources." Stop until answered.
+2. Determine the audience using the **Audience detection** rules above.
+3. Derive the short title using the **Filename derivation** rules above.
+4. Identify the artifact type from the request and read the corresponding template from the **Template registry**.
+5. Write the artifact using that template.
+6. Write the memory entry as defined in the template file.
+7. Output a one-paragraph summary: what was produced, where it was written, and whether architect review is flagged.
 
-**Memory file path:** `.claude/agent-memory/analyst/report-<derived-short-title>.md`
-
-**Memory file content** (write this exactly, including frontmatter):
-
-```
----
-name: report-<derived-short-title>
-description: <one sentence — used to judge relevance in future sessions>
-metadata:
-  type: project
----
-Analysed <subject> for <audience>.
-**Key findings:** <2-3 sentence summary of the most important discoveries>.
-**[ARCHITECT REVIEW NEEDED]:** <list items flagged, or "none">.
-**Artifact:** artifacts/reports/<derived-short-title>.md
-```
-
-**Index entry** — append one line to `MEMORY.md`:
-
-```
-- [Report: Title](report-<derived-short-title>.md) — <what was analysed> + <single most important finding>, ≤100 characters
-```
+Agents that load this skill for format reference and have already completed steps 1–3 should skip to step 4.
