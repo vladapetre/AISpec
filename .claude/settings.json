@@ -2,7 +2,46 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.claude.com)",
-      "Edit(/.claude/skills/documenting/**)"
+      "Edit(/.claude/skills/documenting/**)",
+      "Edit(/.claude/skills/auditing/**)",
+      "Bash(ls /home/vlad/Workspace/ai/AISpec/.claude/ 2>/dev/null && ls /home/vlad/.claude/ 2>/dev/null)",
+      "Read(//home/vlad/.claude/**)"
+    ],
+    "additionalDirectories": [
+      "/home/vlad/Workspace/ai/AISpec/.claude/skills/auditing"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/session-start.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/session-stop.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/session-artifact.py"
+          }
+        ]
+      }
     ]
   }
 }
