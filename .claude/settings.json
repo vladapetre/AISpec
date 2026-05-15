@@ -2,13 +2,31 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.claude.com)",
-      "Edit(/.claude/skills/documenting/**)",
-      "Edit(/.claude/skills/auditing/**)",
-      "Bash(ls /home/vlad/Workspace/ai/AISpec/.claude/ 2>/dev/null && ls /home/vlad/.claude/ 2>/dev/null)",
-      "Read(//home/vlad/.claude/**)"
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(git remote*)",
+      "Bash(git blame*)",
+      "Bash(git ls-files*)",
+      "Bash(git rev-parse*)",
+      "Bash(git describe*)",
+      "Bash(git shortlog*)",
+      "Bash(git stash list*)"
     ],
-    "additionalDirectories": [
-      "/home/vlad/Workspace/ai/AISpec/.claude/skills/auditing"
+    "ask": [
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(find * -delete*)",
+      "Bash(find * -exec rm*)",
+      "Bash(git branch*)"
     ]
   },
   "hooks": {
