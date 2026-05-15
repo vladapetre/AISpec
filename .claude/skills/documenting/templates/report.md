@@ -41,16 +41,13 @@ Derive the theme list directly from the source structure — do not invent theme
 
 Each theme is one subsection (### heading) titled exactly as the module/section/entity is named in the source. Each subsection must be at least 2 paragraphs.
 
-Each ### heading must carry a confidence marker assigned by this decision tree — apply the first rule that matches:
-1. The finding is a direct quote, an observable fact, or a value that can be read from the source without reasoning → **[VERIFIED]**
-2. The finding follows necessarily from two or more VERIFIED facts in the source → **[INFERRED]**
-3. The source does not address the finding at all → **[ASSUMED]**
+Each ### heading must carry a confidence marker. Apply the rules defined in `SKILL.md` under **Confidence markers** — do not re-derive them here.
 
 ## Dependencies and Relationships
 What this subject depends on, and what depends on it. Always produce a bullet list. If the list has more than 5 items, also add an ASCII diagram below it.
 
 ## Risks and Unknowns
-Exactly 5 items total across the three categories. Populate genuine RISK and UNKNOWN items first; fill remaining slots with ASSUMPTION entries documenting what you took to be true during analysis. Never leave a slot empty.
+Between 3 and 5 items total across the three categories (at least 3, no more than 5). Populate genuine RISK and UNKNOWN items first; add ASSUMPTION entries only if they add real analytical value. Never fabricate risks or assumptions to reach a count.
 Each item on its own line: **[RISK | UNKNOWN | ASSUMPTION]** — description.
 
 ## Recommendations

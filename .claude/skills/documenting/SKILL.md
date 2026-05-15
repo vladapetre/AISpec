@@ -23,6 +23,7 @@ Central registry for output format conventions and artifact templates. Agents lo
 | Analysis report     | `templates/report.md`                      | analyst      |
 | ADR                 | `templates/adr.md`                         | architect    |
 | Implementation plan | `templates/plan.md`                        | architect    |
+| Progress            | `templates/progress.md`                    | developer    |
 
 Read the template file for your artifact type before writing any output.
 
@@ -47,14 +48,14 @@ Audience detection applies to analysis reports only. ADRs and plans are always w
 
 Apply this algorithm exactly. Do not paraphrase or shortcut steps.
 
-1. Take the **subject noun phrase** from the request — the thing being analysed/designed/planned. Strip any meta verbs like "Analysis of", "Design of", "Plan for", "Review of", "Document".
+1. Take the **subject noun phrase** from the request — the thing being analysed/designed/planned. Strip any meta verbs / prefixes from this exact list (case-insensitive, match at the start of the subject only): `Analysis of`, `Design of`, `Plan for`, `Review of`, `Audit of`, `Spec of`, `Spec for`, `Specification of`, `Specification for`, `Scope of`, `Migration to`, `Migration of`, `Refactor of`, `Document`, `Documentation of`. If none match, leave the subject as-is.
 2. Lowercase the result.
 3. Remove all tokens that exactly match this stopword list (case-insensitive):
    `a, an, the, of, for, to, in, on, at, with, and, or, but, by, from, as, into, our, your, my, this, that, these, those`
 4. Replace any non-alphanumeric character with a single hyphen. Collapse runs of hyphens. Trim leading/trailing hyphens.
 5. Keep the first N tokens (after hyphenation):
-   - Analysis reports: N = 3, then append `-analysis`.
-   - ADRs and plans: N between 3 and 5 inclusive — take all remaining tokens if ≤ 5, else the first 5. Do not append a suffix.
+   - Analysis reports: N = 3, then append `-analysis`. If fewer than 3 tokens remain, keep all remaining tokens, then append `-analysis`. Do not pad.
+   - ADRs and plans: N between 3 and 5 inclusive — take all remaining tokens if ≤ 5, else the first 5. If fewer than 3 tokens remain, keep all remaining tokens. Do not pad and do not append a suffix.
 6. For ADRs only: prepend the zero-padded 5-digit sequence number (`NNNNN-`). Scan `artifacts/adr/` for the highest existing number and increment by 1. If `artifacts/adr/` is empty or missing, start at `00001`.
 
 **Worked examples** (apply each step in order):
@@ -73,7 +74,7 @@ The derived short title must be identical across the paired ADR and plan (ADR ad
 Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
 
 1. Direct quote, observable fact, or value readable from the source without reasoning → **[VERIFIED]**
-2. Follows necessarily from one or more VERIFIED facts via explicit deductive steps the reader could reproduce → **[INFERRED]**
+2. Follows necessarily from one or more VERIFIED facts via explicit deductive steps the reader could reproduce → **[INFERRED]**. A single VERIFIED fact is sufficient when the deduction is mechanical (e.g., reading a constant and stating its scope from the file path).
 3. Source does not address the finding, or the finding requires assumptions not grounded in the source → **[ASSUMED]**
 
 A finding that mixes verifiable and inferred content takes the **weakest** marker that applies to any part of it. Split the finding into separate sub-points if you want the verified parts to remain [VERIFIED].
@@ -87,9 +88,9 @@ Confidence markers do not apply to ADRs or plans.
 Follow in order when invoked directly as `/documenting`:
 
 1. If the request does not include a subject, analysis notes, or source references, ask: "What should I document? Provide a subject and any notes or sources." Stop until answered.
-2. Determine the audience using the **Audience detection** rules above.
+2. Identify the artifact type from the request. If the artifact type is **analysis report**, determine the audience using the **Audience detection** rules above. If the artifact type is **ADR** or **plan**, skip audience detection — these are always developer-facing.
 3. Derive the short title using the **Filename derivation** rules above.
-4. Identify the artifact type from the request and read the corresponding template from the **Template registry**.
+4. Read the template for the artifact type from the **Template registry**.
 5. Write the artifact using that template.
 6. Write the memory entry as defined in the template file.
 7. Output a one-paragraph summary: what was produced, where it was written, and whether architect review is flagged.

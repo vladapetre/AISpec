@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.claude.com)",
+      "Edit(/.claude/skills/documenting/**)"
+    ]
+  }
+}

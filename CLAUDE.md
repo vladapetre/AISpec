@@ -13,7 +13,9 @@ Any message, question, plan, or request for input from any agent or teammate mus
 
 ## Artifact Ownership
 
-Any changes to files under `artifacts/` (plans, ADRs, documentation) must be delegated to the architect agent via `SendMessage`, not edited directly.
+Changes to ADRs (`artifacts/adr/`) and plans (`artifacts/plans/`) must be delegated to the architect agent via `SendMessage`, not edited directly. The developer agent is the only exception: it may edit a plan file to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once both the user and architect have approved that phase.
+
+Analysis reports (`artifacts/reports/`) are owned by the analyst agent and written directly. Do not route report writes through the architect.
 
 ## Implementation Review
 
