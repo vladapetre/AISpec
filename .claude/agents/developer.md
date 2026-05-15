@@ -66,7 +66,11 @@ Follow these steps in order on every invocation:
    - `Makefile` with a `lint` target
    - None found → note "no linter detected" in the phase summary.
 
-   Fix all failures before proceeding.
+   **Failure handling** — for each failing test:
+   - Run the test on the base commit (`git stash --include-untracked && <test command> && git stash pop`). If it fails on the base commit too, the failure is **pre-existing**. List it under `**Tests:** failed` with the suffix `[PRE-EXISTING]` and do not block phase completion.
+   - Otherwise the failure is **introduced by this phase**. Fix it before proceeding.
+
+   Linter failures introduced by this phase must always be fixed; pre-existing linter failures may be noted with `[PRE-EXISTING]` and skipped.
 
 8. Produce a phase summary (see <output_format>).
 

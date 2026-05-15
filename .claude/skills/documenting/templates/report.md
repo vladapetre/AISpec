@@ -35,8 +35,8 @@ One subsection per Findings theme, capped at 5. For each theme, include its conc
 Detailed walkthrough of what was discovered. This is the verbose core of the report.
 
 Derive the theme list directly from the source structure — do not invent themes:
-- Code: one theme per top-level module, package, or architectural layer.
-- Documents: one theme per top-level section of the source document.
+- Code: one theme per **top-level unit**, defined as the immediate child directories of the entry-point directory identified in step 4 of the analyst instructions. If the request named individual files (not a directory), each file is its own theme.
+- Documents: one theme per top-level (`#` or `##`, whichever is the highest level used) section of the source document.
 - Data/logs: one theme per top-level entity, table, or event category.
 
 Each theme is one subsection (### heading) titled exactly as the module/section/entity is named in the source. Each subsection must be at least 2 paragraphs.
@@ -51,8 +51,15 @@ Between 3 and 5 items total across the three categories (at least 3, no more tha
 Each item on its own line: **[RISK | UNKNOWN | ASSUMPTION]** — description.
 
 ## Recommendations
-Exactly 4 items, ordered by priority (most important first). Each item must be a concrete, actionable instruction — not a general principle.
-Flag items needing architectural input with [ARCHITECT REVIEW NEEDED].
+Exactly 4 items. Each item must be a concrete, actionable instruction — not a general principle. Flag items needing architectural input with [ARCHITECT REVIEW NEEDED].
+
+Order strictly by this rubric — apply in sequence, do not reorder by your own judgement:
+1. Items flagged [ARCHITECT REVIEW NEEDED].
+2. Items that remediate a [RISK] entry in Risks and Unknowns.
+3. Items grounded in a [VERIFIED] finding.
+4. All other items.
+
+Within a tier, preserve the source order in which the underlying finding first appears in the report.
 
 ## Glossary
 One entry per term that meets both conditions: (1) it appears in the Findings section, and (2) it is not a common English word or widely-known acronym (REST, API, JSON, HTTP). Do not add terms that do not appear in Findings. Do not omit terms that do.
@@ -65,6 +72,8 @@ One entry per term that meets both conditions: (1) it appears in the Findings se
 **Memory directory:** `.claude/agent-memory/analyst`
 **Index file:** `.claude/agent-memory/analyst/MEMORY.md`
 **Memory file path:** `.claude/agent-memory/analyst/report-<derived-short-title>.md`
+
+If the memory directory does not exist, create it. If `MEMORY.md` does not exist, create it with the heading `# Analyst Memory` on the first line.
 
 ```
 ---

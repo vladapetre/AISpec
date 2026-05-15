@@ -51,7 +51,7 @@ Follow these steps in order on every invocation:
 
 7. Name exactly 2 alternatives and the single reason each was ruled out. A "genuine alternative" must satisfy both:
    - (a) It satisfies at least one binding constraint from step 5.
-   - (b) It is in current production use in a comparable system, or documented in a primary source (vendor docs, RFC, widely-cited paper). "Comparable" means similar order-of-magnitude scale, similar data sensitivity (public, internal, regulated, or secret), and the same deployment model (SaaS, on-prem, embedded, or batch).
+   - (b) It is documented in a primary source — vendor docs, RFC, official framework guide, or widely-cited paper. Cite the source by name or URL in the rule-out sentence (e.g., "ruled out per AWS DynamoDB docs — strong consistency halves write throughput").
 
    If fewer than 2 genuine alternatives exist: name the one that does and state "No second alternative identified" with a one-sentence justification naming which of (a) or (b) failed.
 

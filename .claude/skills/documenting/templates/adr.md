@@ -4,6 +4,8 @@
 
 NNNNN is a zero-padded 5-digit integer, incremented from the highest existing ADR number. If no ADRs exist yet, start at `00001`.
 
+Re-scan `artifacts/adr/` for the highest number **immediately before writing the file**, not at the start of the invocation — this minimises (but does not eliminate) the race window when two architect invocations run in parallel. If the target filename already exists when you go to write it, increment and retry up to 3 times. After 3 collisions, stop and surface the conflict to the user.
+
 ---
 
 ## File template
@@ -37,6 +39,8 @@ Ruled out because: one sentence.
 **Memory directory:** `.claude/agent-memory/architect`
 **Index file:** `.claude/agent-memory/architect/MEMORY.md`
 **Memory file path:** `.claude/agent-memory/architect/adr-NNNNN-<derived-short-title>.md`
+
+If the memory directory does not exist, create it. If `MEMORY.md` does not exist, create it with the heading `# Architect Memory` on the first line.
 
 ```
 ---

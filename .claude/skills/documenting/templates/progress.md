@@ -4,6 +4,8 @@
 **Index file:** `.claude/agent-memory/developer/MEMORY.md`
 **Memory file path:** `.claude/agent-memory/developer/plan-<derived-short-title>.md`
 
+If the memory directory does not exist, create it. If `MEMORY.md` does not exist, create it with the heading `# Developer Memory` on the first line.
+
 One memory file per plan. Create it when the first phase of a plan completes. Update it in place after each subsequent phase — do not create additional files.
 
 ---

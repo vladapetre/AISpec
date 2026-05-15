@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.claude.com)",
@@ -19,7 +22,8 @@
       "Bash(git rev-parse*)",
       "Bash(git describe*)",
       "Bash(git shortlog*)",
-      "Bash(git stash list*)"
+      "Bash(git stash list*)",
+      "Bash(mkdir -p /home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing/templates)"
     ],
     "ask": [
       "Bash(rm *)",
@@ -27,6 +31,9 @@
       "Bash(find * -delete*)",
       "Bash(find * -exec rm*)",
       "Bash(git branch*)"
+    ],
+    "additionalDirectories": [
+      "/home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing"
     ]
   },
   "hooks": {
@@ -61,9 +68,6 @@
         ]
       }
     ]
-  },
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "remoteControlAtStartup": true
 }
