@@ -13,6 +13,18 @@ Maintains a structured, auditable record of what was worked on in a session.
 Session identity comes from `$CLAUDE_CODE_SESSION_ID` — each Claude window gets
 its own independent trail. Hooks handle heartbeat and artifact logging automatically.
 
+**Skill shape:** dispatcher-style. Unlike `documenting` and `reviewing`, this skill has no central template registry and no shared linear `Steps` flow — every invocation must name a subcommand (`init`, `checkpoint`, `close`). See the `## Steps (standalone invocation)` section for the dispatch rule.
+
+---
+
+## Steps (standalone invocation)
+
+Follow in order when invoked directly as `/auditing`:
+
+1. Parse the subcommand from the invocation. Valid values: `init`, `checkpoint`, `close`. If no subcommand is provided, output `Usage: /auditing <init|checkpoint|close> [args]` and stop.
+2. Dispatch to the matching `### <subcommand>` section below and execute it exactly as written.
+3. Do not chain subcommands in a single invocation — one per call.
+
 ---
 
 ## Subcommands

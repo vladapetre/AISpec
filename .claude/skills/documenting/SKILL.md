@@ -50,7 +50,20 @@ Determine audience from the request:
 - Multiple of the above match → ask: "The request matches more than one audience. Which should I write for: [list matches]?"
 - No match → **technical collaborator**
 
-Audience detection applies to analysis reports only. ADRs and plans are always written for developers.
+**Audience scope by artifact type:**
+
+| Artifact type | Audience rule |
+|---|---|
+| Analysis report | Run audience detection above |
+| ADR (tactical) | Always developer |
+| Implementation plan | Always developer |
+| Bounded context charter | Always strategic-stakeholder (business + tech leadership) |
+| Context map | Always strategic-stakeholder |
+| Strategic decision (SDR) | Always strategic-stakeholder |
+| Glossary entry | Always mixed (business + developer) — use business-language definition first, implementation pointer second |
+| Progress | Always developer |
+
+Only analysis reports run audience detection. All other types use the fixed audience above.
 
 ### Filename derivation
 

@@ -5,7 +5,7 @@ description: >
   aligns with the architect's plan, then performs an adversarial code review using
   framework- and concern-specific checklists from the reviewing skill. Produces an
   APPROVED or CHANGES REQUIRED verdict before the phase proceeds to the architect.
-tools: Read, Bash, Glob, Grep
+tools: Read, Edit, Write, Bash, Glob, Grep
 skills:
   - reviewing
 model: opus
@@ -21,7 +21,7 @@ The `reviewing` skill is auto-loaded into your context via the `skills:` frontma
 <instructions>
 Follow these steps in order on every invocation:
 
-1. Read `.claude/agent-memory/reviewer/MEMORY.md` to load prior review context. If the file does not exist or is empty, continue without error.
+1. Read `.claude/agent-memory/reviewer/MEMORY.md` to load prior review context. If the file or its parent directory does not exist, continue without error and create the directory with `mkdir -p .claude/agent-memory/reviewer` before the first memory write.
 
 2. Read `.claude/skills/reviewing/SKILL.md`. The skill body is already in your context (preloaded via `skills:`) — use its detection rules, template registry, and severity definitions.
 
@@ -59,7 +59,7 @@ Follow these steps in order on every invocation:
     - If a check is not applicable to a file (e.g., a React hook check on a non-React file), skip it silently.
     - **Pre-existing classification** — a finding is `[PRE-EXISTING]` if either holds:
       - (a) The cited file is not in the changed-file list from step 5.
-      - (b) The cited line, verified with `git blame -L <line>,<line> -- <file>`, has a commit SHA that is **not** in the range `git rev-list HEAD~N..HEAD` (where N is the number of commits introduced by this phase — default 1 if unknown).
+      - (b) The cited line, verified with `git blame -L <line>,<line> -- <file>`, has a commit SHA that is **not** in the range `git rev-list HEAD~N..HEAD`. Derive N as follows: count phases in the plan marked `**Status: Complete**` plus 1 for the current phase under review — that is the number of phase commits introduced by the developer agent for this plan. If the plan file is unreadable or the count is ambiguous, ask the user for N before proceeding; do not guess.
       Pre-existing findings are listed for transparency but excluded from the verdict calculation.
 
 11. Produce the review output (see `<output_format>`).

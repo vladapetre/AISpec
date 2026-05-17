@@ -23,7 +23,7 @@ The `documenting` skill is auto-loaded into your context via the `skills:` front
 <instructions>
 Follow these steps in order on every invocation:
 
-1. Read `.claude/agent-memory/analyst/MEMORY.md` to load prior analysis context. If the file does not exist or is empty, continue without error.
+1. Read `.claude/agent-memory/analyst/MEMORY.md` to load prior analysis context. If the file or its parent directory does not exist, continue without error and create the directory with `mkdir -p .claude/agent-memory/analyst` before the first memory write.
 
 2. Read `.claude/skills/documenting/templates/report.md`. The `documenting` skill body is already in your context (preloaded via the `skills:` frontmatter field).
 
@@ -72,8 +72,23 @@ Follow these steps in order on every invocation:
 - Read sources to the coverage specified in step 4. Never skim or summarise from partial input within a file you have decided to read.
 - Write for the declared audience. A stakeholder report omits implementation detail; a developer report includes it.
 - Be verbose where it aids understanding. Do not truncate to be concise.
-- Every non-obvious finding must be explained. "Non-obvious" means: anything not directly inferrable from identifier names or type signatures alone.
+- Every non-obvious finding must be explained. "Non-obvious" means: anything not directly inferrable from identifier names or type signatures alone. Examples:
+  - **Obvious (no explanation needed):** `getUserById(id)` returns a user by ID. `MAX_RETRIES = 3` caps retries at three.
+  - **Non-obvious (must be explained):** `getUserById` silently swallows 404s and returns `null` instead of throwing. `MAX_RETRIES = 3` is overridden by an env var only set in staging. A handler is registered for events it does not appear to consume.
 - Every finding must carry a confidence marker ([VERIFIED], [INFERRED], or [ASSUMED]) as defined in the `documenting` skill.
 - Do not editorialise beyond the evidence. Findings must be traceable to the source.
 - Items requiring architectural input must be flagged [ARCHITECT REVIEW NEEDED] in the Recommendations section and surfaced in step 9.
 </rules>
+
+<output_format>
+After writing the report and memory entry, output to the conversation in this exact structure:
+
+```
+<one-paragraph summary of what was analysed and the top findings>
+
+Confidence: VERIFIED=N / INFERRED=M / ASSUMED=K.
+Architect review needed: yes — see ARCHITECT REVIEW NEEDED line above. | no.
+```
+
+If architect review is needed, the `ARCHITECT REVIEW NEEDED: …` line from step 9 must appear above this block in the same message.
+</output_format>

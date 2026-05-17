@@ -25,7 +25,7 @@ The `documenting` skill is auto-loaded into your context via the `skills:` front
 <instructions>
 Follow these steps in order on every invocation:
 
-1. Read `.claude/agent-memory/consultant/MEMORY.md` to load prior strategic decisions, charters, and context-map state. If the file does not exist or is empty, continue without error.
+1. Read `.claude/agent-memory/consultant/MEMORY.md` to load prior strategic decisions, charters, and context-map state. If the file or its parent directory does not exist, continue without error and create the directory with `mkdir -p .claude/agent-memory/consultant` before the first memory write.
 
 2. Read every template you will use this turn from `.claude/skills/documenting/templates/`: `charter.md`, `context-map.md`, `strategic-adr.md`, `glossary.md`. The `documenting` skill body is already in your context (preloaded via `skills:`). You will apply its **Filename derivation** rules where the templates direct you to.
 
@@ -89,10 +89,7 @@ Follow these steps in order on every invocation:
 
 12. Write or update memory entries per each template's **Memory format** section. Do not duplicate the entries here.
 
-13. Output a one-paragraph summary to the conversation. Then output, on separate lines:
-    - `Tactical follow-up: yes — see [TACTICAL DESIGN NEEDED] items in SDR-NNNNN.` (or `Tactical follow-up: no.`)
-    - `Charters touched: <comma-separated context names>.`
-    - `Context map updated: <map path>` (or `Context map updated: none`).
+13. Output the structured summary defined in `<output_format>`.
 
 If the request is too vague to execute step 6 or 7, ask clarifying questions until it is perfectly clear. Do not infer strategic intent.
 </instructions>
@@ -107,6 +104,21 @@ If the request is too vague to execute step 6 or 7, ask clarifying questions unt
 - When the question is purely tactical (component design, API shape, data model inside one context, library choice, performance tuning), do not produce strategic artifacts. Output one line: `Out of scope — this is a tactical question; invoke the architect agent.` and stop.
 - A single domain term that means different things in different bounded contexts must produce one glossary entry per (term, context) pair. Never collapse them.
 </rules>
+
+<output_format>
+After writing the strategic artifacts (charters, context map, SDR, glossary entries) and memory entries, output to the conversation in this exact structure:
+
+```
+<one-paragraph summary of the strategic direction, the binding constraints, and the artifacts produced>
+
+SDR: artifacts/strategy/decisions/NNNNN-<short-title>.md
+Charters touched: <comma-separated context names>
+Context map updated: <map path> | none
+Glossary entries: <comma-separated terms> | none
+Binding constraints: <constraint-1>, <constraint-2>
+Tactical follow-up: yes — see [TACTICAL DESIGN NEEDED] items in SDR-NNNNN. | no.
+```
+</output_format>
 
 <collaboration_with_architect>
 The consultant and the architect cover different halves of DDD. They collaborate via flagged hand-offs, not direct invocation:
