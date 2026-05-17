@@ -2,12 +2,14 @@
 name: documenting
 description: >
   Use this skill whenever an agent needs to write an analysis report, ADR (architectural
-  decision record), or implementation plan to the `artifacts/` directory. Defines the
+  decision record), implementation plan, bounded-context charter, context map, strategic
+  decision record (SDR), or glossary entry to the `artifacts/` directory. Defines the
   filename derivation rules, audience detection, confidence markers, and routes each
   artifact type to its template file under `templates/`. Triggers include "write a report",
-  "document this", "create an ADR", "draft a plan", or any request that produces a
-  structured artifact for the analyst or architect agents. Invoke standalone via
-  `/documenting`, or load via the `skills:` frontmatter field on an agent.
+  "document this", "create an ADR", "draft a plan", "write a charter", "map the contexts",
+  "ubiquitous language", or any request that produces a structured artifact for the
+  analyst, architect, or consultant agents. Invoke standalone via `/documenting`, or load
+  via the `skills:` frontmatter field on an agent.
 ---
 
 # Skill: documenting
@@ -18,14 +20,20 @@ Central registry for output format conventions and artifact templates. Agents lo
 
 ## Template registry
 
-| Artifact type       | Template file                              | Produced by  |
-|---------------------|--------------------------------------------|--------------|
-| Analysis report     | `templates/report.md`                      | analyst      |
-| ADR                 | `templates/adr.md`                         | architect    |
-| Implementation plan | `templates/plan.md`                        | architect    |
-| Progress            | `templates/progress.md`                    | developer    |
+| Artifact type             | Template file                              | Produced by  |
+|---------------------------|--------------------------------------------|--------------|
+| Analysis report           | `templates/report.md`                      | analyst      |
+| ADR (tactical)            | `templates/adr.md`                         | architect    |
+| Implementation plan       | `templates/plan.md`                        | architect    |
+| Progress                  | `templates/progress.md`                    | developer    |
+| Bounded context charter   | `templates/charter.md`                     | consultant   |
+| Context map               | `templates/context-map.md`                 | consultant   |
+| Strategic decision (SDR)  | `templates/strategic-adr.md`               | consultant   |
+| Glossary entry            | `templates/glossary.md`                    | consultant   |
 
 Read the template file for your artifact type before writing any output.
+
+**Tactical vs strategic ADRs.** `templates/adr.md` is for **tactical** technical decisions (architect — implementation patterns, component design, API shape within a context). `templates/strategic-adr.md` is for **strategic** business-aligned decisions (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern between contexts). Numbering is independent: tactical ADRs are `artifacts/adr/NNNNN-*`, strategic SDRs are `artifacts/strategy/decisions/NNNNN-*`.
 
 ---
 

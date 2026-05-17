@@ -23,7 +23,8 @@
       "Bash(git describe*)",
       "Bash(git shortlog*)",
       "Bash(git stash list*)",
-      "Bash(mkdir -p /home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing/templates)"
+      "Bash(mkdir -p /home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing/templates)",
+      "Edit(/.claude/skills/documenting/**)"
     ],
     "ask": [
       "Bash(rm *)",
