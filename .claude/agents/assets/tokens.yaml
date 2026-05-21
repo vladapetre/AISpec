@@ -1,0 +1,122 @@
+# Centralized handoff-token vocabulary for the agent system.
+# Single source of truth — agent files reference these entries; they never restate them.
+#
+# All routing physically passes through the team lead (star topology, single relay).
+
+# Section 5d — rules that govern the whole vocabulary.
+vocabulary_rules:
+  - A token means exactly one thing. Do not overload.
+  - A producer writes a token only into the artifact section named in its entry — never free-floating in conversation, except the designated summary lines.
+  - A consumer scans for its tokens at a fixed step of every invocation.
+  - Adding a new token requires adding an entry to this file first.
+  - Verdict tokens are matched as exact strings; near-matches are rejections.
+
+# Section 5a — routing tokens: move work between agents.
+# The producer writes the token into a named artifact section; the consumer scans for it
+# on its next invocation.
+#
+# Disambiguation note: the analyst report-side flag and the architect ADR-side flag share
+# the "ARCHITECT REVIEW NEEDED" wording but live in different artifacts. The in-artifact
+# form is bracketed (`[ARCHITECT REVIEW NEEDED]`); the conversation form is the
+# summary-line prefix (`ARCHITECT REVIEW NEEDED:`) — this keeps a grep unambiguous.
+routing_tokens:
+  - token: "[ARCHITECT REVIEW NEEDED]"
+    summary_line_form: "ARCHITECT REVIEW NEEDED:"
+    produced_by: analyst
+    written_into: "Report Recommendations section (in-artifact form) + a conversation summary line"
+    consumed_by: architect
+    consumed_at: "architect Mode A — recent-report scan"
+    meaning: "A finding needs tactical architectural input."
+
+  - token: "[STRATEGIC REVIEW NEEDED]"
+    produced_by: architect
+    written_into: "ADR `## Consequences`, under `**Strategic follow-up:**`"
+    consumed_by: consultant
+    consumed_at: "consultant — tactical-ADR scan"
+    meaning: "A tactical request raised a strategic question."
+
+  - token: "[TACTICAL DESIGN NEEDED]"
+    produced_by: consultant
+    written_into: "SDR `Tactical follow-up` section"
+    consumed_by: architect
+    consumed_at: "architect Mode A — strategic-artifact scan"
+    meaning: "A ratified strategic decision needs tactical design."
+
+  - token: "[CONSULTANT REVIEW NEEDED]"
+    summary_line_form: "STRATEGIC REVIEW NEEDED:"
+    produced_by: analyst
+    written_into: "Report Recommendations section + a conversation summary line"
+    consumed_by: consultant
+    consumed_at: "consultant — recent-report scan"
+    meaning: "A finding needs strategic input."
+
+# Section 5b — verdict tokens: gate decisions. Matched as exact strings.
+#
+# Phase-approval gate: every phase needs the architect's APPROVED and the user's
+# `approved`. The final phase additionally needs the reviewer's APPROVED — a triple gate.
+# The developer treats any non-APPROVED response from a required party as a rejection.
+verdict_tokens:
+  - token: "APPROVED"
+    issued_by: architect
+    gate: "phase-approval gate (every phase)"
+    effect: "One of the approvals the developer needs to advance the phase."
+
+  - token: "REVISION NEEDED"
+    summary_line_form: "REVISION NEEDED:"
+    issued_by: architect
+    gate: "phase-approval gate (every phase)"
+    effect: "Phase returns to the developer for revision (architect Mode B rejection)."
+
+  - token: "approved"
+    match: case-insensitive
+    issued_by: "user (relayed by team lead)"
+    gate: "phase-approval gate (every phase)"
+    effect: "One of the approvals the developer needs to advance the phase."
+
+  - token: "APPROVED"
+    issued_by: reviewer
+    gate: "final whole-implementation review (final phase only)"
+    effect: "Implementation passes the final gate."
+
+  - token: "CHANGES REQUIRED"
+    issued_by: reviewer
+    gate: "final whole-implementation review (final phase only)"
+    effect: "Implementation returns to the developer."
+
+# Section 5c — in-artifact markers: status / quality annotations, not routing.
+in_artifact_markers:
+  - marker: "<!-- status:phase-N -->"
+    used_by: "architect (writes), developer (reads / marks)"
+    purpose: "Per-phase anchor in plan files."
+
+  - marker: "**Status: Complete**"
+    used_by: developer
+    purpose: "Inserted after a phase anchor once both approvals are in."
+
+  - marker: "[IRREVERSIBLE]"
+    used_by: "architect, consultant"
+    purpose: "Marks a hard-to-reverse decision/step; triggers an extra human confirm."
+
+  - marker: "[PRE-EXISTING]"
+    used_by: "developer, reviewer"
+    purpose: "Failure/finding not introduced by the current phase; excluded from verdict."
+
+  - marker: "[VERIFIED]"
+    used_by: analyst
+    purpose: "Per-finding confidence marker — directly checked."
+
+  - marker: "[INFERRED]"
+    used_by: analyst
+    purpose: "Per-finding confidence marker — concluded indirectly."
+
+  - marker: "[ASSUMED]"
+    used_by: analyst
+    purpose: "Per-finding confidence marker — taken as given without verification."
+
+  - marker: "[ASSUMPTION]"
+    used_by: analyst
+    purpose: "Coverage/scoping caveat in the Risks and Unknowns section."
+
+  - marker: "[UNKNOWN]"
+    used_by: analyst
+    purpose: "A required question left unanswered after full ingestion."

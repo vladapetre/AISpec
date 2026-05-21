@@ -1,0 +1,243 @@
+# MAST — the multi-agent failure taxonomy and the 14 agent design rules.
+# Single source of truth for FM codes and rule IDs cited across agent definitions
+# and in the agent-definition template's validation checklist.
+#
+# Source: Cemri et al., "Why Do Multi-Agent LLM Systems Fail?", arXiv:2503.13657v2.
+
+meta_principle: >
+  Prompt tweaks alone do not fix multi-agent failures. Tactical fixes — better wording,
+  "be careful" instructions — give only marginal gains. Reliability comes from structural
+  changes: verification layers, defined protocols, explicit state handling. Treat every
+  rule below as architecture, not prompt polish.
+
+  LLM agents are stochastic, so true determinism is impossible. The achievable goal is
+  low variance + high accuracy. Most harmful non-determinism is under-specification, not
+  model randomness — tightening structure makes runs converge.
+
+# The 14 MAST failure modes, grouped into 3 categories.
+taxonomy:
+  system_design:
+    - { code: FM-1.1, name: Insufficient Context Provision }
+    - { code: FM-1.2, name: Disobey Role Specification }
+    - { code: FM-1.3, name: Premature Termination }
+    - { code: FM-1.4, name: Loss of Conversation History }
+    - { code: FM-1.5, name: Unaware of Stopping Conditions }
+  inter_agent_misalignment:
+    - { code: FM-2.1, name: Step Repetition }
+    - { code: FM-2.2, name: Conversation Reset }
+    - { code: FM-2.3, name: Conflicting Tool Use }
+    - { code: FM-2.4, name: Ineffective Delegation }
+    - { code: FM-2.5, name: Misaligned Agent Objectives }
+  task_verification:
+    - { code: FM-3.1, name: Incorrect Output Format }
+    - { code: FM-3.2, name: Incomplete Information Delivery }
+    - { code: FM-3.3, name: Inaccurate Task Execution }
+    - { code: FM-3.4, name: Ineffective Task Understanding }
+
+# The 14 design rules. Each maps to one or more failure modes.
+design_rules:
+  - id: R1
+    title: Give each agent its full context explicitly
+    category: System Design
+    failure_modes: [FM-1.1]
+    rule: >
+      Don't assume an agent inherits what an earlier agent saw. Pass the relevant
+      artifact into the prompt directly.
+    bad: >
+      Implement the feature we discussed.
+    good: >
+      Implement Phase 2 of artifacts/plans/checkout-redesign.md. Inputs: the ADR at
+      artifacts/adr/0007-payment-gateway.md and the API schema in src/api/checkout.ts.
+      Do not touch Phase 3 work.
+
+  - id: R2
+    title: Pin roles hard, and keep them narrow
+    category: System Design
+    failure_modes: [FM-1.2]
+    rule: >
+      State what the agent must do and what it must not do. Overlapping mandates cause
+      drift.
+    bad: >
+      You are a helpful architect agent. Help with the codebase.
+    good: >
+      You are the architect. You produce ADRs and implementation plans. You DO NOT write
+      production code. You DO NOT approve your own plans. If a task needs code, hand it to
+      the developer agent.
+
+  - id: R3
+    title: Define explicit stopping conditions
+    category: System Design
+    failure_modes: [FM-1.3, FM-1.5]
+    rule: >
+      Every agent needs a concrete "done" definition and a "not done until X" guard.
+    bad: >
+      Review the code and let me know what you think.
+    good: >
+      Review is complete ONLY when: (a) every checklist item has a verdict, (b) all
+      CHANGES REQUIRED items cite a file:line, (c) you emit a final APPROVED or CHANGES
+      REQUIRED line. Do not stop before all three exist.
+
+  - id: R4
+    title: Make conversation history durable
+    category: System Design
+    failure_modes: [FM-1.4]
+    rule: >
+      Persist decisions in artifacts, not just chat. State that lives only in transient
+      messages gets lost across handoffs.
+    bad: >
+      Architect explains a trade-off in a chat message; the developer never sees it.
+    good: >
+      Architect records the trade-off in artifacts/adr/0009-cache-strategy.md; the
+      developer prompt references that file path. The decision survives the handoff.
+
+  - id: R5
+    title: Make delegation contracts explicit
+    category: Inter-Agent Misalignment
+    failure_modes: [FM-2.4]
+    rule: >
+      A handoff must specify: task, inputs, expected output shape, acceptance criteria.
+    bad: >
+      @developer go implement the auth changes.
+    good: >
+      @developer Task: implement Phase 1 of plans/auth-rewrite.md. Inputs: ADR 0011,
+      src/auth/. Output: modified files + a test run summary. Acceptance: all existing
+      tests pass, new middleware has unit coverage. Stop after Phase 1 and wait for review.
+
+  - id: R6
+    title: Require a single shared source of truth for goals
+    category: Inter-Agent Misalignment
+    failure_modes: [FM-2.5]
+    rule: >
+      All agents reference the same plan/charter. When each agent re-derives the
+      objective, goals drift apart.
+    bad: >
+      Consultant, architect, and developer each restate the goal in their own words.
+    good: >
+      The bounded-context charter at artifacts/charters/billing.md is the canonical goal
+      statement; every agent prompt links to it and quotes from it rather than
+      paraphrasing.
+
+  - id: R7
+    title: Detect and break repetition loops
+    category: Inter-Agent Misalignment
+    failure_modes: [FM-2.1]
+    rule: >
+      Track whether an agent is re-doing a step with no new result; cap iterations.
+    bad: >
+      Agent retries the same failing build command 8 times with no change.
+    good: >
+      If a command fails twice with the same error, STOP. Report the error and your
+      diagnosis instead of retrying. Max 3 attempts per distinct action.
+
+  - id: R8
+    title: Standardize tool/interface protocols across agents
+    category: Inter-Agent Misalignment
+    failure_modes: [FM-2.3]
+    rule: >
+      Same tool names, same I/O conventions, so two agents don't take conflicting actions.
+    bad: >
+      One agent edits files with Edit, another shells out to sed, a third rewrites whole
+      files — the same file mutated three incompatible ways.
+    good: >
+      All agents use Edit for modifications and Write only for new files; artifact writes
+      always go through the documenting skill's filename rules.
+
+  - id: R9
+    title: Never reset context mid-task
+    category: Inter-Agent Misalignment
+    failure_modes: [FM-2.2]
+    rule: >
+      Resume agents with full history rather than spawning fresh ones.
+    bad: >
+      Developer hits a blocker; you spawn a brand-new developer agent that has no memory
+      of Phases 1-2.
+    good: >
+      Resume the existing developer via SendMessage with the agent's name — it keeps the
+      full phase history and prior decisions.
+
+  - id: R10
+    title: Add a dedicated verifier — never let the producer self-certify
+    category: Task Verification
+    failure_modes: [FM-3.3]
+    rule: >
+      A separate reviewer catching errors was the single most effective intervention in
+      the paper.
+    bad: >
+      Developer finishes a phase and declares "implementation verified, all good."
+    good: >
+      Developer output is routed to the reviewer agent, which runs an adversarial review
+      and emits an independent APPROVED / CHANGES REQUIRED verdict before the phase can
+      advance.
+
+  - id: R11
+    title: Verify output format, not just content
+    category: Task Verification
+    failure_modes: [FM-3.1]
+    rule: >
+      Check the output matches the schema the next agent expects before handing off.
+    bad: >
+      Architect produces a plan with no phase anchors; the developer can't mark the
+      status complete because the per-phase status markers are missing.
+    good: >
+      A format check confirms the plan has numbered phases, status anchors, and
+      acceptance criteria before it is handed to the developer.
+
+  - id: R12
+    title: Make verification checklist-driven, not vibe-based
+    category: Task Verification
+    failure_modes: [FM-3.3]
+    rule: >
+      Generic "review this" misses things; concern-specific checklists catch more.
+    bad: >
+      Review the PR and flag anything that looks wrong.
+    good: >
+      Reviewer loads the framework- and concern-specific checklists from the reviewing
+      skill (e.g. SQL injection, N+1 queries, missing error handling) and gives each item
+      an explicit pass/fail with evidence.
+
+  - id: R13
+    title: Force task restatement before execution
+    category: Task Verification
+    failure_modes: [FM-3.4, FM-3.2]
+    rule: >
+      Have the agent paraphrase requirements and success criteria first — a cheap way to
+      catch misunderstanding early.
+    bad: >
+      Agent reads the task and immediately starts editing files.
+    good: >
+      Before writing any code, restate: (1) what you understand the task to be, (2) the
+      success criteria, (3) anything ambiguous. Wait for confirmation if anything is
+      unclear.
+
+  - id: R14
+    title: Decompose into independently verifiable subtasks
+    category: Task Verification
+    failure_modes: [FM-3.3, FM-3.4]
+    rule: >
+      Each subtask gets explicit success criteria and is checked on its own.
+    bad: >
+      "Build the whole reporting dashboard" as one opaque unit of work.
+    good: >
+      Plan splits into Phase 1 (data layer), Phase 2 (API), Phase 3 (UI), each with its
+      own acceptance criteria and its own architect review gate.
+
+# Quick audit checklist for an agent definition — each item maps to a design rule.
+audit_checklist:
+  - { rule: R1, check: "Does the prompt pass all needed context/artifacts explicitly?" }
+  - { rule: R2, check: "Are both the role and the anti-role (must-not-do) stated?" }
+  - { rule: R3, check: "Is there a concrete, testable 'done' condition?" }
+  - { rule: R4, check: "Are decisions persisted to artifacts, not just chat?" }
+  - { rule: R5, check: "Do handoffs specify task + inputs + output shape + acceptance?" }
+  - { rule: R6, check: "Do all agents point to one canonical goal statement?" }
+  - { rule: R7, check: "Is there an iteration / retry cap?" }
+  - { rule: R8, check: "Are tool conventions standardized across agents?" }
+  - { rule: R9, check: "Are agents resumed rather than re-spawned?" }
+  - { rule: R10, check: "Is there an independent verifier (not the producer)?" }
+  - { rule: R11, check: "Is output format validated at each handoff?" }
+  - { rule: R12, check: "Is verification checklist-driven?" }
+  - { rule: R13, check: "Does the agent restate the task before acting?" }
+  - { rule: R14, check: "Is the work decomposed into verifiable subtasks?" }
+
+source:
+  citation: 'Cemri et al., "Why Do Multi-Agent LLM Systems Fail?", arXiv:2503.13657v2'
+  basis: "MAST — a taxonomy of 14 failure modes from 1600+ annotated traces across 7 multi-agent frameworks."
