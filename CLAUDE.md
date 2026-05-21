@@ -20,3 +20,22 @@ Analysis reports (`artifacts/reports/`) are owned by the analyst agent and writt
 ## Implementation Review
 
 After each implementation phase, the architect agent must review the code before proceeding to the next phase. Route the phase output to the architect via `SendMessage` and wait for their approval alongside the user's.
+
+# Source Code Reference
+
+Source code for dependencies and reference repositories is fetched on demand by the `opensrc` CLI into the project-local `.opensrc/` cache. Always invoke it through the `npm run opensrc` script — it sets `OPENSRC_HOME` so the cache stays inside the project on every workstation.
+
+- Run `npm run opensrc -- list` to see all cached sources, or read `.opensrc/sources.json` for the manifest.
+- Run `npm run opensrc -- path <spec>` to print the path to a cached source — it fetches automatically on a cache miss.
+- Use this source code when you need to understand how a package works internally, not just its types/interface.
+
+## Fetching Additional Source Code
+
+To fetch source code for a package or repository you need to understand, run:
+
+```
+npm run opensrc -- fetch <package>        # npm package        (e.g., npm run opensrc -- fetch zod)
+npm run opensrc -- fetch pypi:<package>   # Python package     (e.g., npm run opensrc -- fetch pypi:requests)
+npm run opensrc -- fetch crates:<package> # Rust crate         (e.g., npm run opensrc -- fetch crates:serde)
+npm run opensrc -- fetch <owner>/<repo>   # GitHub repository  (e.g., npm run opensrc -- fetch jdforsythe/forge)
+```

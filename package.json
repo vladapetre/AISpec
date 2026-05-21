@@ -1,0 +1,24 @@
+{
+  "name": "aispec",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/vladapetre/AISpec#readme",
+  "bugs": {
+    "url": "https://github.com/vladapetre/AISpec/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vladapetre/AISpec.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "opensrc": "OPENSRC_HOME=.opensrc opensrc"
+  },
+  "dependencies": {
+    "opensrc": "^0.7.2"
+  }
+}
