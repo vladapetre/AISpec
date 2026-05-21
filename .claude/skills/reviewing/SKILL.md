@@ -10,7 +10,9 @@ description: >
 
 # Skill: reviewing
 
-Central registry for code review checklists and detection rules. The reviewer agent loads this skill to know which templates apply and how to classify findings.
+Central registry for code-review checklists and detection rules. The reviewer agent loads this skill to know which templates apply and how to classify findings.
+
+**Skill shape:** linear. Dual-mode — invoked standalone via `/reviewing`, and loaded via the `skills:` frontmatter field on the reviewer agent.
 
 ---
 
@@ -75,8 +77,21 @@ A Critical finding blocks APPROVED. Major and Minor do not.
 
 Follow in order when invoked directly as `/reviewing`:
 
-1. If no phase summary or plan reference is provided, ask: "Which plan and phase should I review?" Stop until answered.
-2. Apply framework and concern detection rules above.
-3. Load the templates that match (always alignment.md, plus matched framework/concern templates, plus patterns.md as fallback or always-on).
-4. Run the review following the reviewer agent `<instructions>` steps 7–11.
-5. Output the structured review in the reviewer agent `<output_format>`.
+1. IF no plan/phase reference and no changed-file set is provided: ask "Which plan and phase, and which files, should I review?" Stop until answered.
+2. Apply the **Framework detection rules** and **Concern detection rules** above. Record what matched.
+3. Read the templates that apply: always `templates/alignment.md` and `templates/patterns.md`, plus every matched framework and concern template from the **Template registry**.
+4. Run the alignment check (`templates/alignment.md`) against the phase's acceptance criteria, then run every checklist item in each loaded template against the changed files. Assign each finding a severity per the **Severity definitions** above. Tag a finding on a line the phase did not change `[PRE-EXISTING]` and exclude it from the verdict.
+5. Output the structured review — an alignment table, then findings grouped by severity — ending with a final line that is exactly `APPROVED` or `CHANGES REQUIRED` (verdict tokens — see `templates/assets/tokens.yaml`). Never emit `APPROVED` while an alignment criterion is FAIL or a Critical finding is open.
+
+The reviewer agent loads this skill and drives the same procedure through its own `<instructions>` and `<output_format>`, which additionally fix the commit range and add `git blame` provenance for the `[PRE-EXISTING]` classification. Standalone runs follow the lighter procedure above.
+
+---
+
+## Bundled resources
+
+```
+.claude/skills/reviewing/
+  SKILL.md     this file — the always-loaded core
+  templates/   one checklist per registered framework / concern, plus alignment.md
+               and patterns.md (read on demand per the Template registry)
+```

@@ -1,19 +1,22 @@
 ---
 name: auditing
 description: >
-  Session auditing skill. Creates a per-session audit trail at
-  artifacts/sessions/{date}/{uuid}/session.md. Hooks auto-update heartbeat
-  and artifact entries without LLM involvement. Invoke as /auditing with
-  subcommands: init, checkpoint, close.
+  Maintains a per-session audit trail at artifacts/sessions/{date}/{uuid}/session.md.
+  Use this skill to set the session goal, log a milestone checkpoint, or close out a
+  session. Invoke standalone as `/auditing <init|checkpoint|close>`; also driven
+  programmatically by hooks and by other skills/agents at milestone events.
 ---
 
 # Skill: auditing
 
-Maintains a structured, auditable record of what was worked on in a session.
-Session identity comes from `$CLAUDE_CODE_SESSION_ID` — each Claude window gets
-its own independent trail. Hooks handle heartbeat and artifact logging automatically.
+Keeps a structured, auditable record of what a session worked on. Session identity comes
+from `$CLAUDE_CODE_SESSION_ID`, so each Claude window gets its own independent trail; the
+`UserPromptSubmit`, `Stop`, and `PostToolUse` hooks create the file and maintain the
+heartbeat and artifact entries with no LLM involvement.
 
-**Skill shape:** dispatcher-style. Unlike `documenting` and `reviewing`, this skill has no central template registry and no shared linear `Steps` flow — every invocation must name a subcommand (`init`, `checkpoint`, `close`). See the `## Steps (standalone invocation)` section for the dispatch rule.
+**Skill shape:** dispatcher. Invoked standalone via `/auditing`, and driven
+programmatically by hooks and by other skills/agents at milestone events. Every
+invocation must name exactly one subcommand (`init`, `checkpoint`, `close`).
 
 ---
 
@@ -21,82 +24,73 @@ its own independent trail. Hooks handle heartbeat and artifact logging automatic
 
 Follow in order when invoked directly as `/auditing`:
 
-1. Parse the subcommand from the invocation. Valid values: `init`, `checkpoint`, `close`. If no subcommand is provided, output `Usage: /auditing <init|checkpoint|close> [args]` and stop.
-2. Dispatch to the matching `### <subcommand>` section below and execute it exactly as written.
-3. Do not chain subcommands in a single invocation — one per call.
+1. Parse the subcommand from the invocation. Valid values: `init`, `checkpoint`, `close`.
+   IF no subcommand is provided: output `Usage: /auditing <init|checkpoint|close> [args]`
+   and stop.
+2. Dispatch to the matching `### <subcommand>` section below and execute it exactly.
+3. Run exactly one subcommand per invocation — never chain.
 
 ---
 
 ## Subcommands
 
+The deterministic file edits are performed by `scripts/session.mjs` — a Node script
+(runs identically on Windows, macOS, and Linux) that resolves the session file from
+`$CLAUDE_CODE_SESSION_ID`, applies the edit, and prints the exact confirmation line.
+Never edit the session file by hand.
+
 ### init
 
 **When:** user invokes `/auditing init <goal>` to set or override the session goal.
 
-The session is already created automatically by the `UserPromptSubmit` hook on the
-first message. This subcommand only updates the `## Goal` section.
+The session file is already created by the `UserPromptSubmit` hook on the first message.
+This subcommand only rewrites the `## Goal` section.
 
 Run:
 ```bash
-cat "artifacts/sessions/.map/$CLAUDE_CODE_SESSION_ID"
+node .claude/skills/auditing/scripts/session.mjs init "<goal>"
 ```
 
-Edit `artifacts/sessions/{REL_PATH}/session.md`: replace the current content of
-the `## Goal` section with the provided `<goal>` text. The Goal section is the
-paragraph between `## Goal` and the next `##` heading.
-
-Output exactly one line: `Goal updated.`
-
----
+Output exactly the script's line: `Goal updated.`
 
 ### checkpoint
 
-**When:** user invokes `/auditing checkpoint <note>` or a significant milestone occurs
-(plan approved, phase complete, key decision made, open question identified).
+**When:** user invokes `/auditing checkpoint <note>`, or a milestone occurs (see
+*Checkpoint triggers*).
+
+`<note>` is one factual, past-tense sentence, max 100 characters, no newlines — the
+script rejects a note that breaks these limits.
 
 Run:
 ```bash
-printf "REL=%s\nTIME=%s\n" \
-  "$(cat "artifacts/sessions/.map/$CLAUDE_CODE_SESSION_ID")" \
-  "$(date -u +'%H:%MZ')"
+node .claude/skills/auditing/scripts/session.mjs checkpoint "<note>"
 ```
 
-Edit `artifacts/sessions/{REL}/session.md`: insert the following line
-immediately before `<!-- end-checkpoints -->`:
-```
-- {TIME} — {note}
-```
-
-`{note}` is the argument from the invocation. Max 100 characters. No newlines.
-
-Output exactly one line: `Checkpoint logged.`
-
----
+Output exactly the script's line: `Checkpoint logged.`
 
 ### close
 
-**When:** user invokes `/auditing close` or the session is ending.
+**When:** user invokes `/auditing close`, or the session is ending.
 
-Run:
-```bash
-cat "artifacts/sessions/.map/$CLAUDE_CODE_SESSION_ID"
-```
+1. Resolve the session file path:
+   ```bash
+   cat "artifacts/sessions/.map/$CLAUDE_CODE_SESSION_ID"
+   ```
+2. Edit `artifacts/sessions/{REL}/session.md`: fill the `## Open` section with any
+   unresolved questions or next steps — questions only, no answers. Write `—` if none.
+   This step needs judgement, so it is not scripted.
+3. Run the cleanup helper (removes the session-map entry):
+   ```bash
+   node .claude/skills/auditing/scripts/session.mjs close
+   ```
 
-Edit `artifacts/sessions/{REL}/session.md`: fill the `## Open` section with
-any unresolved questions or next steps. Write `—` if none.
-
-Run:
-```bash
-rm "artifacts/sessions/.map/$CLAUDE_CODE_SESSION_ID"
-```
-
-Output exactly one line: `Session closed: artifacts/sessions/{REL}/session.md`
+Output exactly the script's line: `Session closed: artifacts/sessions/{REL}/session.md`
 
 ---
 
-## Checkpoint triggers (when invoked by other skills or agents)
+## Checkpoint triggers
 
-Call `/auditing checkpoint` automatically at:
+When another skill or agent drives this skill, call `/auditing checkpoint` automatically at:
 - Plan or ADR created or approved
 - Implementation phase approved or completed
 - Key decision made
@@ -112,3 +106,14 @@ Do NOT checkpoint for every tool call — only milestone events.
 - Checkpoint notes are one sentence, past tense, factual.
 - The `## Open` section lists questions only — no answers, no resolution detail.
 - Do not read other sessions' files unless the user explicitly asks.
+
+---
+
+## Bundled resources
+
+```
+.claude/skills/auditing/
+  SKILL.md              this file — the always-loaded core
+  scripts/session.mjs   deterministic init / checkpoint / close file edits (Node)
+  templates/session.md  the session-file skeleton the session-start hook instantiates
+```

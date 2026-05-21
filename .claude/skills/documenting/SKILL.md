@@ -8,13 +8,15 @@ description: >
   artifact type to its template file under `templates/`. Triggers include "write a report",
   "document this", "create an ADR", "draft a plan", "write a charter", "map the contexts",
   "ubiquitous language", or any request that produces a structured artifact for the
-  analyst, architect, or consultant agents. Invoke standalone via `/documenting`, or load
-  via the `skills:` frontmatter field on an agent.
+  analyst, architect, consultant, or developer agents. Invoke standalone via
+  `/documenting`, or load via the `skills:` frontmatter field on an agent.
 ---
 
 # Skill: documenting
 
-Central registry for output format conventions and artifact templates. Agents load this skill to get shared formatting rules and a pointer to the correct template for their artifact type.
+Central registry for output-format conventions and artifact templates. Agents load this skill to get shared formatting rules and a pointer to the correct template for their artifact type.
+
+**Skill shape:** linear. Dual-mode — invoked standalone via `/documenting`, and loaded via the `skills:` frontmatter field on the analyst, architect, consultant, and developer agents.
 
 ---
 
@@ -67,32 +69,26 @@ Only analysis reports run audience detection. All other types use the fixed audi
 
 ### Filename derivation
 
-Apply this algorithm exactly. Do not paraphrase or shortcut steps.
+The filename stem is derived deterministically by `scripts/filename.mjs` — a Node script that runs identically on Windows, macOS, and Linux. Run it — do not derive the name by hand:
 
-1. Take the **subject noun phrase** from the request — the thing being analysed/designed/planned. Strip any meta verbs / prefixes from this exact list (case-insensitive, match at the start of the subject only): `Analysis of`, `Design of`, `Plan for`, `Review of`, `Audit of`, `Spec of`, `Spec for`, `Specification of`, `Specification for`, `Scope of`, `Migration to`, `Migration of`, `Refactor of`, `Document`, `Documentation of`. If none match, leave the subject as-is.
-2. Lowercase the result.
-3. Remove all tokens that exactly match this stopword list (case-insensitive):
-   `a, an, the, of, for, to, in, on, at, with, and, or, but, by, from, as, into, our, your, my, this, that, these, those`
-4. Replace any non-alphanumeric character with a single hyphen. Collapse runs of hyphens. Trim leading/trailing hyphens.
-5. Keep the first N tokens (after hyphenation):
-   - Analysis reports: N = 3, then append `-analysis`. If fewer than 3 tokens remain, keep all remaining tokens, then append `-analysis`. Do not pad.
-   - ADRs and plans: N between 3 and 5 inclusive — take all remaining tokens if ≤ 5, else the first 5. If fewer than 3 tokens remain, keep all remaining tokens. Do not pad and do not append a suffix.
-6. For ADRs only: prepend the zero-padded 5-digit sequence number (`NNNNN-`). Scan `artifacts/adr/` for the highest existing number and increment by 1. If `artifacts/adr/` is empty or missing, start at `00001`.
+```bash
+node .claude/skills/documenting/scripts/filename.mjs <report|adr|plan> "<subject>"
+```
 
-**Worked examples** (apply each step in order):
+`<subject>` is the subject noun phrase from the request — the thing being analysed/designed/planned. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to the per-type token budget (report = 3, ADR/plan = 5), appends `-analysis` for reports, and prepends the next zero-padded 5-digit sequence number for ADRs (scanning `artifacts/adr/`). It prints the stem on stdout.
 
-| Input subject | Step 1 (strip meta) | Step 3 (drop stopwords) | Step 5 (take N) | Final |
-|---|---|---|---|---|
-| "Analysis of the Auth Middleware" | "the Auth Middleware" | "auth middleware" | report, N=3 | `auth-middleware-analysis` |
-| "Design of the Auth Middleware" | "the Auth Middleware" | "auth middleware" | adr/plan, N≤5 | `auth-middleware` (+ `00002-` prefix for ADR) |
-| "Plan for migrating the user service to gRPC" | "migrating the user service to gRPC" | "migrating user service grpc" | adr/plan, N=4 | `migrating-user-service-grpc` |
-| "Stripe webhook idempotency analysis" | "Stripe webhook idempotency" | "stripe webhook idempotency" | report, N=3 | `stripe-webhook-idempotency-analysis` |
+| Input subject | Type | Printed stem |
+|---|---|---|
+| "Analysis of the Auth Middleware" | report | `auth-middleware-analysis` |
+| "Plan for migrating the user service to gRPC" | plan | `migrating-user-service-grpc` |
+| "Design of the Auth Middleware" | adr | `00002-auth-middleware` (prefix depends on `artifacts/adr/`) |
+| "Stripe webhook idempotency analysis" | report | `stripe-webhook-idempotency-analysis` |
 
-The derived short title must be identical across the paired ADR and plan (ADR adds the numeric prefix, plan does not).
+For a paired ADR and plan, run the script with the **same** `<subject>` for each — the base stem is identical (the ADR adds the numeric prefix, the plan does not). Artifact types without a script mode (charter, context map, SDR, glossary, progress) follow the naming convention in their own template file.
 
 ### Confidence markers
 
-Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
+The marker strings (`[VERIFIED]`, `[INFERRED]`, `[ASSUMED]`) are defined in `templates/assets/tokens.yaml` — this section defines *when* to apply each. Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
 
 1. Direct quote, observable fact, or value readable from the source without reasoning → **[VERIFIED]**
 2. Follows necessarily from one or more VERIFIED facts via explicit deductive steps the reader could reproduce → **[INFERRED]**. A single VERIFIED fact is sufficient when the deduction is mechanical (e.g., reading a constant and stating its scope from the file path).
@@ -110,10 +106,21 @@ Follow in order when invoked directly as `/documenting`:
 
 1. If the request does not include a subject, analysis notes, or source references, ask: "What should I document? Provide a subject and any notes or sources." Stop until answered.
 2. Identify the artifact type from the request. If the artifact type is **analysis report**, determine the audience using the **Audience detection** rules above. If the artifact type is **ADR** or **plan**, skip audience detection — these are always developer-facing.
-3. Derive the short title using the **Filename derivation** rules above.
+3. Derive the filename stem by running `scripts/filename.mjs` (see **Filename derivation**).
 4. Read the template for the artifact type from the **Template registry**.
 5. Write the artifact using that template.
 6. Write the memory entry as defined in the template file.
 7. Output a one-paragraph summary: what was produced, where it was written, and whether architect review is flagged.
 
-Agents that load this skill for format reference and have already completed steps 1–3 should skip to step 4.
+Agents that load this skill for format reference run the same procedure: an agent that has already validated input and identified the artifact type joins at step 3.
+
+---
+
+## Bundled resources
+
+```
+.claude/skills/documenting/
+  SKILL.md                    this file — the always-loaded core
+  scripts/filename.mjs        deterministic filename-stem derivation (Node)
+  templates/                  one artifact skeleton per registered type (read on demand)
+```
