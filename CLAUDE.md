@@ -2,7 +2,9 @@
 
 ## Team Setup
 
-Before spawning any named agent (developer, etc.), check if a team exists for this session. If not, create one with `TeamCreate` first, then spawn the agent as a named teammate using `team_name` and `name` parameters.
+Before spawning any named agent (analyst, consultant, architect, developer, reviewer), check if a team exists for this session. If not, create one with `TeamCreate` first, then spawn the agent as a named teammate using `team_name` and `name` parameters.
+
+Each agent auto-loads its declared skills via the `skills:` frontmatter field — do not re-invoke those skills from the team lead.
 
 ## Agent Communication
 
@@ -13,13 +15,26 @@ Any message, question, plan, or request for input from any agent or teammate mus
 
 ## Artifact Ownership
 
-Changes to ADRs (`artifacts/adr/`) and plans (`artifacts/plans/`) must be delegated to the architect agent via `SendMessage`, not edited directly. The developer agent is the only exception: it may edit a plan file to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once both the user and architect have approved that phase.
+Each agent owns a specific artifact directory. Route writes to the owner via `SendMessage` — do not edit owned artifacts directly.
 
-Analysis reports (`artifacts/reports/`) are owned by the analyst agent and written directly. Do not route report writes through the architect.
+| Directory                | Owner      | Contents                                                       |
+| ------------------------ | ---------- | -------------------------------------------------------------- |
+| `artifacts/reports/`     | analyst    | Analysis reports (written directly, not routed)                |
+| `artifacts/strategy/`    | consultant | Bounded-context charters, context maps, SDRs, glossary entries |
+| `artifacts/adr/`         | architect  | Architectural decision records                                 |
+| `artifacts/plans/`       | architect  | Implementation plans                                           |
+| `artifacts/sessions/`    | auditing skill | Per-session audit trail (`{date}/{uuid}/session.md`)       |
+| `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                     |
+
+Exception: the developer agent may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once both the user and architect have approved that phase.
+
+The analyst writes reports directly (no routing). All other owned artifacts must go through their owning agent.
 
 ## Implementation Review
 
-After each implementation phase, the architect agent must review the code before proceeding to the next phase. Route the phase output to the architect via `SendMessage` and wait for their approval alongside the user's.
+After each implementation phase, the architect agent must review the code before proceeding to the next phase. Route the phase output to the architect via `SendMessage` and wait for their approval alongside the user's (the dual-approval gate).
+
+On the final phase, the reviewer agent acts as the final quality gate: it verifies the cumulative diff against every phase's acceptance criteria and issues either `APPROVED` or `CHANGES REQUIRED`. Route the final phase to both the architect and the reviewer.
 
 # Source Code Reference
 
