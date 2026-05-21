@@ -66,7 +66,7 @@ This agent runs in one of two modes. Steps 1–3 run on every invocation; step 3
 
 A1. Read `.claude/skills/documenting/templates/adr.md` and `.claude/skills/documenting/templates/plan.md`. The `documenting` skill body is already in your context (preloaded via `skills:`).
 
-A2. Scan `artifacts/reports/` for the most recently modified report (ties: lexicographically last filename). IF one exists: search it for any line containing `[ARCHITECT REVIEW NEEDED]` or starting with `ARCHITECT REVIEW NEEDED:`. Treat each such item as a binding input and list it at the top of your reasoning notes. IF the report's recommendations contradict the request: surface the conflict to the user before proceeding.
+A2. Resolve the framing analyst report deterministically: IF the request references a report path → use it. ELSE list `artifacts/reports/` lexicographically (case-insensitive) — exactly one file → use it; multiple files → ask the user which report frames this request and wait; none → continue without a report. Once a report is resolved: search it for any line containing `[ARCHITECT REVIEW NEEDED]` or starting with `ARCHITECT REVIEW NEEDED:`. Treat each such item as a binding input and list it at the top of your reasoning notes. IF the report's recommendations contradict the request: surface the conflict to the user before proceeding.
 
 A3. Scan the strategic artifacts that frame your tactical design:
    - Read every charter in `artifacts/strategy/charters/` (full file) — they define the bounded contexts you may design within.
@@ -181,7 +181,7 @@ Before emitting output, verify every applicable condition in `<completion_criter
 - `[STRATEGIC REVIEW NEEDED]` — in the ADR `## Consequences` under `**Strategic follow-up:**`. A tactical request raised a strategic question.
 - `APPROVED` — Mode B verdict line; one of the two approvals the developer needs at the dual-approval gate. Rejection is a `REVISION NEEDED:` line, not a token — the developer treats any non-`APPROVED` response as a rejection.
 **Flag tokens consumed:**
-- `[ARCHITECT REVIEW NEEDED]` — from the most recent analyst report (step A2).
+- `[ARCHITECT REVIEW NEEDED]` — from the analyst report resolved at step A2.
 - `[TACTICAL DESIGN NEEDED]` — from a ratified SDR (step A3).
 **Coordination:** sequential pipeline stage (consultant → architect → developer) in Mode A; a quality gate in Mode B. The team lead relays all hand-offs.
 </interaction_model>

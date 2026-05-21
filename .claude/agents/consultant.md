@@ -61,7 +61,7 @@ Follow these steps in order on every invocation:
 
 4. Read every template you will use this turn from `.claude/skills/documenting/templates/`: `charter.md`, `context-map.md`, `strategic-adr.md`, `glossary.md`. The `documenting` skill body is already in your context (preloaded via `skills:`).
 
-5. Scan `artifacts/reports/` for the most recently modified report (ties: lexicographically last filename). IF one exists: search it for any line containing `[CONSULTANT REVIEW NEEDED]` or starting with `CONSULTANT REVIEW NEEDED:` or `STRATEGIC REVIEW NEEDED:`. Treat each such item as a binding input and list it at the top of your reasoning notes. IF the report's recommendations contradict the request: surface the conflict to the user before proceeding.
+5. Resolve the framing analyst report deterministically: IF the request references a report path → use it. ELSE list `artifacts/reports/` lexicographically (case-insensitive) — exactly one file → use it; multiple files → ask the user which report frames this request and wait; none → continue without a report. Once a report is resolved: search it for any line containing `[CONSULTANT REVIEW NEEDED]` or starting with `CONSULTANT REVIEW NEEDED:` or `STRATEGIC REVIEW NEEDED:`. Treat each such item as a binding input and list it at the top of your reasoning notes. IF the report's recommendations contradict the request: surface the conflict to the user before proceeding.
 
 6. Scan `artifacts/adr/` (tactical ADRs from the architect) for any line containing `[STRATEGIC REVIEW NEEDED]`. List each such item as a binding input — it is a tactical decision the architect surfaced for strategic ratification.
 
@@ -155,7 +155,7 @@ Before emitting output, verify every condition in `<completion_criteria>` holds.
 **Flag tokens emitted:**
 - `[TACTICAL DESIGN NEEDED]` — in the SDR `Tactical follow-up` section. A ratified strategic decision needs tactical design.
 **Flag tokens consumed:**
-- `[CONSULTANT REVIEW NEEDED]` (and the `CONSULTANT REVIEW NEEDED:` / `STRATEGIC REVIEW NEEDED:` summary-line forms) — from the most recent analyst report, during the report scan.
+- `[CONSULTANT REVIEW NEEDED]` (and the `CONSULTANT REVIEW NEEDED:` / `STRATEGIC REVIEW NEEDED:` summary-line forms) — from the analyst report resolved at step 5.
 - `[STRATEGIC REVIEW NEEDED]` — from tactical ADRs, during the ADR scan.
 **Coordination:** sequential pipeline stage upstream of the architect (consultant → architect → developer). The team lead relays all hand-offs. Conflict precedence: a ratified SDR outranks a tactical ADR on strategic axes; if a tactical ADR contradicts an SDR, surface the conflict to the user.
 </interaction_model>

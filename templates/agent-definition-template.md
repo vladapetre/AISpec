@@ -28,7 +28,7 @@ workflow-vs-agent distinction.) This gate is the first item on the validation ch
 
 ## Shared assets
 
-Two normalized data files under `.claude/agents/assets/` are the single source of truth
+Two normalized data files under `./assets/` are the single source of truth
 for cross-agent vocabulary. Agent files **reference** them — they never restate the content.
 
 - **`tokens.yaml`** — every handoff token, verdict token, and in-artifact marker, with its
@@ -50,8 +50,9 @@ The 7 components are delimited by **XML tags**; content **within** each tag uses
   deliberately model-agnostic — not because markdown is better here.)
 - Tag names are `snake_case`. Reuse the existing project tag names — `<instructions>`,
   `<rules>`, `<output_format>` — for continuity; new components get new tags.
-- Do **not** wrap the whole body in a single outer tag. (The current agent files have a
-  stray unclosed `</output>` at EOF — a bug; do not reproduce it.)
+- Do **not** wrap the whole body in a single outer tag, and never leave a stray closing
+  tag at EOF. Every tag opened must be closed, and no tag closed without being opened —
+  the last line of an agent file is `</output_format>`.
 
 ---
 
@@ -237,6 +238,10 @@ expects to find it.
 > examples into a `skills:` skill and reference it. Start with a memory-load step if
 > `memory: project`, then a task-restatement step (design rule R13 / FM-3.4) — the cheapest
 > defense against misunderstanding. End by deferring emission to `<completion_criteria>`.
+> Any step that selects a file or artifact must use a **deterministic key** — an explicit
+> path or identifier from the request, with lexicographic order as the fallback. Never
+> select by filesystem modification time ("most recently modified"): mtime is not preserved
+> across clone or checkout, so it makes runs diverge (mast.yaml meta-principle: low variance).
 
 <instructions>
 Follow these steps in order on every invocation:
@@ -271,7 +276,7 @@ Before emitting output, verify every condition in `<completion_criteria>` holds.
 > instead", never "be careful".
 >
 > MAST menu — pick the failure modes that fit this role from the 14-FM taxonomy in
-> `.claude/agents/assets/mast.yaml`, and cite each by its FM code so the named pattern
+> `./assets/mast.yaml`, and cite each by its FM code so the named pattern
 > activates the failure-knowledge cluster directly. Common picks: FM-1.2 Disobey Role
 > Specification, FM-2.1 Step Repetition, FM-3.1 Incorrect Output Format, FM-3.3 Inaccurate
 > Task Execution, FM-3.4 Ineffective Task Understanding.
@@ -306,7 +311,7 @@ Before emitting output, verify every condition in `<completion_criteria>` holds.
 > **Guidance — Component 7: Interaction Model.** The typed-artifact chain. MetaGPT
 > research: structured hand-offs cut error propagation ~40% versus free-form dialogue.
 > This project's **flag tokens** ARE the typed hand-offs; they are defined once in
-> `.claude/agents/assets/tokens.yaml` — the single source of truth. List here only the
+> `./assets/tokens.yaml` — the single source of truth. List here only the
 > tokens THIS agent emits and consumes, citing each by its `tokens.yaml` name and where it
 > appears. Never invent a token in an agent file — add a row to `tokens.yaml` first
 > (design rule R8: standardized protocols).
@@ -372,6 +377,7 @@ ARCHITECT REVIEW NEEDED: [item]; [item]
 - [ ] `<decision_authority>` has all three lines; "Out of scope" names the agent that owns each excluded item. (R2 / FM-1.2)
 - [ ] `<instructions>` steps are imperative, ordered, use explicit IF/THEN, have OUTPUT lines; total ≤ ~2000 tokens. (R1 / FM-1.1)
 - [ ] `<instructions>` has a task-restatement step right after memory load. (R13 / FM-3.4)
+- [ ] Every file/artifact selection step uses a deterministic key — explicit reference or lexicographic order, never filesystem mtime. (mast.yaml meta-principle)
 - [ ] `<completion_criteria>` exists; every condition is observable; at least one "NOT done until ..." guard is present. (R3 / FM-1.3, FM-1.5)
 - [ ] `<anti_patterns>` has 5-10 patterns; detection signals are observable; every pattern has a concrete resolution; FM codes match `mast.yaml`. (R12 / FM-3.3)
 - [ ] `<interaction_model>` lists flag tokens both emitted and consumed, each cited from `tokens.yaml`; no token is invented in the agent file. (R8 / FM-2.3)
