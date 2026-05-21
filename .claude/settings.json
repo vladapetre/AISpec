@@ -38,12 +38,22 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/inject-project-memory.mjs"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/session-start.py"
+            "command": "node .claude/hooks/session-start.mjs"
           }
         ]
       }
@@ -53,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/session-stop.py"
+            "command": "node .claude/hooks/session-stop.mjs"
           }
         ]
       }
@@ -64,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/session-artifact.py"
+            "command": "node .claude/hooks/session-artifact.mjs"
           }
         ]
       }
