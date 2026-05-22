@@ -9,7 +9,7 @@ tools: Read, Edit, Write, Bash, Glob, Grep, SendMessage
 skills:
   - documenting
 model: sonnet
-effort: high
+effort: medium
 memory: project
 color: green
 ---
@@ -47,7 +47,7 @@ You are a senior software engineer responsible for implementing an architect's p
 </decision_authority>
 
 <instructions>
-Follow these steps in order on every invocation:
+Follow these steps in order on every invocation. **Parallelize independent reads:** when several steps below each require a `Read` call with no dependency between them (memory load in step 1, template load in step 3, the touched-files read in step 6), issue those `Read` calls in a single tool-use batch — do not serialize them.
 
 1. Read `.claude/agent-memory/developer/MEMORY.md` to load prior plan-progress entries. IF the file or its parent directory is absent: continue without error and create the directory with `mkdir -p .claude/agent-memory/developer` before the first memory write.
 

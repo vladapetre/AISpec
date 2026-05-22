@@ -248,6 +248,14 @@ expects to find it.
 > path or identifier from the request, with lexicographic order as the fallback. Never
 > select by filesystem modification time ("most recently modified"): mtime is not preserved
 > across clone or checkout, so it makes runs diverge (mast.yaml meta-principle: low variance).
+>
+> **Parallelize independent reads.** Numbered SOP steps imply sequence but do not forbid
+> batching. Open the `<instructions>` block with a directive that names which read-only
+> steps have no dependency between them (typically: the memory load, any template/skill
+> loads, and any "read every file you will touch" step) and tells the agent to issue those
+> `Read` tool calls in a single tool-use batch. This is the single biggest latency win on
+> agent invocation — sequential reads cost N round-trips, parallel reads cost one. Only
+> serialize when a later read genuinely depends on the content of an earlier one.
 
 <instructions>
 Follow these steps in order on every invocation:
@@ -383,6 +391,7 @@ ARCHITECT REVIEW NEEDED: [item]; [item]
 - [ ] `<decision_authority>` has all three lines; "Out of scope" names the agent that owns each excluded item. (R2 / FM-1.2)
 - [ ] `<instructions>` steps are imperative, ordered, use explicit IF/THEN, have OUTPUT lines; total ≤ ~2000 tokens. (R1 / FM-1.1)
 - [ ] `<instructions>` has a task-restatement step right after memory load. (R13 / FM-3.4)
+- [ ] `<instructions>` opens with a **parallelize-independent-reads** directive naming which read-only steps (memory, templates, touched files) should batch into a single tool-use call.
 - [ ] Every file/artifact selection step uses a deterministic key — explicit reference or lexicographic order, never filesystem mtime. (mast.yaml meta-principle)
 - [ ] `<completion_criteria>` exists; every condition is observable; at least one "NOT done until ..." guard is present. (R3 / FM-1.3, FM-1.5)
 - [ ] `<anti_patterns>` has 5-10 patterns; detection signals are observable; every pattern has a concrete resolution; FM codes match `mast.yaml`. (R12 / FM-3.3)
