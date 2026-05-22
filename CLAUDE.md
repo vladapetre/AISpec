@@ -24,7 +24,6 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | `artifacts/strategy/`    | consultant | Bounded-context charters, context maps, SDRs, glossary entries |
 | `artifacts/adr/`         | architect  | Architectural decision records                                 |
 | `artifacts/plans/`       | architect  | Implementation plans                                           |
-| `artifacts/sessions/`    | auditing skill | Per-session audit trail (`{date}/{uuid}/session.md`)       |
 | `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                     |
 
 Exception: the developer agent may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once both the user and architect have approved that phase.
@@ -33,9 +32,9 @@ The analyst writes reports directly (no routing). All other owned artifacts must
 
 ## Implementation Review
 
-After each implementation phase, the architect agent must review the code before proceeding to the next phase. Route the phase output to the architect via `SendMessage` and wait for their approval alongside the user's (the dual-approval gate).
+After each implementation phase, the reviewer agent reviews the code before the phase advances. The phase summary is routed to the reviewer **and** presented to the user **in the same turn** — the two approvals are independent and run in parallel. Send to the reviewer via `SendMessage` and ask the user in the same response; collect the two `APPROVED` / `approved` verdicts in whichever order they arrive (dual-approval gate). The final phase is reviewed the same way — there is no separate cumulative pass.
 
-On the final phase, the reviewer agent acts as the final quality gate: it verifies the cumulative diff against every phase's acceptance criteria and issues either `APPROVED` or `CHANGES REQUIRED`. Route the final phase to both the architect and the reviewer.
+The reviewer's per-phase review includes an ADR-alignment check: it verifies the diff still honours the governing ADR's key decisions. If it detects design-level drift, it emits `ARCHITECT AMENDMENT NEEDED: <reason>` alongside its verdict. Route that flag to the architect via `SendMessage` as soon as the reviewer's output is received — do not wait for the user's verdict, and do not wait for the phase to advance. The architect's amendment runs in parallel with the user's approval and may arrive after the dual gate has already cleared (the developer handles that case by un-marking `**Status: Complete**` if needed). The architect amends the ADR — and the plan if the amendment changes a future phase's acceptance criteria. The architect no longer gates phases by default; they re-engage only on this flag.
 
 # Source Code Reference
 

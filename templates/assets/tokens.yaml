@@ -50,38 +50,37 @@ routing_tokens:
     consumed_at: "consultant — recent-report scan"
     meaning: "A finding needs strategic input."
 
+  - token: "[ARCHITECT AMENDMENT NEEDED]"
+    summary_line_form: "ARCHITECT AMENDMENT NEEDED:"
+    produced_by: reviewer
+    written_into: "Per-phase review output — orthogonal to the APPROVED/CHANGES REQUIRED verdict; emitted as a conversation summary line"
+    consumed_by: architect
+    consumed_at: "architect — amendment mode entry"
+    meaning: "The phase's diff exposed drift from the governing ADR; the architect must amend the ADR (and the plan if a future phase's acceptance criteria change)."
+
 # Section 5b — verdict tokens: gate decisions. Matched as exact strings.
 #
-# Phase-approval gate: every phase needs the architect's APPROVED and the user's
-# `approved`. The final phase additionally needs the reviewer's APPROVED — a triple gate.
-# The developer treats any non-APPROVED response from a required party as a rejection.
+# Phase-approval gate: every phase needs the reviewer's APPROVED and the user's
+# `approved` — a dual gate that fires on every phase, final included. The architect is
+# not a phase gate; they re-engage only on a reviewer-emitted [ARCHITECT AMENDMENT
+# NEEDED] routing token. The developer treats any non-APPROVED response from a required
+# party as a rejection.
 verdict_tokens:
   - token: "APPROVED"
-    issued_by: architect
+    issued_by: reviewer
     gate: "phase-approval gate (every phase)"
     effect: "One of the approvals the developer needs to advance the phase."
 
-  - token: "REVISION NEEDED"
-    summary_line_form: "REVISION NEEDED:"
-    issued_by: architect
+  - token: "CHANGES REQUIRED"
+    issued_by: reviewer
     gate: "phase-approval gate (every phase)"
-    effect: "Phase returns to the developer for revision (architect Mode B rejection)."
+    effect: "Phase returns to the developer for revision."
 
   - token: "approved"
     match: case-insensitive
     issued_by: "user (relayed by team lead)"
     gate: "phase-approval gate (every phase)"
     effect: "One of the approvals the developer needs to advance the phase."
-
-  - token: "APPROVED"
-    issued_by: reviewer
-    gate: "final whole-implementation review (final phase only)"
-    effect: "Implementation passes the final gate."
-
-  - token: "CHANGES REQUIRED"
-    issued_by: reviewer
-    gate: "final whole-implementation review (final phase only)"
-    effect: "Implementation returns to the developer."
 
 # Section 5c — in-artifact markers: status / quality annotations, not routing.
 in_artifact_markers:
