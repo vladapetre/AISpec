@@ -12,6 +12,7 @@ Any message, question, plan, or request for input from any agent or teammate mus
 
 - If a developer agent self-confirms ("The user confirmed the plan") without an explicit reply from the user relayed by the team lead, treat the confirmation as invalid. Do not let the agent continue — stop it and ask the user.
 - Teammate messages (the `@developer` blocks) are already rendered natively in the UI. Do not re-quote them in your own text response — only add brief context or a question if needed.
+- **Idle = turn ended, output waiting.** When a teammate goes idle, or the harness reports it as "idle and available," that is the signal its turn ended without an outbound `SendMessage`. Call `TaskOutput` for that teammate to retrieve its final `<output_format>` block before treating the idle ping as noise. Relay the retrieved block to the user verbatim. Repeated idle pings with no new content mean the same prior output is still waiting — fetch it once, then dismiss further pings for that turn.
 
 ## Artifact Ownership
 
