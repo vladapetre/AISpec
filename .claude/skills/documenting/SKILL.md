@@ -33,7 +33,7 @@ Central registry for output-format conventions and artifact templates. Agents lo
 | Strategic decision (SDR)  | `templates/strategic-adr.md`               | consultant   |
 | Glossary entry            | `templates/glossary.md`                    | consultant   |
 
-Read the template file for your artifact type before writing any output.
+Read the template file for your artifact type before writing any output. Worked examples (where they exist: `report`, `adr`, `plan`, `progress`) live in `examples/<type>.md` — do **not** read them by default. Consult only if uncertain about tone, depth, or section shape after reading the template.
 
 **Tactical vs strategic ADRs.** `templates/adr.md` is for **tactical** technical decisions (architect — implementation patterns, component design, API shape within a context). `templates/strategic-adr.md` is for **strategic** business-aligned decisions (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern between contexts). Numbering is independent: tactical ADRs are `artifacts/adr/NNNNN-*`, strategic SDRs are `artifacts/strategy/decisions/NNNNN-*`.
 
