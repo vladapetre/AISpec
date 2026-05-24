@@ -4,6 +4,16 @@
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Alignment-table rows per phase | **≤15 acceptance criteria** | Past 15, the phase was too large and should have been split by the architect. The reviewer evaluates the 15 highest-priority criteria (FAIL-eligible first, then UNCLEAR, then PASS candidates) and emits `ARCHITECT AMENDMENT NEEDED: phase too large — N criteria exceed cap` alongside the verdict. |
+
+The cap is on the table, not on the criteria the architect may write — the plan's own per-phase cap (`templates/plan.md`, 3–8 criteria) is what keeps phases reviewable. This row gives the reviewer a deterministic procedure when an over-sized phase reaches them anyway.
+
+---
+
 ## How to apply
 
 1. Extract every bullet or sub-item listed under "**Done when:**" in the current phase.

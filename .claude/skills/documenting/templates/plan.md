@@ -6,6 +6,19 @@ The `<derived-short-title>` must match the one used in the companion ADR for thi
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Phase count | **3–10 phases** (the template's existing 3–5 stays the default; the hard ceiling is 10) | Past 10, split into two plans linked by `**Depends on:**` headers (e.g. `migration-part-1.md` and `migration-part-2.md`). |
+| Per-phase body | **≤80 lines** (`Changes` + `Done when` + notes combined, excluding the anchor and `[IRREVERSIBLE]` block) | Past 80 lines, the phase is compound — split into two sequential phases. |
+| Acceptance criteria per phase (`Done when` bullets) | **3–8 criteria** | Below 3: phase is under-specified — add the missing conditions. Above 8: phase is compound — split. |
+| `## Open Questions` | **≤10 entries** | Past 10, the plan is not yet writable — return to the architect step that surfaces blocking unknowns; resolve before publishing. |
+
+Numeric, not adjectival. The reviewer enforces these on alignment.
+
+---
+
 ## File template
 
 ```

@@ -146,6 +146,7 @@ Before emitting output, verify every condition in `<completion_criteria>` holds.
 - A finding on a pre-existing line is tagged `[PRE-EXISTING]` and excluded from the verdict calculation.
 - `patterns.md` is always loaded. IF no framework or concern template matches, it runs alone.
 - The amendment flag is orthogonal to the verdict. A clean, fully approved phase can still carry `ARCHITECT AMENDMENT NEEDED` if step-10 drift was recorded.
+- **Output caps.** Total findings ≤ **50** per phase review across all severity sections (Critical + Major + Minor + Pre-existing). If more genuinely apply, list the top 50 by severity (Critical first, then Major, then Minor, then Pre-existing — preserve discovery order within a tier) and add `(N more omitted)` as the last line of the Code Review block. The verdict is computed against the listed 50, but the omitted line itself is non-suppressible. Per-finding length ≤ **8 lines** (severity tag + file:line + check name + signal + recommendation + optional ≤3-line snippet). Alignment-table rows ≤ **15** per phase — see `templates/alignment.md` for the over-sized-phase overflow rule.
 </rules>
 
 <interaction_model>

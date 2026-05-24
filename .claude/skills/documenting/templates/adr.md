@@ -8,6 +8,18 @@ Re-scan `artifacts/adr/` for the highest number **immediately before writing the
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Total body | **≤400 lines** (excluding fenced code blocks) | Past 400 lines, split the decision into two ADRs linked by `**Supersedes / supersedes:**` headers, or extract reasoning into a sibling design note `artifacts/adr/notes/NNNNN-<title>.md` and link it from `## Context`. |
+| `## Consequences` per side (`Gains` / `Costs` / `Risks`) | **≤7 bullets per side** | At 7+, the decision isn't actually decided — fold related bullets, or move the long tail to `artifacts/adr/notes/NNNNN-<title>.md` with `(more in <note>.md)` on the last bullet. |
+| `## Alternatives Considered` | **≤5 alternatives** | Past 5, the exploration belongs in an analyst report, not an ADR — link the report under `## Context` and keep the top 5 here. |
+
+These caps are checkable across runs. Adjective-only ceilings ("be concise", "keep it short") are not permitted.
+
+---
+
 ## File template
 
 ```

@@ -8,6 +8,16 @@ One map per scope. If a map for the scope already exists, **update it in place**
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| `## Relationships` table rows | **≤25 relationships** | Past 25 the map stops being scannable — split into scoped sub-maps (e.g. `payments-subsystem.md`, `identity-subsystem.md`) and keep `current.md` as the inter-subsystem overview. |
+| `## Contexts in scope` | **≤20 contexts** | Past 20, do the same split. A single map showing 20+ contexts hides the actual integration topology. |
+| `## Diagram` ASCII / Mermaid node count | **≤20 nodes**, matches the contexts cap | Past 20, the diagram is illegible — produce per-subsystem diagrams. |
+
+---
+
 ## File template
 
 ```

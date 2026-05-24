@@ -10,6 +10,16 @@ One entry per term-meaning. Update in place when the definition is refined.
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Entries per `INDEX.md` | **≤50 terms per glossary file** | Past 50, split the glossary by bounded context — create `artifacts/strategy/glossary/<context-name>/INDEX.md` per affected context and move that context's entries into it. The top-level `INDEX.md` then links to each sub-index. |
+| Single entry body | **≤40 lines** | Past 40 lines, the entry has become a design note — move the long content to a charter, SDR, or analyst report and keep the entry to definition + distinguished-from + aliases + related terms + anti-examples. |
+| `## Aliases` | **≤6 aliases** | Past 6, the term is unsettled — pick the canonical name with the user, retain the top 5 most common aliases, and surface the rest as a separate (term, context) entry if they mean different things. |
+
+---
+
 ## Entry template
 
 ```

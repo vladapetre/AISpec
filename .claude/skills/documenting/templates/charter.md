@@ -8,6 +8,18 @@ One charter per bounded context. If a charter for the context already exists, **
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Total body | **≤300 lines** | Past 300, the charter is conflating multiple bounded contexts — split into two charters, each with its own scope. |
+| `## Scope` / `In scope` and `Out of scope` | **2–6 capabilities per list** (already in the template) | Past 6, fold sibling capabilities into one higher-level capability, or the context is too large — split. |
+| `## Ubiquitous language (summary)` | **3–8 terms** (already in the template) | Past 8, the rest belong in the full glossary under `artifacts/strategy/glossary/` but not on the charter's summary list. |
+| `## Invariants` | **2–5** (already in the template) | Past 5, some are derived rules — keep only the irreducible business invariants here. |
+| `## Open questions` | **≤10 entries** | Past 10, ratification is far off — surface the blocking ones to the user before continuing to write. |
+
+---
+
 ## File template
 
 ```

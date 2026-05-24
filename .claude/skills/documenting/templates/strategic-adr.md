@@ -8,6 +8,19 @@ Re-scan `artifacts/strategy/decisions/` for the highest number **immediately bef
 
 ---
 
+## Caps and overflow
+
+Mirrors the tactical-ADR caps with strategic-specific framing:
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| Total body | **≤400 lines** (excluding fenced code blocks) | Past 400, split the decision into two SDRs linked by `**Supersedes / supersedes:**` headers, or move the deep portfolio reasoning to a sibling strategy note under `artifacts/strategy/notes/`. |
+| `## Consequences` per side (`Gains` / `Costs` / `Risks`) | **≤7 bullets per side** | Past 7, the decision is unsettled — consolidate or move the long tail to a sibling note with `(more in <note>.md)` on the last bullet. |
+| `## Alternatives Considered` | **≤5 alternatives** | Past 5, the exploration belongs in an analyst report — link the report under `## Context`. |
+| `## Tactical follow-up` | **≤10 `[TACTICAL DESIGN NEEDED]` items** | Past 10, the SDR is doing too much — split the decision into multiple SDRs, each with its own tactical follow-up list. |
+
+---
+
 ## File template
 
 ```

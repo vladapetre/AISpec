@@ -4,6 +4,18 @@
 
 ---
 
+## Caps and overflow
+
+| Field | Cap | Overflow path |
+|---|---|---|
+| `## Findings` total entries | **≤50 findings** | At 50+, list the top 50 by severity / impact, then add a final bullet: `(N more omitted — see artifacts/reports/<short-title>-extras.md)` and write the overflow file. The 50 reported are the ones acted on. |
+| Per-finding length | **≤6 lines** (heading + ≤5 body lines, excluding fenced snippets) | Past 6 lines, split into two sibling findings under the same theme, or move the deep dive to a sibling note linked from the finding. |
+| `## Recommendations` | **Exactly 4** (already fixed by the template) | If more genuinely warranted, the top 4 are recommendations; the rest become Findings entries with their own action language. |
+
+These caps coexist with the section-level constraints already stated in the file template (e.g. Executive Summary = 4 sentences).
+
+---
+
 ## File template
 
 ```
