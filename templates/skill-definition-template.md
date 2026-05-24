@@ -10,8 +10,8 @@
 > **Research basis.** Anthropic, *Building Effective Agents* — the workflow-vs-agent
 > distinction and progressive disclosure. Anthropic Agent Skills documentation — SKILL.md
 > as the entry point, bundled resources, the `description` field as the routing trigger.
-> The MAST low-variance meta-principle and determinism rules in `./assets/mast.yaml`
-> (Cemri et al., arXiv:2503.13657).
+> The MAST low-variance meta-principle and determinism rules in
+> `.claude/agents/assets/mast.yaml` (Cemri et al., arXiv:2503.13657).
 >
 > **How to use.** Create the directory `.claude/skills/<name>/` and copy this file to
 > `SKILL.md` inside it. Fill every `[...]` placeholder. Delete every `> **Guidance**`
@@ -71,15 +71,44 @@ tie-breaks, no ambiguity. If there is no judgement left after the lookup, make i
 
 ## Shared assets
 
-Two normalized data files under `./assets/` (i.e. `templates/assets/`) are the single
-source of truth across agents and skills. Skills **reference** them — never restate them.
+Two normalized data files under `.claude/agents/assets/` are the single source of truth
+across agents and skills. Skills **reference** them — never restate them.
 
-- **`tokens.yaml`** — every handoff token, verdict token, and in-artifact marker. If your
-  skill emits or consumes a token (e.g. `reviewing` issues `APPROVED` / `CHANGES
-  REQUIRED`), cite it from here. Adding a token requires adding a row there first.
-- **`mast.yaml`** — the MAST failure taxonomy and its meta-principle: LLM steps are
-  stochastic, so the achievable goal is **low variance + high accuracy**. Every
-  deterministic rule a skill defines exists to serve that principle.
+- **`.claude/agents/assets/tokens.yaml`** — every handoff token, verdict token, and
+  in-artifact marker. If your skill emits or consumes a token (e.g. `reviewing` issues
+  `APPROVED` / `CHANGES REQUIRED`), cite it from here. Adding a token requires adding a
+  row there first.
+- **`.claude/agents/assets/mast.yaml`** — the MAST failure taxonomy and its meta-principle:
+  LLM steps are stochastic, so the achievable goal is **low variance + high accuracy**.
+  Every deterministic rule a skill defines exists to serve that principle. The
+  `failure_modes_detail` section carries per-FM detection / mechanism / resolution detail
+  referenced by inline `**Avoid (FM-x.x):**` cues in steps and rules.
+
+If your skill cites an `**Avoid (FM-x.x):**` cue inline (in `## Steps` or `## Rules`), or
+emits/consumes a token from `tokens.yaml`, the **runtime SKILL.md must carry the asset-
+reference pointer in its body** — typically a one-line note under the title-and-purpose
+section or in `## Rules` saying: "FM-x.x codes cite `.claude/agents/assets/mast.yaml`
+under `failure_modes_detail.FM-x.x`; tokens cite `.claude/agents/assets/tokens.yaml` —
+read on demand." The skill body is what loads at invocation; the template's preamble is
+not. Skills that cite neither FMs nor tokens may omit this pointer.
+
+## Convention: numeric thresholds over adjectives
+
+Any cap, limit, or ceiling in a skill definition must be a **number** (`≤N`, an exact
+count, a byte/line cap), not an adjective. Numbers are checkable across runs; adjectives
+vary wildly — "be concise" produces 5-line outputs in one run and 80-line outputs in the
+next. The same applies to every IF-condition threshold in `## Steps` and every limit in
+`## Rules`.
+
+| Bad | Good |
+|---|---|
+| "If inputs are missing, ask for them." | "If inputs are missing, ask **all missing fields in one batch**, capped at 5/turn." |
+| "Keep the output short." | "Output **≤N lines** in the exact shape shown below." |
+| "Limit registry entries to a manageable size." | "Registry ≤N rows; if more, split into a sibling registry file." |
+
+Research backing: `.claude/agents/assets/mast.yaml` meta-principle — LLM steps are
+stochastic, so reliability comes from tightening structure (low variance + high accuracy).
+Adjectival caps are under-specification.
 
 ## Convention: plain markdown
 
@@ -120,22 +149,59 @@ that as the target range for SKILL.md itself.
 ## YAML Frontmatter
 
 > **Guidance.** Only these fields are read by the Claude Code skill loader. `description`
-> is the routing trigger — same role as on an agent: lead with the trigger condition, name
-> the concrete invocation phrases, write it in precise vocabulary. Use a YAML block scalar
-> (`>`), as the existing skills do. `allowed-tools` is optional — set it only to *restrict*
-> the skill to a subset of tools; omit it to inherit the caller's tools.
+> is the **only** thing the model sees at routing time — the body is not loaded until the
+> skill is invoked. A skill that loses the routing match never runs. Use a YAML block
+> scalar (`>`), as the existing skills do. `allowed-tools` is optional — set it only to
+> *restrict* the skill to a subset of tools; omit it to inherit the caller's tools.
+>
+> **`description` is hard-shaped.** Exactly three parts, in this order:
+>
+> 1. **Capability sentence** — one sentence stating what the skill does and what it
+>    produces. Precise vocabulary, no marketing words. Do **not** lead with "This skill...".
+> 2. **Trigger sentence** — starts with `Use this skill when` and lists **≥3 concrete,
+>    observable trigger phrases** the model can pattern-match against a user request. A
+>    trigger is an *actual phrase a user would say* ("write an ADR", "document this
+>    decision") or an *observable input condition* ("the user shares a JSON payload"), not
+>    a category ("when documenting").
+> 3. **Invocation paths** — name the standalone slash command and any agents that load it
+>    via `skills:` frontmatter.
+>
+> **Hard cap: 1024 characters total.** If you can't fit, the capability sentence is too
+> broad — split the skill or move detail to the body.
+>
+> **Banned in `description`:** vague categories ("when working with X"), marketing words
+> (best, robust, comprehensive), restatements of the capability inside the trigger sentence.
 
 ```yaml
 ---
 name: [kebab-case — must match the skill's directory name]
 description: >
-  [One sentence: what the skill does and what it produces.] Use this skill when
-  [precise, observable trigger conditions]. [Name the invocation paths — e.g.
-  "Invoke standalone via `/<name>`, or load via the `skills:` frontmatter field on
-  the <agent> agent."]
+  [Capability sentence — what the skill does and produces, in precise vocabulary.]
+  Use this skill when [trigger phrase 1], [trigger phrase 2], [trigger phrase 3], or
+  [observable input condition]. Invoke standalone via `/<name>`[, or load via the
+  `skills:` frontmatter field on the <agent> agent].
 allowed-tools: [optional — comma-separated subset to restrict to; omit to inherit]
 ---
 ```
+
+### Worked example — vague vs. trigger-led description
+
+*(Template guidance — delete this subsection when authoring a real skill.)*
+
+**Before** — capability-only, no observable triggers, would lose routing to anything more specific:
+
+> Documents architectural decisions and writes ADRs to the artifacts directory. This skill
+> should be used whenever documentation is needed for design choices.
+
+**After** — capability → trigger → invocation, each part doing one job:
+
+> Writes Architecture Decision Records (ADRs) and implementation plans to
+> `artifacts/adr/` and `artifacts/plans/`, with filename derivation and template
+> selection handled by registry. Use this skill when the user says "write an ADR",
+> "document this decision", "draft a plan for X", when the architect agent finalises a
+> design, or when a structured artifact must be produced from an unstructured discussion.
+> Invoke standalone via `/documenting`, or load via the `skills:` frontmatter field on
+> the architect, analyst, and consultant agents.
 
 ---
 
@@ -173,8 +239,9 @@ invocation must name a subcommand.]
 >   steps." (as `documenting`'s filename derivation does) and follow it with a
 >   **worked-examples table** that runs real inputs through every step.
 > - Never select a file or artifact by filesystem modification time — mtime is not
->   preserved across clone or checkout, so it makes runs diverge (`mast.yaml`
->   meta-principle). Select by an explicit key, with lexicographic order as the fallback.
+>   preserved across clone or checkout, so it makes runs diverge
+>   (`.claude/agents/assets/mast.yaml` meta-principle). Select by an explicit key, with
+>   lexicographic order as the fallback.
 > - Do not restate rules that another skill already owns — reference that skill instead.
 >
 > Omit this whole block for a pure dispatcher skill that has no shared reference content.
@@ -190,12 +257,19 @@ order + tie-breaks. For an algorithm, include the numbered steps + a worked-exam
 > **Guidance — Steps (standalone invocation).** The entry procedure. Present in **every**
 > skill — for a dispatcher it is just the dispatch rule.
 > - Step 1 always validates input: if a required input is missing, state the exact
->   question, then "Stop until answered." (every existing skill does this).
+>   question, then "Stop until answered." (every existing skill does this). If multiple
+>   inputs are missing, ask **all of them in one batch** — no per-field round-trips —
+>   capped at **5 questions per turn**. Never ask one question at a time across turns.
 > - Imperative verbs; explicit `IF [condition]: [action]` for branches.
 > - Reference bundled files by path — "Read `templates/<file>`" — never inline their
 >   content.
 > - The final step states the exact output: a one-line confirmation, or a structured
 >   block. Make it copy-exact if anything downstream parses it (MAST FM-3.1).
+> - **Inline anti-patterns.** Any step that guards a known MAST failure mode carries one
+>   inline `**Avoid (FM-x.x):** <wrong> → <right>` line at the firing point — terse, FM
+>   code in parens. Richer detection / mechanism / resolution detail lives in
+>   `.claude/agents/assets/mast.yaml` under `failure_modes_detail.FM-x.x`; do not restate
+>   it inline. Same convention applies to `## Rules` invariants.
 > - **Dual-mode reconciliation:** if the skill is also loaded by an agent, say which
 >   steps the agent has already done and where it joins — `documenting` ends with
 >   "Agents that load this skill ... should skip to step 4." Standalone and agent-loaded
@@ -207,6 +281,7 @@ Follow in order when invoked directly as `/[name]`:
 
 1. [Validate input. IF a required input is missing: ask "[exact question]". Stop until
    answered.]
+   **Avoid (FM-3.4):** [terse wrong example] → [terse right replacement].
 2. [Imperative step. IF [condition]: [branch].]
 3. [Imperative step — reference a bundled file by path where one applies.]
 4. ... continue in execution order ...
@@ -250,7 +325,8 @@ Output exactly one line: `[exact text]`
 
 > **Guidance — Bundled resources.** Document the skill's directory layout so a reader
 > knows where on-demand content lives. Only list the subdirectories the skill actually
-> uses. These sit **beside** SKILL.md — distinct from the repo-level `templates/assets/`.
+> uses. These sit **beside** SKILL.md — distinct from the cross-cutting shared assets at
+> `.claude/agents/assets/`.
 
 ## Bundled resources
 
@@ -302,19 +378,33 @@ putting the logic in a skill.
 - [ ] **Gate 2:** the skill shape (linear or dispatcher) is chosen and declared in the body.
 - [ ] **Gate 3:** no fully-deterministic procedure is left as prose where a `scripts/`
       helper fits; borderline lookup tables are stop-at-first-match with explicit tie-breaks.
-- [ ] Frontmatter: `name` matches the directory name; `description` leads with the trigger
-      and names the invocation path(s); block scalar (`>`) used.
+- [ ] Frontmatter: `name` matches the directory name; block scalar (`>`) used.
+- [ ] `description` is ≤1024 characters total.
+- [ ] `description` has all three parts in order: capability sentence → `Use this skill
+      when` trigger sentence with ≥3 concrete observable trigger phrases → invocation paths.
+- [ ] No vague categories ("when working with X"), no marketing words, no restatement of
+      the capability inside the trigger sentence.
 - [ ] `# Skill:` title + a one-or-two-sentence purpose that does not restate the description.
 - [ ] Skill-shape declaration states shape **and** invocation modes (standalone / dual-mode).
 - [ ] Every reference table states its scan scope, has an explicit order, says "stop at
       first match", and has a tie-break for every case two rows can match.
 - [ ] Every algorithm says "apply exactly" and is followed by a worked-examples table.
-- [ ] No step selects a file or artifact by filesystem modification time. (`mast.yaml`
-      meta-principle)
+- [ ] No step selects a file or artifact by filesystem modification time.
+      (`.claude/agents/assets/mast.yaml` meta-principle)
 - [ ] `## Steps (standalone invocation)` exists; step 1 validates input and stops if it is
       missing; the final step states the exact output. (MAST FM-3.1)
+- [ ] Every cap, limit, or ceiling is numeric (`≤N`, exact count, byte/line cap) — no
+      adjective-only ceilings. Step 1's input-validation question batch is capped at
+      5/turn. (`.claude/agents/assets/mast.yaml` meta-principle: low variance)
+- [ ] Steps and rules that guard a known MAST failure mode carry an inline
+      `**Avoid (FM-x.x):** <wrong> → <right>` line at the firing point; each cited FM
+      exists in `.claude/agents/assets/mast.yaml`.
 - [ ] Dual-mode skills reconcile the agent-loaded entry path with the standalone path.
 - [ ] Dispatcher skills: the dispatch rule rejects an unknown/missing subcommand with a
       `Usage:` line; one `### <name>` section per subcommand, each with a **When** line.
-- [ ] Any emitted or consumed token is cited from `tokens.yaml`; no token is invented here.
+- [ ] Any emitted or consumed token is cited from `.claude/agents/assets/tokens.yaml`; no
+      token is invented here.
+- [ ] If the skill cites an `**Avoid (FM-x.x):**` cue inline or emits/consumes a token, the
+      body carries the runtime asset-reference pointer (mast.yaml + tokens.yaml). Pure
+      skills that cite neither may omit it.
 - [ ] Large content is in bundled files; SKILL.md itself lands in the ~80-150 line range.

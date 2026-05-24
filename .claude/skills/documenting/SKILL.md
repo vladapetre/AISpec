@@ -1,22 +1,22 @@
 ---
 name: documenting
 description: >
-  Use this skill whenever an agent needs to write an analysis report, ADR (architectural
-  decision record), implementation plan, bounded-context charter, context map, strategic
-  decision record (SDR), or glossary entry to the `artifacts/` directory. Defines the
-  filename derivation rules, audience detection, confidence markers, and routes each
-  artifact type to its template file under `templates/`. Triggers include "write a report",
-  "document this", "create an ADR", "draft a plan", "write a charter", "map the contexts",
-  "ubiquitous language", or any request that produces a structured artifact for the
-  analyst, architect, consultant, or developer agents. Invoke standalone via
-  `/documenting`, or load via the `skills:` frontmatter field on an agent.
+  Routes structured artifact writes — analysis reports, ADRs, implementation plans,
+  bounded-context charters, context maps, strategic decision records (SDRs), and
+  glossary entries — to template files under `.claude/skills/documenting/templates/`,
+  with shared filename derivation, audience detection, and confidence markers. Use this
+  skill when the user says "write a report", "document this", "create an ADR", "draft
+  a plan", "write a charter", "map the contexts", "add a glossary entry", or when a
+  structured artifact must be produced from an unstructured discussion. Invoke
+  standalone via `/documenting`, or load via the `skills:` frontmatter field on the
+  analyst, architect, and consultant agents.
 ---
 
 # Skill: documenting
 
 Central registry for output-format conventions and artifact templates. Agents load this skill to get shared formatting rules and a pointer to the correct template for their artifact type.
 
-**Skill shape:** linear. Dual-mode — invoked standalone via `/documenting`, and loaded via the `skills:` frontmatter field on the analyst, architect, consultant, and developer agents.
+**Skill shape:** linear. Dual-mode — invoked standalone via `/documenting`, and loaded via the `skills:` frontmatter field on the analyst, architect, and consultant agents.
 
 ---
 
@@ -88,7 +88,7 @@ For a paired ADR and plan, run the script with the **same** `<subject>` for each
 
 ### Confidence markers
 
-The marker strings (`[VERIFIED]`, `[INFERRED]`, `[ASSUMED]`) are defined in `templates/assets/tokens.yaml` — this section defines *when* to apply each. Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
+The marker strings (`[VERIFIED]`, `[INFERRED]`, `[ASSUMED]`) are defined in `.claude/agents/assets/tokens.yaml` — this section defines *when* to apply each. Apply to individual findings in analysis reports (per `### heading`). Use the first rule that matches:
 
 1. Direct quote, observable fact, or value readable from the source without reasoning → **[VERIFIED]**
 2. Follows necessarily from one or more VERIFIED facts via explicit deductive steps the reader could reproduce → **[INFERRED]**. A single VERIFIED fact is sufficient when the deduction is mechanical (e.g., reading a constant and stating its scope from the file path).
