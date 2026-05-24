@@ -20,6 +20,28 @@ These caps are checkable across runs. Adjective-only ceilings ("be concise", "ke
 
 ---
 
+## Identifiers
+
+The ADR slug (`ADR-NNNNN`) is itself the primary identifier — single-decision ADRs need no further ID. For an ADR that records multiple distinct sub-decisions in one document, each carries a `D-###` ID; for risks listed under `## Consequences > Risks`, each carries a `RISK-###` ID.
+
+- **D-###** — sub-decisions inside an ADR. Use only when the ADR genuinely captures more than one decision; prefer one decision per ADR.
+- **RISK-###** — entries under `## Consequences > Risks`. Always numbered, even when the ADR has a single decision, so plans and reviewers can cite them.
+- Numbering: zero-padded to 3 digits, encounter order, dense at first write, sparse after edits.
+- **Stability:** never re-number after publication. To withdraw an entry, append `[withdrawn]` and leave the ID in place. Re-numbering a referenced ID is a critical violation.
+- Cross-artifact references use the form `<adr-short-title>#<ID>` (e.g. `event-store#D-002`, `event-store#RISK-003`). The short-title is the ADR filename without the numeric prefix and `.md` extension (`00007-event-store.md` → `event-store`).
+- Severity (where used) sits in square brackets after the ID: `**RISK-002** [major] vendor outage propagates ...`. Severity values come from the severity table below; never paraphrase.
+
+## Severity
+
+| Severity | Means |
+|---|---|
+| critical | Blocks the decision's adoption; must resolve before status moves past Proposed. |
+| major | Significant risk; mitigation required before final approval. |
+| minor | Manageable risk; mitigation is best-effort. |
+| pre-existing | Risk inherent to the baseline, not introduced by this decision; record but do not block. |
+
+---
+
 ## File template
 
 ```
@@ -37,7 +59,7 @@ One paragraph. The chosen approach and why it satisfies the constraints.
 ## Consequences
 **Gains:** 2–4 bullet points — what improves.
 **Costs:** 2–4 bullet points — what gets harder or more expensive.
-**Risks:** 2–4 bullet points — what could go wrong, one mitigation per risk.
+**Risks:** 2–4 bullet points, each led by `**RISK-###** [<severity>]` — what could go wrong, one mitigation per risk.
 
 ## Alternatives Considered
 ### Alternative: name

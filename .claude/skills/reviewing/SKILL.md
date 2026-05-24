@@ -23,12 +23,13 @@ Central registry for code-review checklists and detection rules. The reviewer ag
 
 | Template | File | Trigger |
 |----------|------|---------|
-| Alignment check | `templates/alignment.md` | Always — every review |
+| Alignment check | `templates/alignment.md` | Always — every per-phase review |
+| Cross-artifact check | `templates/cross-check.md` | Mode: cross-check — fired by `CROSS_CHECK_REQUESTED:` token or `/cross-check` slash command, once per ADR/plan pair before Phase 1 starts |
 | .NET / C# | `templates/dotnet.md` | Framework: dotnet |
 | TypeScript / JS | `templates/typescript.md` | Framework: typescript |
 | Clean Architecture | `templates/clean-architecture.md` | Concern: clean-architecture |
 | Vertical Slice | `templates/vertical-slice.md` | Concern: vertical-slice |
-| General patterns | `templates/patterns.md` | Always load — applied on every review, in addition to any framework/concern templates |
+| General patterns | `templates/patterns.md` | Always load — applied on every per-phase review, in addition to any framework/concern templates |
 
 ---
 
@@ -76,15 +77,36 @@ A Critical finding blocks APPROVED. Major and Minor do not.
 
 ---
 
+## Modes
+
+The reviewing skill drives two distinct passes. Pick the mode at step 1; do not interleave.
+
+- **per-phase review** (default) — fires after every developer phase summary. Runs the alignment check, framework templates, concern templates, and `patterns.md` against the changed files. Emits `APPROVED` or `CHANGES REQUIRED` plus an optional `ARCHITECT AMENDMENT NEEDED:` line.
+- **cross-check** — fires once per ADR/plan pair, before the developer starts Phase 1, on the `CROSS_CHECK_REQUESTED:` token (architect-emitted) or the `/cross-check` slash command. Runs `templates/cross-check.md` only — no framework or concern templates load. Emits `ALIGNED` or `DRIFT DETECTED`. Read-only — never writes to artifacts.
+
+---
+
 ## Steps (standalone invocation)
 
 Follow in order when invoked directly as `/reviewing`:
 
-1. IF no plan/phase reference and no changed-file set is provided: ask "Which plan and phase, and which files, should I review?" Stop until answered.
-2. Apply the **Framework detection rules** and **Concern detection rules** above. Record what matched.
-3. Read the templates that apply: always `templates/alignment.md` and `templates/patterns.md`, plus every matched framework and concern template from the **Template registry**.
-4. Run the alignment check (`templates/alignment.md`) against the phase's acceptance criteria, then run every checklist item in each loaded template against the changed files. Assign each finding a severity per the **Severity definitions** above. Tag a finding on a line the phase did not change `[PRE-EXISTING]` and exclude it from the verdict.
-5. Output the structured review — an alignment table, then findings grouped by severity — ending with a final line that is exactly `APPROVED` or `CHANGES REQUIRED` (verdict tokens — see `.claude/agents/assets/tokens.yaml`). Never emit `APPROVED` while an alignment criterion is FAIL or a Critical finding is open.
+1. Identify the mode:
+   - Invocation includes `CROSS_CHECK_REQUESTED:` or `/cross-check` → **cross-check mode**.
+   - Otherwise → **per-phase review mode**.
+
+2. In **cross-check mode**:
+   - Resolve the ADR and plan paths from the trigger (the plan path is explicit; the ADR is paired by short-title).
+   - Read both, plus any reports/SDRs/charters the ADR's `## Context` cites.
+   - Read `templates/cross-check.md`. Run the five checks in order.
+   - Output the fixed-column table per the template, ending with a final line that is exactly `ALIGNED` or `DRIFT DETECTED`.
+   - Stop — do not load framework/concern templates and do not run the per-phase steps below.
+
+3. In **per-phase review mode**:
+   - IF no plan/phase reference and no changed-file set is provided: ask "Which plan and phase, and which files, should I review?" Stop until answered.
+   - Apply the **Framework detection rules** and **Concern detection rules** above. Record what matched.
+   - Read the templates that apply: always `templates/alignment.md` and `templates/patterns.md`, plus every matched framework and concern template from the **Template registry**.
+   - Run the alignment check (`templates/alignment.md`) against the phase's acceptance criteria (cited by `T-<phase>.<seq>` ID), then run every checklist item in each loaded template against the changed files. Assign each finding a severity per the **Severity definitions** above. Tag a finding on a line the phase did not change `[PRE-EXISTING]` and exclude it from the verdict.
+   - Output the structured review — an alignment table, then findings grouped by severity — ending with a final line that is exactly `APPROVED` or `CHANGES REQUIRED` (verdict tokens — see `.claude/agents/assets/tokens.yaml`). Never emit `APPROVED` while an alignment criterion is FAIL or a Critical finding is open.
 
 The reviewer agent loads this skill and drives the same procedure through its own `<instructions>` and `<output_format>`, which additionally fix the commit range and add `git blame` provenance for the `[PRE-EXISTING]` classification. Standalone runs follow the lighter procedure above.
 

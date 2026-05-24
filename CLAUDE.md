@@ -30,6 +30,15 @@ Exception: the developer agent may edit a plan file in `artifacts/plans/` solely
 
 The analyst writes reports directly (no routing). All other owned artifacts must go through their owning agent.
 
+## Cross-Check (Pre-Implementation)
+
+When the architect publishes an ADR/plan pair in Mode A, its output carries a `CROSS_CHECK_REQUESTED: <plan-path>` summary line. Route that line to the reviewer via `SendMessage` and **wait** — do not invite the developer to start Phase 1 until the reviewer relays one of the cross-check verdicts:
+
+- `ALIGNED` — the ADR/plan pair is mutually consistent; route the plan to the developer for Phase 1.
+- `DRIFT DETECTED` — route the cross-check report back to the architect, who reconciles via amendment and re-emits `CROSS_CHECK_REQUESTED:`. Repeat until `ALIGNED` clears.
+
+The cross-check is a single read-only artifact↔artifact pass per ADR/plan pair (not per phase). It fires before Phase 1, never between phases — those use the per-phase review below.
+
 ## Implementation Review
 
 After each implementation phase, the reviewer agent reviews the code before the phase advances. The phase summary is routed to the reviewer **and** presented to the user **in the same turn** — the two approvals are independent and run in parallel. Send to the reviewer via `SendMessage` and ask the user in the same response; collect the two `APPROVED` / `approved` verdicts in whichever order they arrive (dual-approval gate). The final phase is reviewed the same way — there is no separate cumulative pass.

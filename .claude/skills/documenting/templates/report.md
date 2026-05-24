@@ -16,6 +16,28 @@ These caps coexist with the section-level constraints already stated in the file
 
 ---
 
+## Identifiers
+
+Findings carry stable IDs so the architect, consultant, reviewer, and downstream artifacts can cite them without paraphrasing.
+
+- Prefix: **R-###** (`R-001`, `R-002`, ...). Zero-padded to 3 digits.
+- Numbering: assigned in encounter order at first write — the first finding in the report is `R-001`. Dense at first write; sparse after edits.
+- **Stability:** never re-number an ID after the report is published. To remove a finding, append `[withdrawn]` to its line and leave the ID in place. Re-numbering a finding that another artifact references is a critical violation — write a new finding with the next ID instead.
+- Cross-artifact references use the form `<report-short-title>#R-###` (e.g. `auth-audit#R-007`). The short-title matches the report filename without `.md`.
+- The severity tag sits in square brackets after the ID, on the finding heading: `### R-007 [major] — token logged in plaintext [VERIFIED]`. Severity values come from the severity table below; never paraphrase.
+- Confidence markers (`[VERIFIED] | [INFERRED] | [ASSUMED]`) sit at the end of the finding heading, after severity. Confidence and severity are orthogonal — both are mandatory.
+
+## Severity
+
+| Severity | Means |
+|---|---|
+| critical | Blocks the report's purpose or a downstream decision; must resolve before acceptance. |
+| major | Significant defect or risk; resolve before final approval of the consuming artifact. |
+| minor | Quality issue; resolve when convenient. |
+| pre-existing | Present before the report's commit range or scope; record but do not block. |
+
+---
+
 ## File template
 
 ```
@@ -53,7 +75,7 @@ Derive the theme list directly from the source structure — do not invent theme
 
 Each theme is one subsection (### heading) titled exactly as the module/section/entity is named in the source. Each subsection must be at least 2 paragraphs.
 
-Each ### heading must carry a confidence marker. Apply the rules defined in `SKILL.md` under **Confidence markers** — do not re-derive them here.
+Within each theme, each individual finding is a bulleted entry led by `**R-###** [<severity>] <one-line claim>`, followed by ≤5 body lines (evidence at `file:line`, mechanism, recommendation hook). The ### theme heading itself carries the confidence marker that applies to the theme as a whole; per-finding confidence may be added inline (`[INFERRED]`) when a single finding's confidence differs from the theme's. Apply the rules defined in `SKILL.md` under **Confidence markers** — do not re-derive them here.
 
 ## Dependencies and Relationships
 What this subject depends on, and what depends on it. Always produce a bullet list. If the list has more than 5 items, also add an ASCII diagram below it.
@@ -63,7 +85,7 @@ Between 3 and 5 items total across the three categories (at least 3, no more tha
 Each item on its own line: **[RISK | UNKNOWN | ASSUMPTION]** — description.
 
 ## Recommendations
-Exactly 4 items. Each item must be a concrete, actionable instruction — not a general principle. Flag items needing architectural input with [ARCHITECT REVIEW NEEDED].
+Exactly 4 items. Each item must be a concrete, actionable instruction — not a general principle. Cite the driving finding by ID (e.g. "Resolves R-007 and R-012 by ..."). Flag items needing architectural input with [ARCHITECT REVIEW NEEDED].
 
 Order strictly by this rubric — apply in sequence, do not reorder by your own judgement:
 1. Items flagged [ARCHITECT REVIEW NEEDED].

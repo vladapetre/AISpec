@@ -18,6 +18,17 @@ One map per scope. If a map for the scope already exists, **update it in place**
 
 ---
 
+## Identifiers
+
+Relationship rows carry stable IDs so SDRs, charters, and the cross-check pass can cite a specific edge in the map without paraphrasing "the Identity → Billing edge".
+
+- **REL-###** — one ID per relationship row. The row's `ID` column shows the value.
+- Numbering: zero-padded to 3 digits, encounter order in the table, dense at first write, sparse after edits.
+- **Stability:** never re-number after the map is published. To withdraw a relationship, set its `Pattern` to `Separate Ways` (or remove the row entirely) and either keep the ID with `[withdrawn]` appended or, if removed, never reuse the number. Re-numbering an `REL-###` cited by an SDR is a critical violation.
+- Cross-artifact references use the form `<scope>#REL-###` (e.g. `current#REL-004`). The scope matches the map filename without `.md`.
+
+---
+
 ## File template
 
 ```
@@ -33,9 +44,9 @@ Bulleted list of every bounded context shown on this map. Each must link to its 
 ## Relationships
 One row per directed relationship. Direction is **upstream → downstream** (the downstream context depends on the upstream).
 
-| Upstream | Downstream | Pattern | Integration | Notes |
-|----------|------------|---------|-------------|-------|
-| <name>   | <name>     | <pattern> | <sync REST / async event / shared DB / file drop / etc.> | one-sentence why |
+| ID       | Upstream | Downstream | Pattern | Integration | Notes |
+|----------|----------|------------|---------|-------------|-------|
+| REL-001  | <name>   | <name>     | <pattern> | <sync REST / async event / shared DB / file drop / etc.> | one-sentence why |
 
 **Allowed `Pattern` values** (use exactly one, spelled exactly as listed):
 - `Partnership` — two teams succeed or fail together; coordinated planning.

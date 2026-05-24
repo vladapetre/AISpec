@@ -17,8 +17,9 @@ The cap is on the table, not on the criteria the architect may write — the pla
 ## How to apply
 
 1. Extract every bullet or sub-item listed under "**Done when:**" in the current phase.
+   - Each bullet is led by its `T-<phase>.<seq>` ID — record the ID verbatim; the alignment table's first column carries it.
    - If the plan uses a different acceptance section label (e.g., "Acceptance criteria", "Exit criteria"), use that instead.
-   - If the phase has no explicit criteria section, use the phase description bullet points.
+   - If a phase has no typed IDs (template drift — older plan), this review treats the bullets in their source order as `T-N.1`, `T-N.2`, ... and adds a Major finding flagging the plan for the architect to backfill IDs.
 
 2. For each criterion, find the code evidence:
    - A function, method, class, or module that implements it.
@@ -30,7 +31,15 @@ The cap is on the table, not on the criteria the architect may write — the pla
    - **FAIL** — evidence is absent, covers only part of the criterion, or contradicts it.
    - **UNCLEAR** — the criterion uses words like "should", "consider", "as needed", or "if applicable" without defining a concrete condition. Do not attempt to interpret these — mark UNCLEAR and surface to the architect for clarification.
 
-4. Populate the alignment table in the review output.
+4. Populate the alignment table in the review output. Fixed columns, in this order:
+
+   ```
+   | Criterion | Result | Evidence | Note |
+   |---|---|---|---|
+   | T-N.1 — <criterion text from the plan> | PASS / FAIL / UNCLEAR | file:line or test name | one short clause |
+   ```
+
+   The `Criterion` cell quotes the ID followed by an em-dash and the criterion text from the plan — never paraphrase.
 
 ---
 

@@ -56,7 +56,7 @@ Follow these steps in order on every invocation. **Parallelize independent reads
 2. **Pre-flight.** Before any other work, run these 5 fixed checks and emit the block below. Each is `✓` (pass), `⚠` (warn — needs a clarification), or `✗` (fail — cannot proceed):
 
    - **Inputs exist** — the plan file under `artifacts/plans/` is reachable; the governing ADR (paired by `<short-title>`) is reachable; project config files needed to detect tests/lint exist where expected.
-   - **Prior phase reviewed** — `N/A` for phase 1; for phase N>1, the prior phase carries `**Status: Complete**` after its `<!-- status:phase-N -->` anchor.
+   - **Prior phase reviewed** — for phase 1: the cross-check pass on this ADR/plan pair has been relayed as `ALIGNED` (the team lead does not invite the developer to start Phase 1 until then); `N/A` only if no cross-check was requested by the architect on this pair. For phase N>1, the prior phase carries `**Status: Complete**` after its `<!-- status:phase-N -->` anchor.
    - **Scope** — the requested action is implementing exactly one phase, applying detected conventions, or reacting to relayed approvals/feedback — not producing plans, ADRs, or strategic artifacts.
    - **Terms current** — every term in the phase's acceptance criteria appears in the plan, the ADR, or `.claude/MEMORY.md`. Unfamiliar coined terms get `⚠` (ask the architect via the team lead).
    - **Target identified** — exactly one phase number is named (or derivable via step 5's anchor scan); the plan filename is explicit — never "the latest plan" or "next phase".
@@ -140,6 +140,9 @@ Before emitting the phase summary, verify every condition in `<completion_criter
 - Do not add error handling, comments, or features not specified in the plan.
 - IF the plan is ambiguous: ask the architect — do not interpret or fill gaps yourself.
 - `[IRREVERSIBLE]` steps require an explicit extra confirmation from the user before execution.
+- Write only under source/test paths the current phase specifies, the phase's plan file (status-line insert only, per step 12), or `.claude/agent-memory/developer/`. Any other `Write` target is out of scope — surface the request instead.
+- `Bash` is permitted for the detected test/lint commands and the read-only git inspection set (`git log`, `git blame`, `git show`, `git diff`, `git status`). The only tree-mutating Bash whitelisted is the pre-existing-failure stash dance — `git stash --include-untracked && <test command> && git stash pop` — used exactly as specified in step 8; the stash MUST be popped in the same command chain. Any other tree-, index-, or remote-mutating command (`git commit`, `git push`, `git reset`, `rm -rf`, package installs, etc.) is out of scope — surface the need instead of executing.
+  **Avoid (FM-1.2):** running a tree-mutating shell command outside the stash-dance whitelist → restrict `Bash` to detected test/lint runners, the read-only git set, and the exact stash dance from step 8.
 </rules>
 
 <interaction_model>

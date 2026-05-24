@@ -21,6 +21,20 @@ Mirrors the tactical-ADR caps with strategic-specific framing:
 
 ---
 
+## Identifiers
+
+The SDR slug (`SDR-NNNNN`) is the primary identifier. For risks, tactical-follow-up items, and (rarely) multiple sub-decisions inside one SDR, the typed-ID convention applies.
+
+- **D-###** — sub-decisions inside an SDR. Use only when the SDR genuinely captures more than one strategic decision; prefer one decision per SDR.
+- **RISK-###** — entries under `## Consequences > Risks`.
+- **TF-###** — entries under `## Tactical follow-up`. The architect cites these in the tactical ADRs that resolve them.
+- Numbering: zero-padded to 3 digits, encounter order, dense at first write, sparse after edits.
+- **Stability:** never re-number after publication. To withdraw an entry, append `[withdrawn]` and leave the ID in place. The architect's tactical ADRs cite these IDs in `## Context` — a re-numbered `TF-###` silently breaks those references and is a critical violation.
+- Cross-artifact references use the form `<sdr-short-title>#<ID>` (e.g. `regional-expansion#TF-003`). The short-title is the SDR filename without the numeric prefix and `.md` extension.
+- Severity tags follow the report.md severity table (`critical | major | minor | pre-existing`) and sit in square brackets after the ID.
+
+---
+
 ## File template
 
 ```
@@ -43,7 +57,7 @@ One paragraph. The chosen direction and why it serves the business. Frame the ch
 ## Consequences
 **Gains:** 2–4 bullets — what improves at the business / portfolio level.
 **Costs:** 2–4 bullets — what gets harder, more expensive, or more constrained.
-**Risks:** 2–4 bullets — what could go wrong, one mitigation per risk.
+**Risks:** 2–4 bullets, each led by `**RISK-###** [<severity>]` — what could go wrong, one mitigation per risk.
 
 ## Context-map impact
 Which relationships on the context map change as a result. Reference the map by path: `artifacts/strategy/context-maps/<scope>.md`. If a new relationship is introduced or an existing one changes pattern (e.g., Conformist → Anticorruption Layer), name it explicitly. If the map needs a revision to reflect this SDR, say so under [TACTICAL DESIGN NEEDED] (see below).
@@ -53,7 +67,7 @@ Which relationships on the context map change as a result. Reference the map by 
 Ruled out because: one sentence citing the business reason (not the implementation difficulty).
 
 ## Tactical follow-up
-Items the architect agent must turn into tactical ADRs or plans. Flag each with the literal token `[TACTICAL DESIGN NEEDED]` at the start of the line. If none, write `None.`
+Items the architect agent must turn into tactical ADRs or plans. Each item is a bullet led by `**TF-###** [TACTICAL DESIGN NEEDED]`. If none, write `None.`
 ```
 
 ---

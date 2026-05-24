@@ -20,6 +20,19 @@ One charter per bounded context. If a charter for the context already exists, **
 
 ---
 
+## Identifiers
+
+Invariants and open questions carry stable IDs so SDRs, tactical ADRs, plans, and the code-review pass can cite them without paraphrasing.
+
+- **INV-###** — entries under `## Invariants`. Numbered even when only one exists.
+- **OQ-###** — entries under `## Open questions`.
+- Numbering: zero-padded to 3 digits, encounter order, dense at first write, sparse after edits.
+- **Stability:** never re-number after the charter is published. To withdraw an entry, append `[withdrawn]` and leave the ID in place — the consultant logs the withdrawal under `## Revision history`. SDRs cite invariants by ID; a re-numbered `INV-###` silently breaks those references.
+- Cross-artifact references use the form `<context-name>#<ID>` (e.g. `billing#INV-002`).
+- Charter capability bullets under `## Scope` are not assigned IDs — the bounded-context name + capability noun phrase is already a stable handle.
+
+---
+
 ## File template
 
 ```
@@ -55,10 +68,10 @@ List the 3–8 terms most central to this context. Each term must be defined in 
 Full relationship semantics live in the context map: `artifacts/strategy/context-maps/<scope>.md`.
 
 ## Invariants
-2–5 business rules this context enforces that cannot be violated regardless of implementation. State each as a single declarative sentence.
+2–5 business rules this context enforces that cannot be violated regardless of implementation. Each is a bullet led by `**INV-###**`, stated as a single declarative sentence.
 
 ## Open questions
-List unresolved strategic questions that block ratification. Each question must name who can answer it. Empty list → set status to Ratified.
+List unresolved strategic questions that block ratification. Each is a bullet led by `**OQ-###**` and must name who can answer it. Empty list → set status to Ratified.
 
 ## Revision history
 - vN (YYYY-MM-DD): one-sentence summary of the change.

@@ -19,6 +19,20 @@ Numeric, not adjectival. The reviewer enforces these on alignment.
 
 ---
 
+## Identifiers
+
+Acceptance criteria carry stable IDs so the reviewer can cite them in alignment tables, and the developer can quote them in phase summaries, without paraphrasing.
+
+- **T-<phase>.<seq>** — one ID per `Done when:` bullet. Phase-namespaced so adding or removing a phase in the middle of the plan does not renumber criteria in unrelated phases. Examples: `T-1.1`, `T-1.2`, `T-2.1`.
+- **OQ-###** — entries under `## Open Questions`. Zero-padded to 3 digits, encounter order.
+- Numbering: dense at first write within each phase; sparse after edits.
+- **Stability:** never re-number after the plan is published. To withdraw a criterion, append `[withdrawn]` and leave the ID in place. Re-numbering a `T-<phase>.<seq>` that another artifact (alignment table, phase summary, developer memory) references is a critical violation.
+- Cross-artifact references use the form `<plan-short-title>#T-<phase>.<seq>` (e.g. `event-store#T-2.3`) or `<plan-short-title>#OQ-001`.
+- A plan's short-title matches the ADR's short-title and the plan filename without `.md`.
+- Adding a phase between existing phases is allowed — number the new phase with the next integer (e.g., inserting after Phase 2 makes the new phase Phase 6 if Phases 3-5 exist, or Phase 3 only if no later phases exist) rather than re-numbering. The lexical order of phase numbers no longer matches execution order in that case — add a `**Execution order:**` line at the top of `## Phases` listing the phases in execution order.
+
+---
+
 ## File template
 
 ```
@@ -36,12 +50,14 @@ Each phase is independently shippable. List in execution order. Produce between 
 
 ### Phase N — Name
 **Changes:** what is modified or created.
-**Done when:** acceptance criteria, stated as observable facts.
+**Done when:** acceptance criteria, stated as observable facts. Each criterion is a bullet led by `**T-N.<seq>**`:
+- **T-N.1** Observable fact one.
+- **T-N.2** Observable fact two.
 <!-- status:phase-N -->
 **[IRREVERSIBLE]** (include this block only if the phase contains irreversible steps, and name them)
 
 ## Open Questions
-- Question. Owner: `@username` | `unassigned` | `<agent-name>`.
+- **OQ-001** Question. Owner: `@username` | `unassigned` | `<agent-name>`.
 ```
 
 ---

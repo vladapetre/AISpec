@@ -10,6 +10,7 @@ vocabulary_rules:
   - A consumer scans for its tokens at a fixed step of every invocation.
   - Adding a new token requires adding an entry to this file first.
   - Verdict tokens are matched as exact strings; near-matches are rejections.
+  - Identifier prefixes (Section 5e) are matched as patterns `<prefix>-<n>`; their assignment and stability rules live in Section 5f.
 
 # Section 5a — routing tokens: move work between agents.
 # The producer writes the token into a named artifact section; the consumer scans for it
@@ -58,6 +59,13 @@ routing_tokens:
     consumed_at: "architect — amendment mode entry"
     meaning: "The phase's diff exposed drift from the governing ADR; the architect must amend the ADR (and the plan if a future phase's acceptance criteria change)."
 
+  - token: "CROSS_CHECK_REQUESTED:"
+    produced_by: architect
+    written_into: "Mode A output — summary line at the bottom, after ADR/plan paths"
+    consumed_by: reviewer
+    consumed_at: "reviewer — mode dispatch (cross-check sub-flow CC-1)"
+    meaning: "An ADR and its companion plan have just been published; the reviewer must run the read-only artifact↔artifact cross-check pass before the developer is invited to start Phase 1. Also produced on the architect's amendment cycle when reconciling cross-check drift."
+
 # Section 5b — verdict tokens: gate decisions. Matched as exact strings.
 #
 # Phase-approval gate: every phase needs the reviewer's APPROVED and the user's
@@ -81,6 +89,16 @@ verdict_tokens:
     issued_by: "user (relayed by team lead)"
     gate: "phase-approval gate (every phase)"
     effect: "One of the approvals the developer needs to advance the phase."
+
+  - token: "ALIGNED"
+    issued_by: reviewer
+    gate: "cross-check gate (once per ADR/plan pair, before Phase 1)"
+    effect: "The ADR and its companion plan are mutually consistent; the developer may be invited to start Phase 1."
+
+  - token: "DRIFT DETECTED"
+    issued_by: reviewer
+    gate: "cross-check gate (once per ADR/plan pair, before Phase 1)"
+    effect: "The ADR/plan pair has at least one critical or major cross-artifact finding; the architect must reconcile via amendment and re-request the cross-check before the developer is invited."
 
 # Section 5c — in-artifact markers: status / quality annotations, not routing.
 in_artifact_markers:
@@ -119,3 +137,103 @@ in_artifact_markers:
   - marker: "[UNKNOWN]"
     used_by: analyst
     purpose: "A required question left unanswered after full ingestion."
+
+  - marker: "[withdrawn]"
+    used_by: "analyst, architect, consultant"
+    purpose: "Appended to an identifier-led line whose entry no longer applies. The ID stays in place to preserve cross-artifact reference integrity — never re-number a withdrawn ID."
+
+# Section 5e — identifier prefixes: the typed cross-artifact ID vocabulary.
+#
+# These are patterns, not fixed match strings — each entry below is a `<prefix>-<n>`
+# template where `<n>` is a zero-padded number (or `<phase>.<seq>` for T-IDs). The
+# pattern is read directly from the entry's `format`. Producers assign IDs in encounter
+# order at first write, dense within the artifact; never re-number a published ID —
+# withdraw via the `[withdrawn]` marker above and assign the next integer after the
+# high-water mark. The per-artifact `## Identifiers` block in each template carries
+# the per-prefix rules; this section is the single-place catalogue across artifacts.
+#
+# Cross-artifact references take the form `<short-title>#<ID>` where `<short-title>`
+# is the host artifact filename without the `.md` extension (and, for ADRs/SDRs,
+# without the numeric prefix). Example: `auth-audit#R-007`, `event-store#D-002`,
+# `payments-rewrite#T-2.3`, `regional-expansion#TF-003`, `billing#INV-002`,
+# `current#REL-004`.
+identifier_prefixes:
+  - prefix: "R-"
+    format: "R-###"
+    produced_by: analyst
+    host_artifact: "artifacts/reports/<short-title>.md"
+    written_into: "Each `### theme` subsection, one bullet per finding led by `**R-###** [<severity>] <claim>`"
+    purpose: "Stable identifier for a single analyst-report finding. Cited by ADRs and plans that resolve the finding."
+    severity_tagged: true
+
+  - prefix: "D-"
+    format: "D-###"
+    produced_by: "architect (tactical ADR), consultant (strategic SDR)"
+    host_artifact: "artifacts/adr/NNNNN-<short-title>.md, artifacts/strategy/decisions/NNNNN-<short-title>.md"
+    written_into: "Sub-decision heading or bullet inside `## Decision` when the artifact records more than one decision"
+    purpose: "Stable identifier for a single sub-decision inside a multi-decision (S)ADR. Prefer one decision per ADR; only use when the artifact genuinely captures more than one."
+    severity_tagged: false
+
+  - prefix: "RISK-"
+    format: "RISK-###"
+    produced_by: "architect (tactical ADR), consultant (strategic SDR)"
+    host_artifact: "artifacts/adr/NNNNN-<short-title>.md, artifacts/strategy/decisions/NNNNN-<short-title>.md"
+    written_into: "Bullets under `## Consequences > Risks`, each led by `**RISK-###** [<severity>]`"
+    purpose: "Stable identifier for a risk recorded in an (S)ADR. Cited by plans that mitigate the risk and by reviewers that flag related drift."
+    severity_tagged: true
+
+  - prefix: "T-"
+    format: "T-<phase>.<seq>"
+    produced_by: architect
+    host_artifact: "artifacts/plans/<short-title>.md"
+    written_into: "Bullets under each phase's `**Done when:**` block, led by `**T-<phase>.<seq>**`"
+    purpose: "Stable identifier for one acceptance criterion in one plan phase. Cited verbatim by the reviewer's alignment table and by the developer's phase summary. Phase-namespaced so adding or removing a phase does not renumber criteria in unrelated phases."
+    severity_tagged: false
+
+  - prefix: "OQ-"
+    format: "OQ-###"
+    produced_by: "architect (plan), consultant (charter)"
+    host_artifact: "artifacts/plans/<short-title>.md, artifacts/strategy/charters/<context-name>.md"
+    written_into: "Bullets under `## Open Questions` (plan) or `## Open questions` (charter), each led by `**OQ-###**`"
+    purpose: "Stable identifier for an unresolved question that blocks publication or ratification."
+    severity_tagged: false
+
+  - prefix: "TF-"
+    format: "TF-###"
+    produced_by: consultant
+    host_artifact: "artifacts/strategy/decisions/NNNNN-<short-title>.md"
+    written_into: "Bullets under `## Tactical follow-up`, each led by `**TF-###** [TACTICAL DESIGN NEEDED]`"
+    purpose: "Stable identifier for a tactical-design item the architect must turn into a tactical ADR or plan phase. The architect cites these in the tactical ADR's `## Context`."
+    severity_tagged: false
+
+  - prefix: "INV-"
+    format: "INV-###"
+    produced_by: consultant
+    host_artifact: "artifacts/strategy/charters/<context-name>.md"
+    written_into: "Bullets under `## Invariants`, each led by `**INV-###**`"
+    purpose: "Stable identifier for a business invariant a bounded context enforces regardless of implementation. Cited by SDRs that constrain the context and by reviewers checking design-intent alignment."
+    severity_tagged: false
+
+  - prefix: "REL-"
+    format: "REL-###"
+    produced_by: consultant
+    host_artifact: "artifacts/strategy/context-maps/<scope>.md"
+    written_into: "First column of every row in `## Relationships`"
+    purpose: "Stable identifier for one upstream-downstream relationship on a context map. Cited by SDRs that change the relationship's pattern."
+    severity_tagged: false
+
+  - prefix: "X-"
+    format: "X-###"
+    produced_by: reviewer
+    host_artifact: "(conversation channel — never persisted to an artifact file)"
+    written_into: "First column of the cross-check output table per `.claude/skills/reviewing/templates/cross-check.md`"
+    purpose: "Stable-within-a-pass identifier for one cross-check finding. Each new cross-check pass starts at `X-001` again — these IDs do not survive across passes and are not cross-referenced from other artifacts."
+    severity_tagged: true
+
+# Section 5f — identifier vocabulary rules.
+identifier_rules:
+  - "Assign IDs in encounter order at first write; numbering is dense at first write, sparse after edits."
+  - "Never re-number a published ID. To remove an entry, append `[withdrawn]` to its line and leave the ID in place."
+  - "When amending an artifact, assign the next integer after the high-water mark — do not reuse withdrawn numbers."
+  - "Cross-artifact references take the form `<short-title>#<ID>` — the short-title is the host filename without `.md` (and without the numeric prefix for ADRs/SDRs)."
+  - "Severity-tagged prefixes carry `[critical | major | minor | pre-existing]` in square brackets after the ID; severity values come from the relevant template's severity table — never paraphrased."
