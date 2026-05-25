@@ -63,6 +63,24 @@ Apply to the **project directory structure** (not just changed files). Multiple 
 
 ---
 
+## Diff-size template gating
+
+The reviewer's per-phase template load is gated by the size of the phase diff. Compute size from the step-7 changed-file set: total changed files and total changed LOC (sum of `git diff --shortstat HEAD~1..HEAD` insertions+deletions).
+
+| Phase size | Threshold | Templates loaded |
+|---|---|---|
+| **Small** | `≤ 3 files AND ≤ 50 LOC` | `alignment.md` + every matching framework template — **skip** `patterns.md` and concern templates |
+| **Medium** | otherwise, when LOC `< 300` | `alignment.md` + `patterns.md` + every matching framework and concern template — **but** skip `patterns.md`'s SOLID and DRY sections |
+| **Large** | `≥ 300 LOC OR ≥ 10 files` | full set — `alignment.md` + `patterns.md` (all sections) + every matching framework and concern template |
+
+**Security carve-out (overrides Small/Medium):** if any file in the changed set sits under `src/auth/`, `src/crypto/`, `src/security/`, `Authentication/`, `Authorization/`, or a path listed under a `**Security paths:**` entry in CLAUDE.md, load `patterns.md` in full (Se1–Se3 must always run) regardless of diff size. The framework/concern gating still applies.
+
+**[IRREVERSIBLE] carve-out:** if the developer's phase summary lists any `**[IRREVERSIBLE] steps executed:**` other than `_None_`, treat the phase as Large regardless of diff size.
+
+Record the chosen gate under "Templates applied" in the review output: `gate: small | medium | large [+ security carve-out | + irreversible carve-out]`.
+
+---
+
 ## Severity definitions
 
 Apply the first rule that matches:

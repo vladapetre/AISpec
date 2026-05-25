@@ -45,6 +45,29 @@ After each implementation phase, the reviewer agent reviews the code before the 
 
 The reviewer's per-phase review includes an ADR-alignment check: it verifies the diff still honours the governing ADR's key decisions. If it detects design-level drift, it emits `ARCHITECT AMENDMENT NEEDED: <reason>` alongside its verdict. Route that flag to the architect via `SendMessage` as soon as the reviewer's output is received — do not wait for the user's verdict, and do not wait for the phase to advance. The architect's amendment runs in parallel with the user's approval and may arrive after the dual gate has already cleared (the developer handles that case by un-marking `**Status: Complete**` if needed). The architect amends the ADR — and the plan if the amendment changes a future phase's acceptance criteria. The architect no longer gates phases by default; they re-engage only on this flag.
 
+## Pre-flight protocol
+
+Every named agent runs the same 5-check pre-flight (step 2, or CC-1 for the reviewer cross-check). Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (Autonomous, not Out-of-scope) · **Terms current** · **Target identified**. Each agent's step 2 declares only its per-check semantics.
+
+Each check is `✓` pass, `⚠` warn (needs clarification), or `✗` fail. Emit this block verbatim:
+
+```
+Pre-flight:
+- Inputs exist: <✓|⚠|✗>  <one-line evidence>
+- Prior phase reviewed: <✓|⚠|✗|N/A>  <one-line evidence>
+- Scope: <✓|⚠|✗>  <one-line evidence>
+- Terms current: <✓|⚠|✗>  <one-line evidence>
+- Target identified: <✓|⚠|✗>  <one-line evidence>
+
+Result: <PROCEED | ASK | STOP>
+```
+
+**Branch:** all `✓`/`N/A` → `Result: PROCEED`. Any `⚠` → `Result: ASK: <up to 5 clarifying questions in one batch>`; wait for the user. Any `✗` → `Result: STOP: <reason>`.
+
+**Universal Avoid cues** (apply to every agent — do not restate inline):
+- **Avoid (FM-1.1):** starting work before naming inputs → list every input artifact, path, or URL in `Inputs exist`.
+- **Avoid (FM-3.4):** filling under-specified scope by your own interpretation → mark `Terms current: ⚠` or `Target identified: ⚠` and ask, do not guess.
+
 # Source Code Reference
 
 Source code for dependencies and reference repositories is fetched on demand by the `opensrc` CLI into the project-local `.opensrc/` cache. Always invoke it through the `npm run opensrc` script — it sets `OPENSRC_HOME` so the cache stays inside the project on every workstation.

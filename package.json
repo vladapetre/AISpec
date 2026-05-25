@@ -16,7 +16,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "opensrc": "OPENSRC_HOME=.opensrc opensrc"
+    "opensrc": "set \"OPENSRC_HOME=%cd%\\.opensrc\" && opensrc",
+    "lint:agents": "node scripts/lint-agents.mjs"
   },
   "dependencies": {
     "opensrc": "^0.7.2"

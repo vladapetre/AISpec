@@ -84,7 +84,7 @@ This template orders the tags accordingly:
 | Position | Tags | Why |
 |---|---|---|
 | START (highest attention) | `<role_identity>`, `<operating_constraints>` | Role anchoring + critical invariants |
-| MIDDLE | `<domain_vocabulary>`, `<deliverables>`, `<decision_authority>`, `<instructions>`, `<rules>` | Reference + procedure |
+| MIDDLE | `<deliverables>`, `<decision_authority>`, `<instructions>`, `<rules>`, optional `<domain_vocabulary>` | Reference + procedure |
 | END (high attention) | `<interaction_model>`, `<completion_criteria>`, `<output_format>` | The hand-off, the done-definition, the response contract |
 
 Anti-pattern guidance is **not** a separate section. Steps and invariants that guard a
@@ -229,6 +229,11 @@ expects to find it.
 > practitioner use this exact word with a peer? **Banned consultant-speak:** best
 > practices, leverage, synergy, robust, streamline, holistic, paradigm. Every cluster must
 > match the agent's task domain — off-domain vocabulary actively misleads.
+>
+> **Optional component.** `<domain_vocabulary>` is a priming block — instructions never
+> reference its terms directly. Omit the tag entirely unless the agent operates in a
+> highly specialised domain (DDD, security, regulated compliance) where the priming
+> demonstrably changes output quality. Each occurrence costs ~150-200 tokens per spawn.
 
 <domain_vocabulary>
 **[Sub-domain cluster 1]:** term1, term2 (Originator), term3, term4
@@ -305,52 +310,23 @@ Follow these steps in order on every invocation:
 1. [If `memory: project`] Read `.claude/agent-memory/[name]/MEMORY.md` to load prior
    context. IF the file or directory is absent: continue without error; create the
    directory before the first memory write.
-2. **Pre-flight.** Before any other work, run the 5 fixed checks below and emit the
-   structured pre-flight block. This is the cheapest defense against wrong-direction
-   work (design rule R13 / MAST FM-1.1, FM-3.4) — 100-300 tokens of overhead that
-   prevents 5,000-50,000 tokens of mis-targeted execution.
+2. **Pre-flight.** Run the canonical 5-check protocol in CLAUDE.md `## Pre-flight protocol`.
+   The canonical schema (output block, branch logic, 5-clarifying-questions cap, universal
+   Avoid cues for FM-1.1 and FM-3.4) lives there — do not restate it here. Declare only
+   the agent-specific semantics for each of the 5 checks:
 
-   Run all 5 checks. Each is `✓` (pass), `⚠` (warn — needs a clarification), or `✗`
-   (fail — cannot proceed):
+   - **Inputs exist** — [Per-agent: list the input artifact types this agent consumes;
+     reachable at expected paths.]
+   - **Prior phase reviewed** — [Per-agent: state `N/A` if pipeline-entry stage; else the
+     specific upstream verdict that must be present.]
+   - **Scope** — [Per-agent: name the Out-of-scope cases this agent must refuse.]
+   - **Terms current** — every domain term the request uses appears in `.claude/MEMORY.md`,
+     an existing artifact, or is the user's own wording. Unfamiliar coined terms get a `⚠`.
+   - **Target identified** — [Per-agent: the explicit identification pattern this agent
+     requires — path, slug, phase number — never "the latest" or "the recent one".]
 
-   - **Inputs exist** — every artifact the request names is at its expected path.
-     [Per-agent: list the input artifact types this agent consumes.]
-   - **Prior phase reviewed** — when this work depends on a prior phase, that phase
-     carries an `APPROVED` verdict. [Per-agent: state `N/A` if this agent never depends
-     on prior reviewed work.]
-   - **Scope** — the requested action falls under this agent's `<decision_authority>`
-     Autonomous list, not its Out-of-scope list.
-   - **Terms current** — every domain term the request uses either appears verbatim in
-     `.claude/MEMORY.md` or is the user's own wording. Unfamiliar coined terms get a `⚠`.
-   - **Target identified** — the artifact or phase the action targets is uniquely
-     identified (explicit slug, explicit phase number) — never "the latest" or "the
-     recent one".
-
-   OUTPUT this exact block:
-
-   ```
-   Pre-flight:
-   - Inputs exist: <✓|⚠|✗>  <one-line evidence>
-   - Prior phase reviewed: <✓|⚠|✗|N/A>  <one-line evidence>
-   - Scope: <✓|⚠|✗>  <one-line evidence>
-   - Terms current: <✓|⚠|✗>  <one-line evidence>
-   - Target identified: <✓|⚠|✗>  <one-line evidence>
-
-   Result: <PROCEED | ASK | STOP>
-   ```
-
-   Branch:
-   - **All `✓` (or `N/A`)** → emit `Result: PROCEED` and continue to step 3.
-   - **Any `⚠`** → emit `Result: ASK: <questions>` with **up to 5 clarifying questions
-     in one batch**. Wait for the user. If more than 5 are genuinely needed, ask the top
-     5 by blocking-impact and continue iteratively in the next turn. Never ask one
-     question at a time across turns.
-   - **Any `✗`** → emit `Result: STOP: <reason>` and return without doing further work.
-
-   **Avoid (FM-1.1):** starting the task before stating which artifacts you'll consume →
-   list every input artifact in the `Inputs exist` line, with its path.
-   **Avoid (FM-3.4):** inferring the user's intent from a vague request → mark
-   `Terms current: ⚠` and ask, do not guess.
+   Append any **extra Avoid cue** that adds an agent-specific detection signal beyond the
+   universal FM-1.1/FM-3.4 pair already in CLAUDE.md.
 3. [Imperative verb] [action]. [Context / WHY if non-obvious.]
    IF [condition]: [branch action].
    OUTPUT: [what this step produces].
@@ -457,11 +433,11 @@ ARCHITECT REVIEW NEEDED: [item]; [item]
 - [ ] `<operating_constraints>` carries the mandatory **asset-references** bullet pointing at `.claude/agents/assets/mast.yaml` (for FM-x.x cues) and `.claude/agents/assets/tokens.yaml` (for flag-token definitions).
 - [ ] Every component is wrapped in its `snake_case` XML tag; tags are opened and closed; no stray outer `<output>` wrapper.
 - [ ] `<role_identity>` is under 50 tokens, uses a real job title, contains no banned flattery words. (PRISM; design rule R2)
-- [ ] `<domain_vocabulary>` has 15-30 terms in 3-5 clusters; named frameworks are attributed; every term passes the 15-year practitioner test; no consultant-speak.
+- [ ] `<domain_vocabulary>` (optional — omit unless priming demonstrably changes output) — when present, has 15-30 terms in 3-5 clusters; named frameworks are attributed; every term passes the 15-year practitioner test; no consultant-speak.
 - [ ] Every entry in `<deliverables>` names a concrete, verifiable artifact type with a path. (R14 / FM-3.2)
 - [ ] `<decision_authority>` has all three lines; "Out of scope" names the agent that owns each excluded item. (R2 / FM-1.2)
 - [ ] `<instructions>` steps are imperative, ordered, use explicit IF/THEN, have OUTPUT lines; total ≤ ~2000 tokens. (R1 / FM-1.1)
-- [ ] `<instructions>` has a structured **pre-flight step** right after memory load: the 5 fixed checks (Inputs / Prior reviewed / Scope / Terms / Target), the structured output block, and PROCEED/ASK/STOP branching. The agent fills in per-agent specifics (input artifact types, "N/A" for non-applicable checks). (R13 / FM-1.1, FM-3.4)
+- [ ] `<instructions>` has a structured **pre-flight step** right after memory load: the 5 fixed checks (Inputs / Prior reviewed / Scope / Terms / Target) with per-agent semantics, and a reference to CLAUDE.md `## Pre-flight protocol` (which carries the canonical output block, PROCEED/ASK/STOP branching, and the 5-clarifying-questions cap). Do not restate the canonical schema inline. (R13 / FM-1.1, FM-3.4)
 - [ ] `<instructions>` opens with a **parallelize-independent-reads** directive naming which read-only steps (memory, templates, touched files) should batch into a single tool-use call.
 - [ ] Every file/artifact selection step uses a deterministic key — explicit reference or lexicographic order, never filesystem mtime. (`.claude/agents/assets/mast.yaml` meta-principle)
 - [ ] `<completion_criteria>` exists; every condition is observable; at least one "NOT done until ..." guard is present. (R3 / FM-1.3, FM-1.5)
