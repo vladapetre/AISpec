@@ -45,8 +45,8 @@ const stopwords = new Set(
 );
 const tokens = subject.split(' ').filter((t) => t && !stopwords.has(t));
 
-// Step 5 — keep the first N tokens (report N=3, adr/plan N=5).
-const n = type === 'report' ? 3 : 5;
+// Step 5 — keep the first N tokens (uniform N=5 across types).
+const n = 5;
 const kept = tokens.slice(0, n);
 if (kept.length === 0) die('subject reduced to zero tokens after cleanup');
 let stem = kept.join('-');
@@ -55,6 +55,7 @@ let stem = kept.join('-');
 if (type === 'report') stem += '-analysis';
 
 // Step 6 — ADRs prepend the next zero-padded 5-digit sequence number.
+// Plans inherit the paired ADR's prefix if one exists with a matching stem; otherwise unprefixed.
 if (type === 'adr') {
   let next = 1;
   if (existsSync('artifacts/adr')) {
@@ -67,6 +68,16 @@ if (type === 'adr') {
     }
   }
   process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
+} else if (type === 'plan') {
+  let prefix = '';
+  if (existsSync('artifacts/adr')) {
+    const pattern = new RegExp(`^(\\d{5})-${stem}\\.md$`);
+    for (const name of readdirSync('artifacts/adr')) {
+      const match = pattern.exec(name);
+      if (match && match[1] > prefix) prefix = match[1];
+    }
+  }
+  process.stdout.write(prefix ? `${prefix}-${stem}\n` : `${stem}\n`);
 } else {
   process.stdout.write(`${stem}\n`);
 }

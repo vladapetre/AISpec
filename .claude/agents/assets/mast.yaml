@@ -35,6 +35,10 @@ taxonomy:
     - { code: FM-3.4, name: Ineffective Task Understanding }
 
 # The 14 design rules. Each maps to one or more failure modes.
+#
+# Illustrative bad/good examples live in `failure_modes_detail.<FM>.examples` to avoid
+# duplicating them across two sections — the `see_examples:` field points to the matching
+# detail entry. The `rule:` text below is the rule's identity; the example is its texture.
 design_rules:
   - id: R1
     title: Give each agent its full context explicitly
@@ -43,12 +47,7 @@ design_rules:
     rule: >
       Don't assume an agent inherits what an earlier agent saw. Pass the relevant
       artifact into the prompt directly.
-    bad: >
-      Implement the feature we discussed.
-    good: >
-      Implement Phase 2 of artifacts/plans/checkout-redesign.md. Inputs: the ADR at
-      artifacts/adr/0007-payment-gateway.md and the API schema in src/api/checkout.ts.
-      Do not touch Phase 3 work.
+    see_examples: FM-1.1
 
   - id: R2
     title: Pin roles hard, and keep them narrow
@@ -57,12 +56,7 @@ design_rules:
     rule: >
       State what the agent must do and what it must not do. Overlapping mandates cause
       drift.
-    bad: >
-      You are a helpful architect agent. Help with the codebase.
-    good: >
-      You are the architect. You produce ADRs and implementation plans. You DO NOT write
-      production code. You DO NOT approve your own plans. If a task needs code, hand it to
-      the developer agent.
+    see_examples: FM-1.2
 
   - id: R3
     title: Define explicit stopping conditions
@@ -70,12 +64,7 @@ design_rules:
     failure_modes: [FM-1.3, FM-1.5]
     rule: >
       Every agent needs a concrete "done" definition and a "not done until X" guard.
-    bad: >
-      Review the code and let me know what you think.
-    good: >
-      Review is complete ONLY when: (a) every checklist item has a verdict, (b) all
-      CHANGES REQUIRED items cite a file:line, (c) you emit a final APPROVED or CHANGES
-      REQUIRED line. Do not stop before all three exist.
+    see_examples: FM-1.3
 
   - id: R4
     title: Make conversation history durable
@@ -84,11 +73,7 @@ design_rules:
     rule: >
       Persist decisions in artifacts, not just chat. State that lives only in transient
       messages gets lost across handoffs.
-    bad: >
-      Architect explains a trade-off in a chat message; the developer never sees it.
-    good: >
-      Architect records the trade-off in artifacts/adr/0009-cache-strategy.md; the
-      developer prompt references that file path. The decision survives the handoff.
+    see_examples: FM-1.4 (not yet detailed — backfill on demand)
 
   - id: R5
     title: Make delegation contracts explicit
@@ -96,12 +81,7 @@ design_rules:
     failure_modes: [FM-2.4]
     rule: >
       A handoff must specify: task, inputs, expected output shape, acceptance criteria.
-    bad: >
-      @developer go implement the auth changes.
-    good: >
-      @developer Task: implement Phase 1 of plans/auth-rewrite.md. Inputs: ADR 0011,
-      src/auth/. Output: modified files + a test run summary. Acceptance: all existing
-      tests pass, new middleware has unit coverage. Stop after Phase 1 and wait for review.
+    see_examples: FM-2.4
 
   - id: R6
     title: Require a single shared source of truth for goals
@@ -110,12 +90,7 @@ design_rules:
     rule: >
       All agents reference the same plan/charter. When each agent re-derives the
       objective, goals drift apart.
-    bad: >
-      Consultant, architect, and developer each restate the goal in their own words.
-    good: >
-      The bounded-context charter at artifacts/charters/billing.md is the canonical goal
-      statement; every agent prompt links to it and quotes from it rather than
-      paraphrasing.
+    see_examples: FM-2.5
 
   - id: R7
     title: Detect and break repetition loops
@@ -123,11 +98,7 @@ design_rules:
     failure_modes: [FM-2.1]
     rule: >
       Track whether an agent is re-doing a step with no new result; cap iterations.
-    bad: >
-      Agent retries the same failing build command 8 times with no change.
-    good: >
-      If a command fails twice with the same error, STOP. Report the error and your
-      diagnosis instead of retrying. Max 3 attempts per distinct action.
+    see_examples: FM-2.1
 
   - id: R8
     title: Standardize tool/interface protocols across agents
@@ -135,12 +106,7 @@ design_rules:
     failure_modes: [FM-2.3]
     rule: >
       Same tool names, same I/O conventions, so two agents don't take conflicting actions.
-    bad: >
-      One agent edits files with Edit, another shells out to sed, a third rewrites whole
-      files — the same file mutated three incompatible ways.
-    good: >
-      All agents use Edit for modifications and Write only for new files; artifact writes
-      always go through the documenting skill's filename rules.
+    see_examples: FM-2.3 (not yet detailed — backfill on demand)
 
   - id: R9
     title: Never reset context mid-task
@@ -148,12 +114,7 @@ design_rules:
     failure_modes: [FM-2.2]
     rule: >
       Resume agents with full history rather than spawning fresh ones.
-    bad: >
-      Developer hits a blocker; you spawn a brand-new developer agent that has no memory
-      of Phases 1-2.
-    good: >
-      Resume the existing developer via SendMessage with the agent's name — it keeps the
-      full phase history and prior decisions.
+    see_examples: FM-2.2 (not yet detailed — backfill on demand)
 
   - id: R10
     title: Add a dedicated verifier — never let the producer self-certify
@@ -162,12 +123,7 @@ design_rules:
     rule: >
       A separate reviewer catching errors was the single most effective intervention in
       the paper.
-    bad: >
-      Developer finishes a phase and declares "implementation verified, all good."
-    good: >
-      Developer output is routed to the reviewer agent, which runs an adversarial review
-      and emits an independent APPROVED / CHANGES REQUIRED verdict before the phase can
-      advance.
+    see_examples: FM-3.3
 
   - id: R11
     title: Verify output format, not just content
@@ -175,12 +131,7 @@ design_rules:
     failure_modes: [FM-3.1]
     rule: >
       Check the output matches the schema the next agent expects before handing off.
-    bad: >
-      Architect produces a plan with no phase anchors; the developer can't mark the
-      status complete because the per-phase status markers are missing.
-    good: >
-      A format check confirms the plan has numbered phases, status anchors, and
-      acceptance criteria before it is handed to the developer.
+    see_examples: FM-3.1
 
   - id: R12
     title: Make verification checklist-driven, not vibe-based
@@ -188,12 +139,7 @@ design_rules:
     failure_modes: [FM-3.3]
     rule: >
       Generic "review this" misses things; concern-specific checklists catch more.
-    bad: >
-      Review the PR and flag anything that looks wrong.
-    good: >
-      Reviewer loads the framework- and concern-specific checklists from the reviewing
-      skill (e.g. SQL injection, N+1 queries, missing error handling) and gives each item
-      an explicit pass/fail with evidence.
+    see_examples: FM-3.3
 
   - id: R13
     title: Force task restatement before execution
@@ -202,12 +148,7 @@ design_rules:
     rule: >
       Have the agent paraphrase requirements and success criteria first — a cheap way to
       catch misunderstanding early.
-    bad: >
-      Agent reads the task and immediately starts editing files.
-    good: >
-      Before writing any code, restate: (1) what you understand the task to be, (2) the
-      success criteria, (3) anything ambiguous. Wait for confirmation if anything is
-      unclear.
+    see_examples: FM-3.4
 
   - id: R14
     title: Decompose into independently verifiable subtasks
@@ -215,11 +156,7 @@ design_rules:
     failure_modes: [FM-3.3, FM-3.4]
     rule: >
       Each subtask gets explicit success criteria and is checked on its own.
-    bad: >
-      "Build the whole reporting dashboard" as one opaque unit of work.
-    good: >
-      Plan splits into Phase 1 (data layer), Phase 2 (API), Phase 3 (UI), each with its
-      own acceptance criteria and its own architect review gate.
+    see_examples: FM-3.3
 
 # Quick audit checklist for an agent definition — each item maps to a design rule.
 audit_checklist:
@@ -249,7 +186,8 @@ audit_checklist:
 #   detection:   list — observable signals that this FM is occurring
 #   mechanism:   one-paragraph why-it-fails
 #   resolution:  one-paragraph what-to-do-instead
-#   examples:    bad / good pair (multi-line allowed)
+#   examples:    bad / good pair (multi-line allowed) — canonical home for illustrations;
+#                `design_rules.see_examples` cross-references this block
 #   related_rules: list of R-IDs that bear on this FM
 #
 # Backfill on demand: only FMs cited by an existing inline `**Avoid:**` need an entry.

@@ -75,16 +75,17 @@ The filename stem is derived deterministically by `scripts/filename.mjs` — a N
 node .claude/skills/documenting/scripts/filename.mjs <report|adr|plan> "<subject>"
 ```
 
-`<subject>` is the subject noun phrase from the request — the thing being analysed/designed/planned. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to the per-type token budget (report = 3, ADR/plan = 5), appends `-analysis` for reports, and prepends the next zero-padded 5-digit sequence number for ADRs (scanning `artifacts/adr/`). It prints the stem on stdout.
+`<subject>` is the subject noun phrase from the request — the thing being analysed/designed/planned. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to the first 5 tokens uniformly across all three types, appends `-analysis` for reports, prepends the next zero-padded 5-digit sequence number for ADRs (scanning `artifacts/adr/`), and prepends the paired ADR's prefix for plans when a matching ADR stem is found in `artifacts/adr/`. It prints the stem on stdout.
 
 | Input subject | Type | Printed stem |
 |---|---|---|
 | "Analysis of the Auth Middleware" | report | `auth-middleware-analysis` |
-| "Plan for migrating the user service to gRPC" | plan | `migrating-user-service-grpc` |
+| "Plan for migrating the user service to gRPC" | plan | `migrating-user-service-grpc` (unprefixed — no matching ADR) |
 | "Design of the Auth Middleware" | adr | `00002-auth-middleware` (prefix depends on `artifacts/adr/`) |
+| "Design of the Auth Middleware" | plan | `00002-auth-middleware` (after the paired ADR exists) |
 | "Stripe webhook idempotency analysis" | report | `stripe-webhook-idempotency-analysis` |
 
-For a paired ADR and plan, run the script with the **same** `<subject>` for each — the base stem is identical (the ADR adds the numeric prefix, the plan does not). Artifact types without a script mode (charter, context map, SDR, glossary, progress) follow the naming convention in their own template file.
+For a paired ADR and plan, run the script with the **same** `<subject>` for each — write the ADR first so the plan inherits its `NNNNN-` prefix. If the plan is written before any matching ADR exists, it is unprefixed; re-running the script after the ADR is published will then return the prefixed stem. Artifact types without a script mode (charter, context map, SDR, glossary, progress) follow the naming convention in their own template file.
 
 ### Confidence markers
 

@@ -65,13 +65,15 @@ Apply to the **project directory structure** (not just changed files). Multiple 
 
 ## Diff-size template gating
 
-The reviewer's per-phase template load is gated by the size of the phase diff. Compute size from the step-7 changed-file set: total changed files and total changed LOC (sum of `git diff --shortstat HEAD~1..HEAD` insertions+deletions).
+The reviewer's per-phase template load is gated by the size of the phase diff. Compute size from the step-7 changed-file set: total changed files and total changed LOC (sum of `git diff --shortstat <range>` insertions+deletions, where `<range>` is the commit range the reviewer resolved at its step 5 — default `HEAD~1..HEAD`, or the override the reviewer obtained from the user if the repo's history does not match the one-commit-per-phase convention). Do not hard-code `HEAD~1..HEAD` here; using the wrong range under-counts a multi-commit phase and silently routes it to a leaner gate.
 
 | Phase size | Threshold | Templates loaded |
 |---|---|---|
-| **Small** | `≤ 3 files AND ≤ 50 LOC` | `alignment.md` + every matching framework template — **skip** `patterns.md` and concern templates |
-| **Medium** | otherwise, when LOC `< 300` | `alignment.md` + `patterns.md` + every matching framework and concern template — **but** skip `patterns.md`'s SOLID and DRY sections |
+| **Small** | `≤ 3 files AND ≤ 50 LOC` (both halves must hold) | `alignment.md` + every matching framework template — **skip** `patterns.md` and concern templates |
+| **Medium** | not Small, AND LOC `< 300`, AND files `< 10` | `alignment.md` + `patterns.md` + every matching framework and concern template — **but** skip `patterns.md`'s SOLID and DRY sections |
 | **Large** | `≥ 300 LOC OR ≥ 10 files` | full set — `alignment.md` + `patterns.md` (all sections) + every matching framework and concern template |
+
+**Boundary rule.** Small is conjunctive — a phase that fails either half (e.g. 5 files / 30 LOC, or 3 files / 60 LOC) falls into Medium. Reviewers do not "round down" a phase with a small LOC count but an awkward file count into Small; the conjunctive form is intentional so any single broad dimension still triggers `patterns.md`. If the file-count alone is ≥ 10 or LOC alone is ≥ 300, the phase is Large regardless of the other dimension.
 
 **Security carve-out (overrides Small/Medium):** if any file in the changed set sits under `src/auth/`, `src/crypto/`, `src/security/`, `Authentication/`, `Authorization/`, or a path listed under a `**Security paths:**` entry in CLAUDE.md, load `patterns.md` in full (Se1–Se3 must always run) regardless of diff size. The framework/concern gating still applies.
 

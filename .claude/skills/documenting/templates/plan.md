@@ -1,8 +1,8 @@
 # Template: Implementation Plan
 
-**Artifact path:** `artifacts/plans/<derived-short-title>.md`
+**Artifact path:** `artifacts/plans/NNNNN-<derived-short-title>.md` (inherits the paired ADR's prefix), or `artifacts/plans/<derived-short-title>.md` when no ADR exists yet.
 
-The `<derived-short-title>` must match the one used in the companion ADR for this decision.
+The `<derived-short-title>` must match the one used in the companion ADR for this decision. The `NNNNN-` prefix is the paired ADR's number — the filename script derives it automatically by scanning `artifacts/adr/` for a matching stem. Write the ADR first so the plan picks up the correct prefix.
 
 ---
 
@@ -46,7 +46,7 @@ One sentence: what are we solving and why now.
 **Out of scope:** bullet list.
 
 ## Phases
-Each phase is independently shippable. List in execution order. Produce between 3 and 5 phases — no fewer, no more. If the work is too small for 3 phases, split the smallest unit of change into setup, implementation, and validation. If the work exceeds 5 phases, merge the most closely related phases.
+Each phase is independently shippable. List in execution order. Produce between 3 and 10 phases (default 3–5). If the work is too small for 3 phases, split the smallest unit of change into setup, implementation, and validation. If the work fits in 3–5, prefer that range; expand to 6–10 only when phases would otherwise be compound. If the work exceeds 10 phases, split into two plans per the overflow path in the Caps table.
 
 ### Phase N — Name
 **Changes:** what is modified or created.
@@ -67,7 +67,7 @@ Each phase is independently shippable. List in execution order. Produce between 
 - Every hard-to-reverse step inside a phase must be marked `[IRREVERSIBLE]` inline.
 - Plans are always paired with an ADR. Write both in the same invocation.
 - Architect memory for plans is recorded in the ADR memory entry (see `adr.md` template). Developer plan-progress memory uses `progress.md` — separate concern.
-- Every phase must include the `<!-- status:phase-N -->` anchor on its own line directly after the `**Done when:**` line. The developer agent inserts `**Status: Complete**` immediately after this anchor when the phase is approved.
+- Every phase must include the `<!-- status:phase-N -->` anchor on its own line immediately after the **last `**T-N.<seq>**` bullet** of that phase's `**Done when:**` block (see the File template above for placement). The developer agent inserts `**Status: Complete**` on the line immediately following this anchor when the phase is approved.
 
 ---
 

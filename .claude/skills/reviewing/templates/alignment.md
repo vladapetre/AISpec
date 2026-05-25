@@ -45,11 +45,14 @@ The cap is on the table, not on the criteria the architect may write — the pla
 
 ## Alignment-specific severity rules
 
-| Finding | Severity |
-|---------|----------|
-| Criterion marked FAIL | **Critical** — blocks approval |
-| Criterion marked UNCLEAR | **Critical** — blocks approval (architect must clarify before proceeding) |
-| Criterion partially satisfied (core behaviour present, edge case missing) | **Major** — note the gap; does not block if the missing edge case is not in the "Done when" text |
+Partial satisfaction of an acceptance criterion is **FAIL** on the alignment row — the criterion has not been fully met, so the row blocks approval. Independently, the diff-level gap (missing edge case, untested branch) may also be recorded as a Major finding in the adversarial code-review section; the two are different findings about the same gap.
+
+| Finding | Alignment row | Code-review severity |
+|---------|---------------|----------------------|
+| Criterion fully satisfied with cited evidence | **PASS** | (no finding) |
+| Criterion ambiguous (uses "should", "consider", "as needed") | **UNCLEAR** — blocks approval; surface to architect | (no finding) |
+| Criterion partially satisfied (core behaviour present, edge case missing) | **FAIL** — blocks approval | **Major** — note the diff-level gap; not the alignment finding |
+| Criterion absent or contradicted | **FAIL** — blocks approval | **Critical** if the missing behaviour is the criterion's core, **Major** otherwise |
 
 ---
 

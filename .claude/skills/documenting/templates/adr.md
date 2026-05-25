@@ -86,7 +86,7 @@ metadata:
 ADR-NNNNN chose <approach> for <system/component>.
 **Why:** <the binding constraint that made this the right call>.
 **How to apply:** <what future decisions this constrains or informs>.
-**Artifacts:** artifacts/adr/NNNNN-<derived-short-title>.md, artifacts/plans/<derived-short-title>.md
+**Artifacts:** artifacts/adr/NNNNN-<derived-short-title>.md, artifacts/plans/NNNNN-<derived-short-title>.md
 ```
 
 **Index entry** — append one line to `MEMORY.md`:

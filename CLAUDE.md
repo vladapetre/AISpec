@@ -14,6 +14,14 @@ Any message, question, plan, or request for input from any agent or teammate mus
 - Teammate messages (the `@developer` blocks) are already rendered natively in the UI. Do not re-quote them in your own text response — only add brief context or a question if needed.
 - **Idle = turn ended, output waiting.** When a teammate goes idle, or the harness reports it as "idle and available," that is the signal its turn ended without an outbound `SendMessage`. Call `TaskOutput` for that teammate to retrieve its final `<output_format>` block before treating the idle ping as noise. Relay the retrieved block to the user verbatim. Repeated idle pings with no new content mean the same prior output is still waiting — fetch it once, then dismiss further pings for that turn.
 
+## Turn discipline
+
+Every named agent ends each turn with exactly one `SendMessage` to the team lead containing its `<output_format>` block verbatim. If an agent must pause mid-turn, it sends a one-line `PAUSED — <reason>` plus the question(s) instead. Going idle without this send strands the output: the team lead must call `TaskOutput` to retrieve it — wasting a round-trip and risking a stalled dual-approval gate.
+
+## Asset references
+
+Inline `**Avoid (FM-x.x):**` cues in agent prompts map to `.claude/agents/assets/mast.yaml` under `failure_modes_detail.FM-x.x`. Flag tokens in `<interaction_model>` blocks map to `.claude/agents/assets/tokens.yaml`. Agents read either file on demand when an inline cue is insufficient or a token's exact wording / producer / consumer is needed.
+
 ## Artifact Ownership
 
 Each agent owns a specific artifact directory. Route writes to the owner via `SendMessage` — do not edit owned artifacts directly.
@@ -64,9 +72,11 @@ Result: <PROCEED | ASK | STOP>
 
 **Branch:** all `✓`/`N/A` → `Result: PROCEED`. Any `⚠` → `Result: ASK: <up to 5 clarifying questions in one batch>`; wait for the user. Any `✗` → `Result: STOP: <reason>`.
 
-**Universal Avoid cues** (apply to every agent — do not restate inline):
-- **Avoid (FM-1.1):** starting work before naming inputs → list every input artifact, path, or URL in `Inputs exist`.
-- **Avoid (FM-3.4):** filling under-specified scope by your own interpretation → mark `Terms current: ⚠` or `Target identified: ⚠` and ask, do not guess.
+Each clarifying question on the `ASK` branch is **≤2 lines and ≤25 words**, in the form `Q<n>: <question> [Default: <fallback> | none]`. The default field names the assumption the agent will fall back on if the user does not answer — `none` if no defensible default exists.
+
+**Universal Avoid cues** (apply to every agent — do not restate inline). Agent prompts refer to these by name (`Universal-1`, `Universal-2`) when declaring agent-specific extras (`Extra Avoid cue beyond Universal-1 and Universal-2`), so adding a `Universal-3` later does not silently shift agent-side phrasing:
+- **Universal-1 — Avoid (FM-1.1):** starting work before naming inputs → list every input artifact, path, or URL in `Inputs exist`.
+- **Universal-2 — Avoid (FM-3.4):** filling under-specified scope by your own interpretation → mark `Terms current: ⚠` or `Target identified: ⚠` and ask, do not guess.
 
 # Source Code Reference
 

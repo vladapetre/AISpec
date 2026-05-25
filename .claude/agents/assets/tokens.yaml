@@ -51,10 +51,9 @@ routing_tokens:
     consumed_at: "consultant — recent-report scan"
     meaning: "A finding needs strategic input."
 
-  - token: "[ARCHITECT AMENDMENT NEEDED]"
-    summary_line_form: "ARCHITECT AMENDMENT NEEDED:"
+  - token: "ARCHITECT AMENDMENT NEEDED:"
     produced_by: reviewer
-    written_into: "Per-phase review output — orthogonal to the APPROVED/CHANGES REQUIRED verdict; emitted as a conversation summary line"
+    written_into: "Per-phase review output — orthogonal to the APPROVED/CHANGES REQUIRED verdict; emitted as a conversation summary line only (no in-artifact bracketed form)"
     consumed_by: architect
     consumed_at: "architect — amendment mode entry"
     meaning: "The phase's diff exposed drift from the governing ADR; the architect must amend the ADR (and the plan if a future phase's acceptance criteria change)."
@@ -65,6 +64,13 @@ routing_tokens:
     consumed_by: reviewer
     consumed_at: "reviewer — mode dispatch (cross-check sub-flow CC-1)"
     meaning: "An ADR and its companion plan have just been published; the reviewer must run the read-only artifact↔artifact cross-check pass before the developer is invited to start Phase 1. Also produced on the architect's amendment cycle when reconciling cross-check drift."
+
+  - token: "RECONCILE WITH ADR:"
+    produced_by: architect
+    written_into: "Amendment-mode output — summary line and a row in the Amendment classification table; emitted only when the classification is CODE_DRIFT"
+    consumed_by: developer
+    consumed_at: "developer — phase loop (step 13: feedback handling)"
+    meaning: "Code drifted from a still-correct ADR. The developer must restore the named decisions in the affected phase; treated as feedback equivalent to a rejection (counts toward the 3-rejection loop bound)."
 
 # Section 5b — verdict tokens: gate decisions. Matched as exact strings.
 #
