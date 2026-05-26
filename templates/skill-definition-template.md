@@ -71,26 +71,18 @@ tie-breaks, no ambiguity. If there is no judgement left after the lookup, make i
 
 ## Shared assets
 
-Two normalized data files under `.claude/agents/assets/` are the single source of truth
-across agents and skills. Skills **reference** them — never restate them.
+Two files under `.claude/agents/assets/`. Skills **reference** them — never restate them.
 
 - **`.claude/agents/assets/tokens.yaml`** — every handoff token, verdict token, and
-  in-artifact marker. If your skill emits or consumes a token (e.g. `reviewing` issues
-  `APPROVED` / `CHANGES REQUIRED`), cite it from here. Adding a token requires adding a
-  row there first.
-- **`.claude/agents/assets/mast.yaml`** — the MAST failure taxonomy and its meta-principle:
-  LLM steps are stochastic, so the achievable goal is **low variance + high accuracy**.
-  Every deterministic rule a skill defines exists to serve that principle. The
-  `failure_modes_detail` section carries per-FM detection / mechanism / resolution detail
-  referenced by inline `**Avoid (FM-x.x):**` cues in steps and rules.
-
-If your skill cites an `**Avoid (FM-x.x):**` cue inline (in `## Steps` or `## Rules`), or
-emits/consumes a token from `tokens.yaml`, the **runtime SKILL.md must carry the asset-
-reference pointer in its body** — typically a one-line note under the title-and-purpose
-section or in `## Rules` saying: "FM-x.x codes cite `.claude/agents/assets/mast.yaml`
-under `failure_modes_detail.FM-x.x`; tokens cite `.claude/agents/assets/tokens.yaml` —
-read on demand." The skill body is what loads at invocation; the template's preamble is
-not. Skills that cite neither FMs nor tokens may omit this pointer.
+  in-artifact marker. **Runtime asset.** If your skill emits or consumes a token (e.g.
+  `reviewing` issues `APPROVED` / `CHANGES REQUIRED`), cite it by name from here. Adding
+  a token requires adding a row there first.
+- **`.claude/agents/assets/mast.yaml`** — MAST failure taxonomy + 14 design rules + audit
+  checklist. **Designer's reference, not a runtime asset.** Its meta-principle (low
+  variance + high accuracy) is the *reason* every deterministic rule in a skill exists.
+  You consult `mast.yaml` when authoring or amending a skill — you do not load it at
+  runtime, and you do not cite `**Avoid (FM-x.x):**` inline in steps. Behavioural
+  invariants live in `## Rules` or in the relevant step itself, in plain language.
 
 ## Convention: numeric thresholds over adjectives
 
@@ -264,12 +256,12 @@ order + tie-breaks. For an algorithm, include the numbered steps + a worked-exam
 > - Reference bundled files by path — "Read `templates/<file>`" — never inline their
 >   content.
 > - The final step states the exact output: a one-line confirmation, or a structured
->   block. Make it copy-exact if anything downstream parses it (MAST FM-3.1).
-> - **Inline anti-patterns.** Any step that guards a known MAST failure mode carries one
->   inline `**Avoid (FM-x.x):** <wrong> → <right>` line at the firing point — terse, FM
->   code in parens. Richer detection / mechanism / resolution detail lives in
->   `.claude/agents/assets/mast.yaml` under `failure_modes_detail.FM-x.x`; do not restate
->   it inline. Same convention applies to `## Rules` invariants.
+>   block. Make it copy-exact if anything downstream parses it.
+> - **No inline `**Avoid (FM-x.x):**` cues.** Behavioural invariants live in `## Rules` or
+>   in the relevant step itself, in plain language. The current convention across this
+>   repo is to consolidate FM discipline at end-of-`<instructions>` in agents (closing
+>   self-check) and into `## Rules` in skills — FM codes are designer-side notation, not
+>   runtime prompt content.
 > - **Dual-mode reconciliation:** if the skill is also loaded by an agent, say which
 >   steps the agent has already done and where it joins — `documenting` ends with
 >   "Agents that load this skill ... should skip to step 4." Standalone and agent-loaded
@@ -281,7 +273,6 @@ Follow in order when invoked directly as `/[name]`:
 
 1. [Validate input. IF a required input is missing: ask "[exact question]". Stop until
    answered.]
-   **Avoid (FM-3.4):** [terse wrong example] → [terse right replacement].
 2. [Imperative step. IF [condition]: [branch].]
 3. [Imperative step — reference a bundled file by path where one applies.]
 4. ... continue in execution order ...
@@ -312,9 +303,11 @@ Output exactly one line: `[exact text]`
 ---
 
 > **Guidance — Rules (optional).** Cross-cutting runtime invariants that do not fit a
-> single step — e.g. `auditing`'s "Never write code into the session file." Keep only
-> genuine always-true invariants; prefer placing guidance inside the relevant step.
-> Delete this section if empty.
+> single step. Keep only genuine always-true invariants; prefer placing guidance inside
+> the relevant step. Delete this section if empty.
+>
+> Plain-language invariants only. No inline `**Avoid (FM-x.x):**` cues — FM codes are
+> designer-side notation, not runtime prompt content.
 
 ## Rules
 
@@ -373,38 +366,21 @@ putting the logic in a skill.
 
 ## Validation Checklist — delete this section after authoring
 
-- [ ] **Gate 1:** this is a skill — not an agent (open-ended judgement) and not a pure
-      script (no model needed). (*Building Effective Agents*)
+- [ ] **Gate 1:** this is a skill — not an agent (open-ended judgement) and not a pure script (no model needed).
 - [ ] **Gate 2:** the skill shape (linear or dispatcher) is chosen and declared in the body.
-- [ ] **Gate 3:** no fully-deterministic procedure is left as prose where a `scripts/`
-      helper fits; borderline lookup tables are stop-at-first-match with explicit tie-breaks.
+- [ ] **Gate 3:** no fully-deterministic procedure is left as prose where a `scripts/` helper fits; borderline lookup tables are stop-at-first-match with explicit tie-breaks.
 - [ ] Frontmatter: `name` matches the directory name; block scalar (`>`) used.
-- [ ] `description` is ≤1024 characters total.
-- [ ] `description` has all three parts in order: capability sentence → `Use this skill
-      when` trigger sentence with ≥3 concrete observable trigger phrases → invocation paths.
-- [ ] No vague categories ("when working with X"), no marketing words, no restatement of
-      the capability inside the trigger sentence.
+- [ ] `description` ≤1024 characters; has all three parts in order — capability → trigger sentence with ≥3 observable triggers → invocation paths.
+- [ ] No vague categories ("when working with X"), no marketing words, no capability restatement in the trigger sentence.
 - [ ] `# Skill:` title + a one-or-two-sentence purpose that does not restate the description.
 - [ ] Skill-shape declaration states shape **and** invocation modes (standalone / dual-mode).
-- [ ] Every reference table states its scan scope, has an explicit order, says "stop at
-      first match", and has a tie-break for every case two rows can match.
+- [ ] Every reference table states its scan scope, has an explicit order, says "stop at first match", and has a tie-break for every case two rows can match.
 - [ ] Every algorithm says "apply exactly" and is followed by a worked-examples table.
 - [ ] No step selects a file or artifact by filesystem modification time.
-      (`.claude/agents/assets/mast.yaml` meta-principle)
-- [ ] `## Steps (standalone invocation)` exists; step 1 validates input and stops if it is
-      missing; the final step states the exact output. (MAST FM-3.1)
-- [ ] Every cap, limit, or ceiling is numeric (`≤N`, exact count, byte/line cap) — no
-      adjective-only ceilings. Step 1's input-validation question batch is capped at
-      5/turn. (`.claude/agents/assets/mast.yaml` meta-principle: low variance)
-- [ ] Steps and rules that guard a known MAST failure mode carry an inline
-      `**Avoid (FM-x.x):** <wrong> → <right>` line at the firing point; each cited FM
-      exists in `.claude/agents/assets/mast.yaml`.
-- [ ] Dual-mode skills reconcile the agent-loaded entry path with the standalone path.
-- [ ] Dispatcher skills: the dispatch rule rejects an unknown/missing subcommand with a
-      `Usage:` line; one `### <name>` section per subcommand, each with a **When** line.
-- [ ] Any emitted or consumed token is cited from `.claude/agents/assets/tokens.yaml`; no
-      token is invented here.
-- [ ] If the skill cites an `**Avoid (FM-x.x):**` cue inline or emits/consumes a token, the
-      body carries the runtime asset-reference pointer (mast.yaml + tokens.yaml). Pure
-      skills that cite neither may omit it.
+- [ ] `## Steps (standalone invocation)` exists; step 1 validates input and stops if missing; the final step states the exact output.
+- [ ] Every cap, limit, or ceiling is numeric (`≤N`, exact count, byte/line cap) — no adjective-only ceilings. Step 1's input-validation question batch is capped at 5/turn.
+- [ ] **No inline `**Avoid (FM-x.x):**` cues anywhere.** Behavioural invariants live in `## Rules` or in the relevant step itself, in plain language. Coverage is verifiable by `grep -c 'Avoid (FM-' SKILL.md` returning `0`. FM codes are designer-side notation, used when consulting `mast.yaml` during authoring — not runtime prompt content.
+- [ ] Dual-mode skills reconcile the agent-loaded entry path with the standalone path; standalone and agent-loaded runs do not diverge.
+- [ ] Dispatcher skills: the dispatch rule rejects an unknown/missing subcommand with a `Usage:` line; one `### <name>` section per subcommand, each with a **When** line.
+- [ ] Any emitted or consumed token is cited from `tokens.yaml`; no token is invented here.
 - [ ] Large content is in bundled files; SKILL.md itself lands in the ~80-150 line range.

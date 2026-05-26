@@ -1,245 +1,131 @@
-# Centralized handoff-token vocabulary for the agent system.
-# Single source of truth — agent files reference these entries; they never restate them.
-#
-# All routing physically passes through the team lead (star topology, single relay).
+# Handoff-token vocabulary — single source of truth.
+# All routing physically passes through the team lead (star topology).
+# Agent files reference entries here; they do not restate them.
 
-# Section 5d — rules that govern the whole vocabulary.
 vocabulary_rules:
-  - A token means exactly one thing. Do not overload.
-  - A producer writes a token only into the artifact section named in its entry — never free-floating in conversation, except the designated summary lines.
-  - A consumer scans for its tokens at a fixed step of every invocation.
-  - Adding a new token requires adding an entry to this file first.
-  - Verdict tokens are matched as exact strings; near-matches are rejections.
-  - Identifier prefixes (Section 5e) are matched as patterns `<prefix>-<n>`; their assignment and stability rules live in Section 5f.
+  - One token = one meaning. Do not overload.
+  - Producers write tokens only into the artifact section named below — never free-floating, except designated summary lines.
+  - Consumers scan for their tokens at a fixed step of every invocation.
+  - Adding a token requires adding an entry here first.
+  - Verdict tokens are matched as exact strings. Near-matches are rejections.
+  - Identifier prefixes are matched as `<prefix>-<n>` patterns; assignment and stability rules in identifier_rules below.
 
-# Section 5a — routing tokens: move work between agents.
-# The producer writes the token into a named artifact section; the consumer scans for it
-# on its next invocation.
-#
-# Disambiguation note: the analyst report-side flag and the architect ADR-side flag share
-# the "ARCHITECT REVIEW NEEDED" wording but live in different artifacts. The in-artifact
-# form is bracketed (`[ARCHITECT REVIEW NEEDED]`); the conversation form is the
-# summary-line prefix (`ARCHITECT REVIEW NEEDED:`) — this keeps a grep unambiguous.
+# --- Routing tokens: move work between agents ---
+# Disambiguation: analyst's report-side and architect's ADR-side flags both use the
+# "ARCHITECT REVIEW NEEDED" wording but in different artifacts. In-artifact form is
+# bracketed `[...]`; conversation form is the summary-line prefix `...:`.
 routing_tokens:
   - token: "[ARCHITECT REVIEW NEEDED]"
-    summary_line_form: "ARCHITECT REVIEW NEEDED:"
+    summary_line: "ARCHITECT REVIEW NEEDED:"
     produced_by: analyst
-    written_into: "Report Recommendations section (in-artifact form) + a conversation summary line"
+    written_into: "Report Recommendations + summary line"
     consumed_by: architect
-    consumed_at: "architect Mode A — recent-report scan"
     meaning: "A finding needs tactical architectural input."
+
+  - token: "[CONSULTANT REVIEW NEEDED]"
+    summary_line: "STRATEGIC REVIEW NEEDED:"
+    produced_by: analyst
+    written_into: "Report Recommendations + summary line"
+    consumed_by: consultant
+    meaning: "A finding needs strategic input."
 
   - token: "[STRATEGIC REVIEW NEEDED]"
     produced_by: architect
-    written_into: "ADR `## Consequences`, under `**Strategic follow-up:**`"
+    written_into: "ADR `## Consequences` under `**Strategic follow-up:**`"
     consumed_by: consultant
-    consumed_at: "consultant — tactical-ADR scan"
     meaning: "A tactical request raised a strategic question."
 
   - token: "[TACTICAL DESIGN NEEDED]"
     produced_by: consultant
-    written_into: "SDR `Tactical follow-up` section"
+    written_into: "SDR `## Tactical follow-up`"
     consumed_by: architect
-    consumed_at: "architect Mode A — strategic-artifact scan"
     meaning: "A ratified strategic decision needs tactical design."
-
-  - token: "[CONSULTANT REVIEW NEEDED]"
-    summary_line_form: "STRATEGIC REVIEW NEEDED:"
-    produced_by: analyst
-    written_into: "Report Recommendations section + a conversation summary line"
-    consumed_by: consultant
-    consumed_at: "consultant — recent-report scan"
-    meaning: "A finding needs strategic input."
 
   - token: "ARCHITECT AMENDMENT NEEDED:"
     produced_by: reviewer
-    written_into: "Per-phase review output — orthogonal to the APPROVED/CHANGES REQUIRED verdict; emitted as a conversation summary line only (no in-artifact bracketed form)"
+    written_into: "Per-phase review output — summary line above the verdict. Orthogonal to APPROVED/CHANGES REQUIRED."
     consumed_by: architect
-    consumed_at: "architect — amendment mode entry"
-    meaning: "The phase's diff exposed drift from the governing ADR; the architect must amend the ADR (and the plan if a future phase's acceptance criteria change)."
+    meaning: "Phase diff drifted from the governing ADR; architect must amend."
+
+  - token: "SELF_CHECK: ALIGNED"
+    produced_by: architect
+    written_into: "Mode A output — final summary line by default"
+    consumed_by: "(none — informational; signals no cross-check needed)"
+    meaning: "Architect performed the five-check self-verification and the ADR/plan pair is internally consistent."
 
   - token: "CROSS_CHECK_REQUESTED:"
     produced_by: architect
-    written_into: "Mode A output — summary line at the bottom, after ADR/plan paths"
+    written_into: "Mode A output — replaces SELF_CHECK: ALIGNED when uncertainty exists. Carries plan path and one-line reason."
     consumed_by: reviewer
-    consumed_at: "reviewer — mode dispatch (cross-check sub-flow CC-1)"
-    meaning: "An ADR and its companion plan have just been published; the reviewer must run the read-only artifact↔artifact cross-check pass before the developer is invited to start Phase 1. Also produced on the architect's amendment cycle when reconciling cross-check drift."
+    meaning: "Architect requests an external cross-check pass before the developer is invited."
 
   - token: "RECONCILE WITH ADR:"
     produced_by: architect
-    written_into: "Amendment-mode output — summary line and a row in the Amendment classification table; emitted only when the classification is CODE_DRIFT"
+    written_into: "Amendment-mode output — emitted only on CODE_DRIFT classification"
     consumed_by: developer
-    consumed_at: "developer — phase loop (step 13: feedback handling)"
-    meaning: "Code drifted from a still-correct ADR. The developer must restore the named decisions in the affected phase; treated as feedback equivalent to a rejection (counts toward the 3-rejection loop bound)."
+    meaning: "Code drifted from a still-correct ADR. Developer restores the named decisions; treated as a rejection (counts toward 3-rejection bound)."
 
-# Section 5b — verdict tokens: gate decisions. Matched as exact strings.
-#
-# Phase-approval gate: every phase needs the reviewer's APPROVED and the user's
-# `approved` — a dual gate that fires on every phase, final included. The architect is
-# not a phase gate; they re-engage only on a reviewer-emitted [ARCHITECT AMENDMENT
-# NEEDED] routing token. The developer treats any non-APPROVED response from a required
-# party as a rejection.
+# --- Verdict tokens: gate decisions. Matched as exact strings ---
+# Phase-approval gate: every phase needs the user's `approved`. Reviewer's APPROVED is
+# cumulative at end-of-plan unless the user asks for ad-hoc per-phase review.
+# Cross-check gate fires once per ADR/plan pair before Phase 1 (only if architect
+# escalated via CROSS_CHECK_REQUESTED — default is SELF_CHECK: ALIGNED).
 verdict_tokens:
   - token: "APPROVED"
     issued_by: reviewer
-    gate: "phase-approval gate (every phase)"
-    effect: "One of the approvals the developer needs to advance the phase."
+    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
+    effect: "Phase / plan passes the reviewer gate."
 
   - token: "CHANGES REQUIRED"
     issued_by: reviewer
-    gate: "phase-approval gate (every phase)"
-    effect: "Phase returns to the developer for revision."
+    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
+    effect: "Phase / plan returns to the developer."
 
   - token: "approved"
     match: case-insensitive
     issued_by: "user (relayed by team lead)"
-    gate: "phase-approval gate (every phase)"
-    effect: "One of the approvals the developer needs to advance the phase."
+    gate: "phase-approval gate — every phase"
+    effect: "Developer advances to the next phase."
 
   - token: "ALIGNED"
     issued_by: reviewer
-    gate: "cross-check gate (once per ADR/plan pair, before Phase 1)"
-    effect: "The ADR and its companion plan are mutually consistent; the developer may be invited to start Phase 1."
+    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
+    effect: "ADR/plan pair is mutually consistent; developer may start Phase 1."
 
   - token: "DRIFT DETECTED"
     issued_by: reviewer
-    gate: "cross-check gate (once per ADR/plan pair, before Phase 1)"
-    effect: "The ADR/plan pair has at least one critical or major cross-artifact finding; the architect must reconcile via amendment and re-request the cross-check before the developer is invited."
+    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
+    effect: "ADR/plan pair has critical/major cross-artifact drift; architect reconciles via amendment."
 
-# Section 5c — in-artifact markers: status / quality annotations, not routing.
+# --- In-artifact markers: status / quality annotations, not routing ---
 in_artifact_markers:
-  - marker: "<!-- status:phase-N -->"
-    used_by: "architect (writes), developer (reads / marks)"
-    purpose: "Per-phase anchor in plan files."
+  - "<!-- status:phase-N --> — architect writes the per-phase anchor in plan files."
+  - "**Status: Complete** — developer inserts after a phase anchor on user approval."
+  - "[IRREVERSIBLE] — architect/consultant mark hard-to-reverse decisions; triggers extra user confirm."
+  - "[PRE-EXISTING] — developer/reviewer mark failures/findings not introduced by the current phase; excluded from verdict."
+  - "[VERIFIED] / [INFERRED] / [ASSUMED] — analyst per-finding confidence markers (definitions in documenting SKILL.md)."
+  - "[ASSUMPTION] — analyst coverage/scoping caveat in Risks and Unknowns."
+  - "[UNKNOWN] — analyst: a required question left unanswered after full ingestion."
+  - "[withdrawn] — appended to an ID-led line whose entry no longer applies. ID stays in place — never re-number."
 
-  - marker: "**Status: Complete**"
-    used_by: developer
-    purpose: "Inserted after a phase anchor once both approvals are in."
-
-  - marker: "[IRREVERSIBLE]"
-    used_by: "architect, consultant"
-    purpose: "Marks a hard-to-reverse decision/step; triggers an extra human confirm."
-
-  - marker: "[PRE-EXISTING]"
-    used_by: "developer, reviewer"
-    purpose: "Failure/finding not introduced by the current phase; excluded from verdict."
-
-  - marker: "[VERIFIED]"
-    used_by: analyst
-    purpose: "Per-finding confidence marker — directly checked."
-
-  - marker: "[INFERRED]"
-    used_by: analyst
-    purpose: "Per-finding confidence marker — concluded indirectly."
-
-  - marker: "[ASSUMED]"
-    used_by: analyst
-    purpose: "Per-finding confidence marker — taken as given without verification."
-
-  - marker: "[ASSUMPTION]"
-    used_by: analyst
-    purpose: "Coverage/scoping caveat in the Risks and Unknowns section."
-
-  - marker: "[UNKNOWN]"
-    used_by: analyst
-    purpose: "A required question left unanswered after full ingestion."
-
-  - marker: "[withdrawn]"
-    used_by: "analyst, architect, consultant"
-    purpose: "Appended to an identifier-led line whose entry no longer applies. The ID stays in place to preserve cross-artifact reference integrity — never re-number a withdrawn ID."
-
-# Section 5e — identifier prefixes: the typed cross-artifact ID vocabulary.
-#
-# These are patterns, not fixed match strings — each entry below is a `<prefix>-<n>`
-# template where `<n>` is a zero-padded number (or `<phase>.<seq>` for T-IDs). The
-# pattern is read directly from the entry's `format`. Producers assign IDs in encounter
-# order at first write, dense within the artifact; never re-number a published ID —
-# withdraw via the `[withdrawn]` marker above and assign the next integer after the
-# high-water mark. The per-artifact `## Identifiers` block in each template carries
-# the per-prefix rules; this section is the single-place catalogue across artifacts.
-#
-# Cross-artifact references take the form `<short-title>#<ID>` where `<short-title>`
-# is the host artifact filename without the `.md` extension (and, for ADRs/SDRs,
-# without the numeric prefix). Example: `auth-audit#R-007`, `event-store#D-002`,
-# `payments-rewrite#T-2.3`, `regional-expansion#TF-003`, `billing#INV-002`,
-# `current#REL-004`.
+# --- Identifier prefixes: typed cross-artifact ID vocabulary ---
+# Cross-artifact references take the form `<short-title>#<ID>` where `<short-title>` is
+# the host filename without `.md` (and, for ADRs/SDRs, without the numeric prefix).
+# Examples: auth-audit#R-007, event-store#D-002, payments-rewrite#T-2.3.
 identifier_prefixes:
-  - prefix: "R-"
-    format: "R-###"
-    produced_by: analyst
-    host_artifact: "artifacts/reports/<short-title>.md"
-    written_into: "Each `### theme` subsection, one bullet per finding led by `**R-###** [<severity>] <claim>`"
-    purpose: "Stable identifier for a single analyst-report finding. Cited by ADRs and plans that resolve the finding."
-    severity_tagged: true
+  - { prefix: "R-",    format: "R-###",          produced_by: analyst,             host: "reports/<title>.md",            in: "Each finding bullet in `### theme` subsection. Severity-tagged." }
+  - { prefix: "D-",    format: "D-###",          produced_by: "architect, consultant", host: "adr/, strategy/decisions/", in: "Sub-decision heading/bullet in `## Decision` (use only when artifact has multiple decisions)." }
+  - { prefix: "RISK-", format: "RISK-###",       produced_by: "architect, consultant", host: "adr/, strategy/decisions/", in: "`## Consequences > Risks` bullets. Severity-tagged." }
+  - { prefix: "T-",    format: "T-<phase>.<seq>", produced_by: architect,           host: "plans/<title>.md",              in: "Bullets under each phase's `**Done when:**`. Phase-namespaced so adding/removing phases does not renumber unrelated phases." }
+  - { prefix: "OQ-",   format: "OQ-###",         produced_by: "architect, consultant", host: "plans/, charters/",         in: "`## Open Questions` / `## Open questions` bullets." }
+  - { prefix: "TF-",   format: "TF-###",         produced_by: consultant,           host: "strategy/decisions/",           in: "`## Tactical follow-up` bullets, each led by `**TF-###** [TACTICAL DESIGN NEEDED]`. Architect cites these in tactical ADR `## Context`." }
+  - { prefix: "INV-",  format: "INV-###",        produced_by: consultant,           host: "strategy/charters/",            in: "`## Invariants` bullets. Cited by SDRs constraining the context and by reviewers checking design-intent alignment." }
+  - { prefix: "REL-",  format: "REL-###",        produced_by: consultant,           host: "strategy/context-maps/",        in: "First column of `## Relationships` rows. Cited by SDRs changing the relationship pattern." }
+  - { prefix: "X-",    format: "X-###",          produced_by: reviewer,             host: "(conversation channel only)",   in: "Cross-check output table. Resets per pass — IDs do not survive across passes. Severity-tagged." }
 
-  - prefix: "D-"
-    format: "D-###"
-    produced_by: "architect (tactical ADR), consultant (strategic SDR)"
-    host_artifact: "artifacts/adr/NNNNN-<short-title>.md, artifacts/strategy/decisions/NNNNN-<short-title>.md"
-    written_into: "Sub-decision heading or bullet inside `## Decision` when the artifact records more than one decision"
-    purpose: "Stable identifier for a single sub-decision inside a multi-decision (S)ADR. Prefer one decision per ADR; only use when the artifact genuinely captures more than one."
-    severity_tagged: false
-
-  - prefix: "RISK-"
-    format: "RISK-###"
-    produced_by: "architect (tactical ADR), consultant (strategic SDR)"
-    host_artifact: "artifacts/adr/NNNNN-<short-title>.md, artifacts/strategy/decisions/NNNNN-<short-title>.md"
-    written_into: "Bullets under `## Consequences > Risks`, each led by `**RISK-###** [<severity>]`"
-    purpose: "Stable identifier for a risk recorded in an (S)ADR. Cited by plans that mitigate the risk and by reviewers that flag related drift."
-    severity_tagged: true
-
-  - prefix: "T-"
-    format: "T-<phase>.<seq>"
-    produced_by: architect
-    host_artifact: "artifacts/plans/<short-title>.md"
-    written_into: "Bullets under each phase's `**Done when:**` block, led by `**T-<phase>.<seq>**`"
-    purpose: "Stable identifier for one acceptance criterion in one plan phase. Cited verbatim by the reviewer's alignment table and by the developer's phase summary. Phase-namespaced so adding or removing a phase does not renumber criteria in unrelated phases."
-    severity_tagged: false
-
-  - prefix: "OQ-"
-    format: "OQ-###"
-    produced_by: "architect (plan), consultant (charter)"
-    host_artifact: "artifacts/plans/<short-title>.md, artifacts/strategy/charters/<context-name>.md"
-    written_into: "Bullets under `## Open Questions` (plan) or `## Open questions` (charter), each led by `**OQ-###**`"
-    purpose: "Stable identifier for an unresolved question that blocks publication or ratification."
-    severity_tagged: false
-
-  - prefix: "TF-"
-    format: "TF-###"
-    produced_by: consultant
-    host_artifact: "artifacts/strategy/decisions/NNNNN-<short-title>.md"
-    written_into: "Bullets under `## Tactical follow-up`, each led by `**TF-###** [TACTICAL DESIGN NEEDED]`"
-    purpose: "Stable identifier for a tactical-design item the architect must turn into a tactical ADR or plan phase. The architect cites these in the tactical ADR's `## Context`."
-    severity_tagged: false
-
-  - prefix: "INV-"
-    format: "INV-###"
-    produced_by: consultant
-    host_artifact: "artifacts/strategy/charters/<context-name>.md"
-    written_into: "Bullets under `## Invariants`, each led by `**INV-###**`"
-    purpose: "Stable identifier for a business invariant a bounded context enforces regardless of implementation. Cited by SDRs that constrain the context and by reviewers checking design-intent alignment."
-    severity_tagged: false
-
-  - prefix: "REL-"
-    format: "REL-###"
-    produced_by: consultant
-    host_artifact: "artifacts/strategy/context-maps/<scope>.md"
-    written_into: "First column of every row in `## Relationships`"
-    purpose: "Stable identifier for one upstream-downstream relationship on a context map. Cited by SDRs that change the relationship's pattern."
-    severity_tagged: false
-
-  - prefix: "X-"
-    format: "X-###"
-    produced_by: reviewer
-    host_artifact: "(conversation channel — never persisted to an artifact file)"
-    written_into: "First column of the cross-check output table per `.claude/skills/reviewing/templates/cross-check.md`"
-    purpose: "Stable-within-a-pass identifier for one cross-check finding. Each new cross-check pass starts at `X-001` again — these IDs do not survive across passes and are not cross-referenced from other artifacts."
-    severity_tagged: true
-
-# Section 5f — identifier vocabulary rules.
 identifier_rules:
-  - "Assign IDs in encounter order at first write; numbering is dense at first write, sparse after edits."
-  - "Never re-number a published ID. To remove an entry, append `[withdrawn]` to its line and leave the ID in place."
-  - "When amending an artifact, assign the next integer after the high-water mark — do not reuse withdrawn numbers."
-  - "Cross-artifact references take the form `<short-title>#<ID>` — the short-title is the host filename without `.md` (and without the numeric prefix for ADRs/SDRs)."
-  - "Severity-tagged prefixes carry `[critical | major | minor | pre-existing]` in square brackets after the ID; severity values come from the relevant template's severity table — never paraphrased."
+  - "Assign IDs in encounter order at first write; dense at first write, sparse after edits."
+  - "Never re-number a published ID. Withdraw by appending `[withdrawn]`."
+  - "Amending an artifact: next integer after the high-water mark — never reuse withdrawn numbers."
+  - "Cross-artifact refs: `<short-title>#<ID>` (short-title = host filename without `.md`, without numeric prefix for ADRs/SDRs)."
+  - "Severity-tagged prefixes carry `[critical | major | minor | pre-existing]` in brackets after the ID — values per the template's severity table, never paraphrased."

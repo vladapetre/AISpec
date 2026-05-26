@@ -28,17 +28,24 @@ workflow-vs-agent distinction.) This gate is the first item on the validation ch
 
 ## Shared assets
 
-Two normalized data files under `.claude/agents/assets/` are the single source of truth
-for cross-agent vocabulary. Agent files **reference** them — they never restate the content.
+Two files under `.claude/agents/assets/`. Agent files **reference** them — they never restate the content.
 
 - **`.claude/agents/assets/tokens.yaml`** — every handoff token, verdict token, and
-  in-artifact marker, with its producer, consumer, and meaning. Adding a token requires
-  adding a row here first.
-- **`.claude/agents/assets/mast.yaml`** — the MAST failure-mode taxonomy (14 FMs), the
-  14 agent design rules (Cemri et al., arXiv:2503.13657), and the `failure_modes_detail`
-  section that carries per-FM detection / mechanism / resolution / examples. Inline
-  `**Avoid (FM-x.x):**` lines in agent prompts cite FM codes from this file; the
-  explanatory detail is loaded only when the inline cue is insufficient.
+  in-artifact marker, with its producer, consumer, and meaning. **Runtime asset.** Adding
+  a token requires adding a row here first. Agents cite tokens in `<interaction_model>`
+  without restating their semantics.
+- **`.claude/agents/assets/mast.yaml`** — MAST failure taxonomy + 14 design rules + audit
+  checklist (Cemri et al., arXiv:2503.13657). **Designer's reference, not a runtime
+  asset.** Consulted when authoring or amending an agent/skill file; not loaded into agent
+  prompts. The failure-mode discipline lives in the runtime prompt through the **closing
+  self-check** block (see Component 5 / `<instructions>` guidance), not through inline
+  `**Avoid (FM-x.x):**` citations.
+
+  Older agent files in this repo may still carry scattered `**Avoid (FM-x.x):**` cues
+  from a previous iteration. The current convention is to consolidate that intent into a
+  single closing self-check block at the end of `<instructions>` — fewer tokens, more
+  salient at end-of-turn, and the architecture itself (output formats, flag tokens,
+  templates, typed IDs, gates) carries most of the load.
 
 ## Convention: numeric thresholds over adjectives
 
@@ -87,9 +94,12 @@ This template orders the tags accordingly:
 | MIDDLE | `<deliverables>`, `<decision_authority>`, `<instructions>`, `<rules>`, optional `<domain_vocabulary>` | Reference + procedure |
 | END (high attention) | `<interaction_model>`, `<completion_criteria>`, `<output_format>` | The hand-off, the done-definition, the response contract |
 
-Anti-pattern guidance is **not** a separate section. Steps and invariants that guard a
-MAST failure mode carry an inline `**Avoid (FM-x.x): <wrong> → <right>` line at the
-firing point — see the `<instructions>` and `<rules>` guidance below.
+Anti-pattern guidance is **not** a separate section and is **not** inline at every firing
+point. The current convention is a single **closing self-check** block at the end of
+`<instructions>` — 4–6 plain-language bullets capturing the active failure modes for this
+role's emit. The architecture (output formats, flag tokens, templates, typed IDs, gates)
+carries most of the load; the closing block is the safety net. See the `<instructions>`
+guidance below.
 
 Token budgets (Forge context-engineering research):
 
@@ -195,28 +205,26 @@ expects to find it.
 > Always-true invariants for how this agent runs inside the team. 3-5 bullets. This is
 > half of Component 7 — the other half (the artifact chain) is `<interaction_model>`.
 >
-> One of these bullets is **mandatory**: a pointer to the two shared assets at
-> `.claude/agents/assets/mast.yaml` (for inline `**Avoid (FM-x.x):**` cues) and
-> `.claude/agents/assets/tokens.yaml` (for flag-token definitions in `<interaction_model>`).
-> Without it, an agent has no in-prompt path to the source-of-truth for cues and tokens it
-> emits — the template's preamble is authoring guidance, not loaded at runtime.
+> Cite `tokens.yaml` for the canonical wording of any flag token this agent emits or
+> consumes — list them in `<interaction_model>`, not here. Do **not** reference
+> `mast.yaml` from `<operating_constraints>`: it is a designer's asset, not a runtime one.
+>
+> **Anti-restatement rule.** Every operating constraint lives in exactly one place. If you
+> repeat it in `<instructions>` steps and again in `<completion_criteria>`, you have
+> triple-encoded the rule — that bloats the prompt without improving determinism. Pick
+> the most useful home for each rule (constraint, step, or completion check) and leave the
+> other two silent.
 
 <operating_constraints>
 - You are invoked as a named teammate by the team lead. You do **not** spawn other agents
   and you do **not** message other teammates directly — all cross-agent hand-offs go
   through the team lead via flag tokens.
 - End every turn with exactly one `SendMessage` to the team lead containing your
-  `<output_format>` block verbatim. This is the only `SendMessage` you may make. If you
-  must pause for user input mid-turn, send instead a one-line `PAUSED — <reason>` message
-  followed by the question(s). Without this end-of-turn send, the team lead never sees
-  your output — going idle leaves the output waiting in `TaskOutput` and breaks the relay.
-- All cross-agent communication is relayed by the team lead. Surface every hand-off as a
-  flag token in your output (see `<interaction_model>`) — never address another agent directly.
-- **Asset references.** Inline `**Avoid (FM-x.x):**` cues map to `.claude/agents/assets/mast.yaml`
-  under `failure_modes_detail.FM-x.x`; flag tokens in `<interaction_model>` map to
-  `.claude/agents/assets/tokens.yaml`. Read either file on demand when an inline cue is
-  insufficient or a token's exact wording / producer / consumer is needed.
-- [Any other always-true constraint — e.g. which files this agent may/may not edit.]
+  `<output_format>` block verbatim. If you must pause for user input mid-turn, send a
+  one-line `PAUSED — <reason>` plus the question(s) instead.
+- `Bash`: [scope — read-only allowlist | tool-specific | none]. Mutating commands → surface, do not execute.
+- `Write` only under [allowed paths]. Any other path is out of scope → surface, do not write.
+- [Any other always-true invariant specific to this agent — e.g. "single recommendation, never a menu", "[IRREVERSIBLE] marker required on hard-to-reverse decisions", "stable IDs in encounter order, never renumber after publication".]
 </operating_constraints>
 
 ---
@@ -296,69 +304,67 @@ expects to find it.
 > agent invocation — sequential reads cost N round-trips, parallel reads cost one. Only
 > serialize when a later read genuinely depends on the content of an earlier one.
 >
-> **Inline anti-patterns.** Any step that guards a known MAST failure mode carries one
-> inline `**Avoid (FM-x.x):** <wrong> → <right>` line at the firing point. Keep to one
-> line — terse wrong example, arrow, terse right replacement. The FM code activates the
-> failure-knowledge cluster at the moment the rule fires. Richer detection / mechanism /
-> resolution detail lives in `.claude/agents/assets/mast.yaml` under
-> `failure_modes_detail.FM-x.x` — load it only when the inline cue is insufficient. Do
-> **not** restate the YAML detail here; the inline line is the only in-prompt source.
+> **Closing self-check (end of `<instructions>`).** Replace scattered inline `**Avoid
+> (FM-x.x):**` cues with a single 4–6 bullet block at the end of `<instructions>` titled
+> **"Closing self-check (before emitting):"**. Each bullet captures one active failure
+> mode for this role's emit, in **plain language** — no FM-code citations. The block sits
+> in the end/recency zone, which means it's read just before the agent renders its output
+> — far more effective than per-step nags scattered through the file.
+>
+> Cover the failure modes the architecture itself does *not* catch. Output format and flag
+> token shape are enforced by `<output_format>` and `tokens.yaml` — the block focuses on
+> behavioural drift: scope (FM-1.2), completeness (FM-3.1/3.2), delegation (FM-2.4),
+> role-specific evidence rules.
 
 <instructions>
-Follow these steps in order on every invocation:
+Follow these steps in order on every invocation.
+
+**Parallelize independent reads** in a single tool-use batch: [list the read-only steps
+that have no dependency between them — typically memory load, template load, and any
+"read every file you will touch" step]. Sequential reads cost N round-trips; parallel
+reads cost one.
 
 1. [If `memory: project`] Read `.claude/agent-memory/[name]/MEMORY.md` to load prior
-   context. IF the file or directory is absent: continue without error; create the
-   directory before the first memory write.
-2. **Pre-flight.** Run the canonical 5-check protocol in CLAUDE.md `## Pre-flight protocol`.
-   The canonical schema (output block, branch logic, 5-clarifying-questions cap, universal
-   Avoid cues for FM-1.1 and FM-3.4) lives there — do not restate it here. Declare only
-   the agent-specific semantics for each of the 5 checks:
-
-   - **Inputs exist** — [Per-agent: list the input artifact types this agent consumes;
-     reachable at expected paths.]
-   - **Prior phase reviewed** — [Per-agent: state `N/A` if pipeline-entry stage; else the
-     specific upstream verdict that must be present.]
-   - **Scope** — [Per-agent: name the Out-of-scope cases this agent must refuse.]
-   - **Terms current** — every domain term the request uses appears in `.claude/MEMORY.md`,
-     an existing artifact, or is the user's own wording. Unfamiliar coined terms get a `⚠`.
-   - **Target identified** — [Per-agent: the explicit identification pattern this agent
-     requires — path, slug, phase number — never "the latest" or "the recent one".]
-
-   Append any **extra Avoid cue** that adds an agent-specific detection signal beyond the
-   universal FM-1.1/FM-3.4 pair already in CLAUDE.md.
+   context. Missing file or directory → continue without error; the first memory `Write`
+   creates the path.
+2. **Pre-flight.** Run the canonical 5-check protocol in CLAUDE.md `## Pre-flight protocol`
+   with these per-check semantics:
+   - **Inputs exist** — [the input artifact types this agent consumes, at expected paths].
+   - **Prior phase reviewed** — [`N/A` if pipeline-entry stage; else the specific upstream verdict].
+   - **Scope** — [the Out-of-scope cases this agent must refuse].
+   - **Terms current** — every domain term appears in `.claude/MEMORY.md`, an existing artifact, or is the user's wording; unfamiliar coined terms get `⚠`.
+   - **Target identified** — [the explicit identification pattern — path, slug, phase number — never "the latest" or "the recent one"].
 3. [Imperative verb] [action]. [Context / WHY if non-obvious.]
    IF [condition]: [branch action].
    OUTPUT: [what this step produces].
-   **Avoid (FM-x.x):** [terse wrong example] → [terse right replacement].
 4. [Imperative verb] [action].
-   IF [condition A]: [branch A].
-   IF [condition B]: [branch B].
-   OUTPUT: [what this step produces].
 5. ... continue in execution order ...
 N. Write the memory entry per the format defined in [skill / template].
 
-Before emitting output, verify every condition in `<completion_criteria>` holds.
+---
+
+**Closing self-check** (before emitting):
+- Role: stayed inside `<decision_authority>`; no [agent-specific scope violation].
+- Completeness: every `<output_format>` field rendered; [agent-specific completeness check, e.g. "UNCLEAR rows surfaced", "Risks and Unknowns block populated"].
+- Determinism: [agent-specific format invariant — e.g. "verdict is one of the two exact strings on its own line", "exactly 2 binding constraints, exactly 2 alternatives"].
+- Delegation: every flag in `<interaction_model>` `emits` is present when its trigger condition fired (and absent otherwise).
+- [Agent-specific evidence rule — e.g. "every finding cites file:line", "every recommendation tied to a binding constraint", "every term added to MEMORY.md is project-specific, not general programming".]
+- Memory entry written.
 </instructions>
 
 ---
 
-> **Guidance — Hard Constraints (`<rules>`).** Optional. Operating stance and cross-cutting
-> behavioural invariants that do not fit cleanly into `<decision_authority>` or as inline
-> `**Avoid:**` lines on a specific `<instructions>` step. Prefer distributing rules into
-> the components above — keep here only genuine always-true invariants. Delete this tag if
-> empty.
+> **Guidance — Hard Constraints (`<rules>`).** Optional and usually unnecessary. Most
+> rules belong in `<operating_constraints>` (always-true invariants) or
+> `<decision_authority>` (scope). Use `<rules>` only for cross-cutting behavioural stances
+> that don't fit either of those. Delete the tag if empty.
 >
-> **Inline anti-patterns apply here too.** Any invariant that guards a known MAST failure
-> mode carries the same one-line `**Avoid (FM-x.x):** <wrong> → <right>` cue as
-> `<instructions>` steps. See `.claude/agents/assets/mast.yaml` `failure_modes_detail` for
-> the explanatory content; do not restate it inline.
+> Do not add inline `**Avoid (FM-x.x):**` cues. The closing self-check at the end of
+> `<instructions>` covers behavioural drift in one place.
 
 <rules>
-- [Operating stance — e.g. "Produce one concrete recommendation per request. Never present a menu of options."]
-  **Avoid (FM-1.2):** "Here are three approaches: A, B, C — which would you like?" → "Use approach B because X. Trade-off: Y."
-- [Invariant — e.g. "Mark every hard-to-reverse decision with the token [IRREVERSIBLE] inline."]
-- [Invariant — e.g. "Filename and sequence-numbering rules live in `<skill>` — follow them exactly; do not deviate."]
+- [Cross-cutting operating stance — e.g. "Produce one concrete recommendation per request. Never present a menu of options."]
+- [Cross-cutting invariant — e.g. "Mark every hard-to-reverse decision with [IRREVERSIBLE] inline."]
 </rules>
 
 ---
@@ -426,23 +432,85 @@ ARCHITECT REVIEW NEEDED: [item]; [item]
 
 ---
 
+## Optional patterns
+
+Two patterns developed for specific agent shapes. Apply only when the agent fits the
+shape — neither is mandatory.
+
+### Pattern: dual-mode agent (conversational + artifact)
+
+Use when the agent's primary value is **thinking with the user**, but it must also produce
+structured artifacts when the user (or an inbound flag) explicitly asks. The consultant is
+the canonical example. Without this pattern, a conversational agent collapses into a
+deliverable factory that writes a full bundle on every turn.
+
+- **Add a `<modes>` block** between `<operating_constraints>` and `<deliverables>` naming
+  the two modes (typical names: **Discussion** as default, **Artifact** on explicit ask)
+  and the triggers that select each.
+- **Mode dispatch is step 2** of `<instructions>` (or step 3 if pre-flight is step 2):
+  match the request against the explicit triggers; one branch per mode; no interleaving.
+- **`<deliverables>` lists per mode** — Discussion-mode deliverables are
+  conversation-shaped (recommendation + alternatives + trade-offs); Artifact-mode
+  deliverables are file paths.
+- **`<output_format>` carries one block per mode** — a free-prose body with a fixed
+  metadata trailer for Discussion mode keeps the conversational feel while preserving the
+  parser contract.
+- **No auto-bundling in Artifact mode.** The user/inbound flag determines the **write
+  set** — only what was asked. Multiple artifacts only when genuinely required (e.g. a new
+  context needs both a charter and an SDR); confirm before writing.
+
+### Pattern: craft-vs-structural escalation (for implementer-style agents)
+
+Use when the agent receives user feedback on its work (developer is the canonical
+example). Without this pattern, every user nudge routes back up the chain (architect or
+designer agent), turning a code-craft refinement into a documented design change. That
+churns the upstream agent's memory and the ADR with information that isn't
+requirement-relevant.
+
+- **Define the two kinds of change** in `<role_identity>` or a `<craftsmanship_charter>`
+  sub-block:
+  - **Craft change** — different name, split function, refactor for clarity, refusing a
+    plan-prescribed craft-level anti-pattern. Stays with the implementer. Silent. The
+    upstream artifact (ADR / plan) is untouched.
+  - **Structural change** — the code now expresses a different decision than the upstream
+    artifact records (boundary, data shape, integration pattern, an `[IRREVERSIBLE]`
+    consequence the artifact did not anticipate, a functional or business requirement the
+    plan did not cover). Escalates upstream.
+- **`<decision_authority>` says "Escalate to <upstream> on structural conflict only".**
+  Craft pushback is autonomous. Absorbing user craft feedback does not escalate.
+- **Grey-zone rule.** If feedback might be craft or might be structural and the agent
+  genuinely cannot tell, ask the user one question — *"Is this a craft change (I handle
+  it) or a design change (I'll loop in <upstream>)?"* — rather than defaulting to
+  escalation.
+- **Rejection handling step in `<instructions>`:** classify first (craft / structural /
+  grey-zone), then route. Craft → handle, re-test, re-request. Structural → surface, wait
+  for upstream response. Grey-zone → one user question.
+- **Phase-summary field** (if one exists): name it *structural-only* (e.g. `Pushed back
+  on (structural only)`) so the developer can't smuggle craft pushback into an
+  architect-routed signal.
+
+---
+
 ## Validation Checklist — delete this section after authoring
 
-- [ ] **Agent, not workflow:** the task is genuinely open-ended; any deterministic procedure has been extracted to a skill/script. (Building Effective Agents)
+- [ ] **Agent, not workflow:** the task is genuinely open-ended; any deterministic procedure is in a skill/script.
 - [ ] Frontmatter: `name` matches filename; `description` leads with the trigger; `tools` is least-privilege.
-- [ ] `<operating_constraints>` carries the mandatory **asset-references** bullet pointing at `.claude/agents/assets/mast.yaml` (for FM-x.x cues) and `.claude/agents/assets/tokens.yaml` (for flag-token definitions).
 - [ ] Every component is wrapped in its `snake_case` XML tag; tags are opened and closed; no stray outer `<output>` wrapper.
-- [ ] `<role_identity>` is under 50 tokens, uses a real job title, contains no banned flattery words. (PRISM; design rule R2)
-- [ ] `<domain_vocabulary>` (optional — omit unless priming demonstrably changes output) — when present, has 15-30 terms in 3-5 clusters; named frameworks are attributed; every term passes the 15-year practitioner test; no consultant-speak.
-- [ ] Every entry in `<deliverables>` names a concrete, verifiable artifact type with a path. (R14 / FM-3.2)
-- [ ] `<decision_authority>` has all three lines; "Out of scope" names the agent that owns each excluded item. (R2 / FM-1.2)
-- [ ] `<instructions>` steps are imperative, ordered, use explicit IF/THEN, have OUTPUT lines; total ≤ ~2000 tokens. (R1 / FM-1.1)
-- [ ] `<instructions>` has a structured **pre-flight step** right after memory load: the 5 fixed checks (Inputs / Prior reviewed / Scope / Terms / Target) with per-agent semantics, and a reference to CLAUDE.md `## Pre-flight protocol` (which carries the canonical output block, PROCEED/ASK/STOP branching, and the 5-clarifying-questions cap). Do not restate the canonical schema inline. (R13 / FM-1.1, FM-3.4)
-- [ ] `<instructions>` opens with a **parallelize-independent-reads** directive naming which read-only steps (memory, templates, touched files) should batch into a single tool-use call.
-- [ ] Every file/artifact selection step uses a deterministic key — explicit reference or lexicographic order, never filesystem mtime. (`.claude/agents/assets/mast.yaml` meta-principle)
-- [ ] `<completion_criteria>` exists; every condition is observable; at least one "NOT done until ..." guard is present. (R3 / FM-1.3, FM-1.5)
-- [ ] Every cap, limit, or ceiling is numeric (`≤N`, exact count, byte/line cap) — no adjective-only ceilings ("concise", "brief", "appropriate length", "as many as needed"). The restatement step caps clarifying questions at 5/turn. (mast.yaml meta-principle: low variance)
-- [ ] No `<anti_patterns>` block — inline `**Avoid (FM-x.x):** <wrong> → <right>` lines sit at the firing point on each guarded step or rule; every cited FM exists in `.claude/agents/assets/mast.yaml`. Coverage is verifiable by `grep 'Avoid (FM-'`. (R12 / FM-3.3)
-- [ ] `<interaction_model>` lists flag tokens both emitted and consumed, each cited from `.claude/agents/assets/tokens.yaml`; no token is invented in the agent file. (R8 / FM-2.3)
-- [ ] `<output_format>` is the last tag and is copy-exact. (R11 / FM-3.1)
+- [ ] `<role_identity>` is under 50 tokens, uses a real job title, contains no banned flattery words.
+- [ ] `<operating_constraints>` does **not** reference `mast.yaml` (designer-only asset). Token semantics are cited from `tokens.yaml` via `<interaction_model>`, not restated here.
+- [ ] `<domain_vocabulary>` (optional) — when present, 15-30 terms in 3-5 clusters; named frameworks attributed; every term passes the 15-year practitioner test.
+- [ ] Every entry in `<deliverables>` names a concrete, verifiable artifact type with a path.
+- [ ] `<decision_authority>` has all three lines; "Out of scope" names the agent that owns each excluded item.
+- [ ] `<instructions>` steps are imperative, ordered, use explicit IF/THEN; total ≤ ~2000 tokens.
+- [ ] `<instructions>` opens with a **parallelize-independent-reads** directive naming the read-only steps that batch into one tool-use call.
+- [ ] Pre-flight step references CLAUDE.md `## Pre-flight protocol`; only per-check semantics are declared inline.
+- [ ] **No inline `**Avoid (FM-x.x):**` cues anywhere.** Behavioural drift is covered by the single **closing self-check** block at the end of `<instructions>`. Coverage is verifiable by `grep -c 'Avoid (FM-' <file>` returning `0`.
+- [ ] **Closing self-check** block is present at the end of `<instructions>`: 4–6 plain-language bullets, no FM-code citations, covering role / completeness / determinism / delegation / role-specific evidence rules / memory.
+- [ ] **Anti-restatement:** no rule appears in all three of `<operating_constraints>`, `<instructions>`, and `<completion_criteria>`. Each rule has one home.
+- [ ] Every file/artifact selection step uses a deterministic key — explicit reference or lexicographic order, never filesystem mtime.
+- [ ] `<completion_criteria>` conditions are observable; at least one "NOT done until ..." guard is present.
+- [ ] Every cap, limit, or ceiling is numeric (`≤N`, exact count, byte/line cap) — no adjective-only ceilings.
+- [ ] `<interaction_model>` lists flag tokens emitted and consumed, each cited from `tokens.yaml`; no token is invented in the agent file.
+- [ ] `<output_format>` is the last tag and is copy-exact. Verdict tokens are exact strings on their own lines.
+- [ ] **Optional patterns** — if the agent is conversational, the **dual-mode pattern** is applied (`<modes>` block + step-2 dispatch + per-mode `<output_format>`). If the agent receives user feedback on its work, the **craft-vs-structural escalation pattern** is applied (rejection-classification step + grey-zone rule + structural-only push-back field).
 - [ ] Total definition lands in the 15-40% context-window utilisation zone — trim or extract to a skill if over.
