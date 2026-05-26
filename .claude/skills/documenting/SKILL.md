@@ -30,12 +30,12 @@ Central registry for output-format conventions and artifact templates. Agents lo
 | Progress                  | `templates/progress.md`              | developer    |
 | Bounded context charter   | `templates/charter.md`               | consultant   |
 | Context map               | `templates/context-map.md`           | consultant   |
-| Strategic decision (SDR)  | `templates/strategic-adr.md`         | consultant   |
+| Strategic decision (SDR)  | `templates/sdr.md`                   | consultant   |
 | Glossary entry            | `templates/glossary.md`              | consultant   |
 
 Read the template for your artifact type before writing. Worked examples (`report`, `adr`, `plan`, `progress`) live in `examples/<type>.md` — read only if uncertain about tone or section shape after reading the template.
 
-**Tactical vs strategic ADRs.** `adr.md` is for tactical decisions (architect — implementation patterns, component design, API shape within a context). `strategic-adr.md` is for strategic decisions (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern). Numbering is independent: tactical at `artifacts/adr/NNNNN-*`, strategic at `artifacts/strategy/decisions/NNNNN-*`.
+**Tactical ADR vs SDR.** `adr.md` is for tactical decisions (architect — implementation patterns, component design, API shape within a context). `sdr.md` is for strategic decision records (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern). The file name is the disambiguator: never use `adr.md` for a strategic decision. Numbering is independent: tactical at `artifacts/adr/NNNNN-*`, strategic at `artifacts/strategy/decisions/NNNNN-*`.
 
 ---
 
@@ -71,20 +71,26 @@ Only analysis reports run detection. All other types use the fixed audience.
 Derived deterministically by `scripts/filename.mjs`. Run it — do not derive by hand:
 
 ```bash
-node .claude/skills/documenting/scripts/filename.mjs <report|adr|plan> "<subject>"
+node .claude/skills/documenting/scripts/filename.mjs <type> "<subject>"
 ```
 
-`<subject>` is the subject noun phrase from the request. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to 5 tokens, appends `-analysis` for reports, prepends the next zero-padded 5-digit sequence for ADRs (scanning `artifacts/adr/`), and prepends the paired ADR's prefix for plans when a matching ADR stem exists.
+Supported types: `report`, `adr`, `plan`, `sdr`, `charter`, `context-map`, `glossary`, `progress`.
+
+`<subject>` is the subject noun phrase from the request. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to 5 tokens, then applies a per-type suffix and (where applicable) a zero-padded 5-digit sequence prefix scanned from the host directory.
 
 | Input subject | Type | Stem |
 |---|---|---|
 | "Analysis of the Auth Middleware" | report | `auth-middleware-analysis` |
-| "Plan for migrating the user service to gRPC" | plan | `migrating-user-service-grpc` (unprefixed — no matching ADR) |
 | "Design of the Auth Middleware" | adr | `00002-auth-middleware` |
 | "Design of the Auth Middleware" | plan | `00002-auth-middleware` (after paired ADR exists) |
-| "Stripe webhook idempotency analysis" | report | `stripe-webhook-idempotency-analysis` |
+| "Plan for migrating the user service to gRPC" | plan | `migrating-user-service-grpc` (unprefixed — no matching ADR) |
+| "Build vs buy for payments" | sdr | `00001-build-vs-buy-payments` (scans `artifacts/strategy/decisions/`) |
+| "Charter for the Billing context" | charter | `billing-context-charter` |
+| "Context map for the platform" | context-map | `platform-context-map` |
+| "Glossary for the Order domain" | glossary | `order-domain-glossary` |
+| "auth rewrite" | progress | `plan-auth-rewrite-progress` |
 
-For a paired ADR and plan, run with the **same** `<subject>` for each — write the ADR first so the plan inherits the prefix. Charter, context map, SDR, glossary, progress: follow the naming convention in their own template.
+For a paired ADR and plan, run with the **same** `<subject>` for each — write the ADR first so the plan inherits the prefix. SDR numbering is independent of ADR numbering; the script scans `artifacts/strategy/decisions/` for SDR sequence and `artifacts/adr/` for ADR sequence.
 
 ### Confidence markers
 

@@ -18,7 +18,10 @@ function readFileSync(path, enc) {
 const AGENTS_DIR = '.claude/agents';
 const SKILLS_DIR = '.claude/skills';
 const TEMPLATES_DIR = 'templates';
+const ASSETS_DIR = '.claude/agents/assets';
 const MAST_PATH = '.claude/agents/assets/mast.yaml';
+const TOKENS_PATH = '.claude/agents/assets/tokens.yaml';
+const PREFLIGHT_PATH = '.claude/agents/assets/preflight.yaml';
 const AGENT_TEMPLATE = 'templates/agent-definition-template.md';
 const SKILL_TEMPLATE = 'templates/skill-definition-template.md';
 
@@ -57,12 +60,55 @@ function add(file, level, line, msg) {
 function loadMastFMs() {
   if (!existsSync(MAST_PATH)) return new Set();
   const text = readFileSync(MAST_PATH, 'utf8');
-  const idx = text.indexOf('\nfailure_modes_detail:');
-  if (idx === -1) return new Set();
-  const slice = text.slice(idx);
+  // Accept either an old `failure_modes_detail:` section OR the current `taxonomy:` block
+  // (e.g. `- { code: FM-1.1, name: ... }`).
   const fms = new Set();
-  for (const m of slice.matchAll(/^\s{2}(FM-\d+\.\d+):/gm)) fms.add(m[1]);
+  for (const m of text.matchAll(/code:\s*(FM-\d+\.\d+)/g)) fms.add(m[1]);
+  for (const m of text.matchAll(/^\s{2}(FM-\d+\.\d+):/gm)) fms.add(m[1]);
   return fms;
+}
+
+function loadPreflightKeys() {
+  if (!existsSync(PREFLIGHT_PATH)) return null;
+  const text = readFileSync(PREFLIGHT_PATH, 'utf8');
+  const keys = new Set();
+  for (const m of text.matchAll(/^([a-z][a-z0-9-]*):\s*$/gm)) keys.add(m[1]);
+  return keys;
+}
+
+function loadTokensProducers() {
+  if (!existsSync(TOKENS_PATH)) return null;
+  const text = readFileSync(TOKENS_PATH, 'utf8');
+  const producers = new Set();
+  // Match only line-leading produced_by/consumed_by — avoids picking up `host:`
+  // siblings or other inline fields. Value may be bare, quoted, or comma-list.
+  const re = /^\s*(?:produced_by|consumed_by):\s*"?([a-z][a-z0-9\-,\s]*?)"?\s*$/gim;
+  for (const m of text.matchAll(re)) {
+    for (const raw of m[1].split(',').map(s => s.trim()).filter(Boolean)) {
+      // Skip parenthetical descriptions like `(none — informational)`.
+      if (raw.startsWith('(') || raw.includes('—') || raw.includes(' ')) continue;
+      producers.add(raw);
+    }
+  }
+  return producers;
+}
+
+function checkAssetReferences(file, text) {
+  const seen = new Set();
+  // YAML assets
+  for (const m of text.matchAll(/\bassets\/([a-z0-9-]+\.ya?ml)\b/gi)) {
+    const path = join(ASSETS_DIR, m[1]);
+    if (seen.has(path)) continue;
+    seen.add(path);
+    if (!existsSync(path)) add(file, 'error', null, `references missing asset \`${path}\``);
+  }
+  // Instruction mode files: assets/instructions/<agent>/<mode>.md
+  for (const m of text.matchAll(/\bassets\/instructions\/([a-z0-9-]+)\/([a-z0-9-]+)\.md\b/gi)) {
+    const path = join(ASSETS_DIR, 'instructions', m[1], `${m[2]}.md`);
+    if (seen.has(path)) continue;
+    seen.add(path);
+    if (!existsSync(path)) add(file, 'error', null, `references missing instruction file \`${path}\``);
+  }
 }
 
 function parseFrontmatter(text) {
@@ -164,8 +210,13 @@ function checkClaudeMdProtocol(file) {
     add(file, 'error', null, `missing \`## Pre-flight protocol\` section`);
     return;
   }
-  if (!/Result:\s*<?PROCEED\s*\|\s*ASK\s*\|\s*STOP>?/.test(text)) {
-    add(file, 'error', null, `pre-flight protocol missing \`Result: <PROCEED | ASK | STOP>\` line`);
+  // The compact-form pre-flight emits `→ PROCEED` and the expanded form emits
+  // `Result: <ASK | STOP>` (PROCEED uses the compact form, not the Result line).
+  if (!/Result:\s*<?ASK\s*\|\s*STOP>?/.test(text)) {
+    add(file, 'error', null, `pre-flight protocol missing the expanded-form \`Result: <ASK | STOP>\` line`);
+  }
+  if (!/→\s*PROCEED/.test(text)) {
+    add(file, 'error', null, `pre-flight protocol missing the compact-form \`→ PROCEED\` token`);
   }
   if (!/up to\s*\*?\*?5\s*clarifying questions/i.test(text)) {
     add(file, 'error', null, `pre-flight protocol missing the 5-clarifying-questions cap`);
@@ -176,33 +227,56 @@ function checkClaudeMdProtocol(file) {
   }
 }
 
-function checkPreFlight(file, body) {
+function checkPreFlight(file, body, agentName, preflightKeys) {
   const ins = extractTagBlock(body, 'instructions');
   if (!ins) return; // skeleton check already complained
+  if (!/CLAUDE\.md\s*`?##\s*Pre-flight protocol`?/i.test(ins)) {
+    add(file, 'error', null, `pre-flight step must reference \`CLAUDE.md \`## Pre-flight protocol\``);
+  }
+  // Three valid forms:
+  //   A) Single registry reference:   `assets/preflight.yaml#<agent>`.
+  //   B) Multi-mode shell references: multiple `assets/preflight.yaml#<agent>-<mode>` mentions.
+  //   C) Legacy inline form:          structured **Pre-flight.** step + 5 bullets.
+  const refs = [...ins.matchAll(/assets\/preflight\.yaml#([a-z0-9-]+)/gi)].map(m => m[1]);
+  if (refs.length > 0) {
+    for (const key of refs) {
+      if (preflightKeys && !preflightKeys.has(key)) {
+        add(file, 'error', null, `pre-flight references \`#${key}\` which is not a top-level key in ${PREFLIGHT_PATH}`);
+      } else if (preflightKeys && key !== agentName && !key.startsWith(agentName + '-')) {
+        add(file, 'warning', null, `pre-flight references \`#${key}\` but agent name is \`${agentName}\` — confirm intentional`);
+      }
+    }
+    return; // registry form passes
+  }
+  // Legacy inline form
   if (!/^\s*\d+\.\s*\*\*Pre-flight\.\*\*/m.test(ins)) {
-    add(file, 'error', null, `<instructions> missing structured **Pre-flight.** step`);
+    add(file, 'error', null, `<instructions> missing pre-flight step (either \`assets/preflight.yaml#${agentName}\` reference or inline **Pre-flight.** with 5 bullets)`);
     return;
   }
   for (const bullet of PRE_FLIGHT_BULLETS) {
     const re = new RegExp(`-\\s*\\*\\*${bullet}\\*\\*`, 'm');
     if (!re.test(ins)) add(file, 'error', null, `pre-flight missing bullet \`${bullet}\``);
   }
-  if (!/CLAUDE\.md\s*`?##\s*Pre-flight protocol`?/i.test(ins)) {
-    add(file, 'error', null, `pre-flight step must reference \`CLAUDE.md \`## Pre-flight protocol\`\` (canonical schema lives there)`);
-  }
 }
 
 function checkFmCitations(file, text, knownFMs) {
+  // Three citation forms are accepted:
+  //   1) Inline cue:    `**Avoid (FM-x.x):** ...`
+  //   2) Checkbox list: `- [ ] FM-x.x — ...` inside the closing self-check
+  //   3) selfcheck.yaml row: `{ fm: FM-x.x, check: ... }`
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(/\*\*Avoid\s*\((FM-\d+\.\d+)\)/g);
-    if (!m) continue;
-    for (const hit of m) {
-      const code = hit.match(/FM-\d+\.\d+/)[0];
+    const all = [
+      ...lines[i].matchAll(/\*\*Avoid\s*\((FM-\d+\.\d+)\)/g),
+      ...lines[i].matchAll(/^\s*-\s*\[\s*\]\s*(FM-\d+\.\d+)\b/g),
+      ...lines[i].matchAll(/\bfm:\s*(FM-\d+\.\d+)\b/g),
+    ];
+    for (const m of all) {
+      const code = m[1];
       if (!fmCitations.has(code)) fmCitations.set(code, []);
       fmCitations.get(code).push({ file, line: i + 1 });
       if (!knownFMs.has(code)) {
-        add(file, 'error', i + 1, `cites ${code} which has no entry under failure_modes_detail in ${MAST_PATH}`);
+        add(file, 'error', i + 1, `cites ${code} which has no entry in ${MAST_PATH} taxonomy`);
       }
     }
   }
@@ -242,7 +316,7 @@ function checkOldPaths(file, text) {
   });
 }
 
-function lintAgent(file, knownFMs) {
+function lintAgent(file, knownFMs, preflightKeys) {
   const text = readFileSync(file, 'utf8');
   const { fm, body, raw, bodyStartLine } = parseFrontmatter(text);
   if (!fm) {
@@ -257,10 +331,11 @@ function lintAgent(file, knownFMs) {
     add(file, 'error', null, `frontmatter \`name: ${fm.name}\` must match filename (${expectedName})`);
   }
   checkTagOrder(file, body, bodyStartLine);
-  checkPreFlight(file, body);
+  checkPreFlight(file, body, expectedName, preflightKeys);
   checkFmCitations(file, text, knownFMs);
   checkAdjectiveCaps(file, body);
   checkOldPaths(file, text);
+  checkAssetReferences(file, text);
 }
 
 function lintSkill(file) {
@@ -333,11 +408,53 @@ function lintSkillTemplate(file, knownFMs) {
 // --- Run -----------------------------------------------------------------
 
 const knownFMs = loadMastFMs();
+const preflightKeys = loadPreflightKeys();
+const tokenAgents = loadTokensProducers();
 
+const knownAgentNames = new Set();
 if (existsSync(AGENTS_DIR)) {
   for (const entry of readdirSync(AGENTS_DIR)) {
     if (!entry.endsWith('.md')) continue;
-    lintAgent(join(AGENTS_DIR, entry), knownFMs);
+    knownAgentNames.add(basename(entry, '.md'));
+    lintAgent(join(AGENTS_DIR, entry), knownFMs, preflightKeys);
+  }
+}
+
+// Walk assets/instructions/<agent>/<mode>.md — extend FM-citation coverage and
+// validate asset references inside those mode files.
+const INSTRUCTIONS_DIR = join(ASSETS_DIR, 'instructions');
+if (existsSync(INSTRUCTIONS_DIR)) {
+  for (const agentDir of readdirSync(INSTRUCTIONS_DIR)) {
+    const dir = join(INSTRUCTIONS_DIR, agentDir);
+    for (const entry of readdirSync(dir)) {
+      if (!entry.endsWith('.md')) continue;
+      const path = join(dir, entry);
+      const text = readFileSync(path, 'utf8');
+      checkFmCitations(path, text, knownFMs);
+      checkOldPaths(path, text);
+      checkAssetReferences(path, text);
+    }
+  }
+}
+
+// Cross-check: every agent referenced in tokens.yaml producer/consumer fields must
+// correspond to a real agent file under .claude/agents/.
+if (tokenAgents) {
+  for (const name of tokenAgents) {
+    if (!knownAgentNames.has(name)) {
+      add(TOKENS_PATH, 'error', null, `references unknown agent \`${name}\` — no \`.claude/agents/${name}.md\``);
+    }
+  }
+}
+
+// Cross-check: every preflight.yaml key should correspond to a real agent file
+// (either as `<agent>` or as a mode-tagged `<agent>-<mode>` key whose `<agent>` exists).
+if (preflightKeys) {
+  for (const key of preflightKeys) {
+    if (knownAgentNames.has(key)) continue;
+    const dashIdx = key.indexOf('-');
+    if (dashIdx > 0 && knownAgentNames.has(key.slice(0, dashIdx))) continue;
+    add(PREFLIGHT_PATH, 'warning', null, `key \`${key}\` has no matching agent file (dead registry entry)`);
   }
 }
 
@@ -355,6 +472,12 @@ if (existsSync(SKILL_TEMPLATE)) lintSkillTemplate(SKILL_TEMPLATE, knownFMs);
 checkClaudeMdProtocol('CLAUDE.md');
 if (existsSync('CLAUDE.md')) {
   checkFmCitations('CLAUDE.md', readFileSync('CLAUDE.md', 'utf8'), knownFMs);
+}
+
+// selfcheck.yaml hosts the runtime closing self-check boxes; FM citations there count.
+const SELFCHECK_PATH = join(ASSETS_DIR, 'selfcheck.yaml');
+if (existsSync(SELFCHECK_PATH)) {
+  checkFmCitations(SELFCHECK_PATH, readFileSync(SELFCHECK_PATH, 'utf8'), knownFMs);
 }
 
 // Dead-detail check: FMs in mast.yaml that no agent/skill cites.

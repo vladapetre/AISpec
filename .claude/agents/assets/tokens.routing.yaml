@@ -1,0 +1,56 @@
+# Routing tokens — move work between agents. Index lives in tokens.yaml.
+#
+# Disambiguation: analyst's report-side and architect's ADR-side flags both use the
+# "ARCHITECT REVIEW NEEDED" wording but in different artifacts. In-artifact form is
+# bracketed `[...]`; conversation form is the summary-line prefix `...:`.
+
+routing_tokens:
+  - token: "[ARCHITECT REVIEW NEEDED]"
+    summary_line: "ARCHITECT REVIEW NEEDED:"
+    produced_by: analyst
+    written_into: "Report Recommendations + summary line"
+    consumed_by: architect
+    meaning: "A finding needs tactical architectural input."
+
+  - token: "[CONSULTANT REVIEW NEEDED]"
+    summary_line: "STRATEGIC REVIEW NEEDED:"
+    produced_by: analyst
+    written_into: "Report Recommendations + summary line"
+    consumed_by: consultant
+    meaning: "A finding needs strategic input. Discussion may precede ratification."
+
+  - token: "[STRATEGIC REVIEW NEEDED]"
+    produced_by: architect
+    written_into: "ADR `## Consequences` under `**Strategic follow-up:**`"
+    consumed_by: consultant
+    meaning: "A tactical request raised a strategic question."
+
+  - token: "[TACTICAL DESIGN NEEDED]"
+    produced_by: consultant
+    written_into: "SDR `## Tactical follow-up`"
+    consumed_by: architect
+    meaning: "A ratified strategic decision needs tactical design."
+
+  - token: "ARCHITECT AMENDMENT NEEDED:"
+    produced_by: reviewer
+    written_into: "Per-phase review output — summary line above the verdict. Orthogonal to APPROVED/CHANGES REQUIRED."
+    consumed_by: architect
+    meaning: "Phase diff drifted from the governing ADR; architect must respond."
+
+  - token: "SELF_CHECKED"
+    produced_by: architect
+    written_into: "architect output — final summary line by default in Design mode"
+    consumed_by: "(none — informational; signals no cross-check needed)"
+    meaning: "Architect performed the five-check self-verification and the ADR/plan pair is internally consistent."
+
+  - token: "CROSS_CHECK_REQUESTED:"
+    produced_by: architect
+    written_into: "architect output — replaces SELF_CHECKED when an A13 escalation trigger fires. Carries plan path and one-line reason."
+    consumed_by: reviewer
+    meaning: "Architect requests an external cross-check pass before the developer is invited."
+
+  - token: "RECONCILE WITH ADR:"
+    produced_by: architect
+    written_into: "Amendment output — emitted only on CODE_DRIFT classification"
+    consumed_by: developer
+    meaning: "Code drifted from a still-correct ADR. Developer restores the named decisions; treated as a rejection (counts toward 3-rejection bound)."

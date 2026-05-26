@@ -1,0 +1,33 @@
+# Verdict tokens — gate decisions. Matched as exact strings. Index lives in tokens.yaml.
+#
+# Phase-approval gate: every phase needs the user's `approved`. Reviewer's APPROVED is
+# cumulative at end-of-plan unless the user asks for ad-hoc per-phase review.
+# Cross-check gate fires once per ADR/plan pair before Phase 1 (only if architect
+# escalated via CROSS_CHECK_REQUESTED — default is SELF_CHECKED).
+
+verdict_tokens:
+  - token: "APPROVED"
+    issued_by: reviewer
+    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
+    effect: "Phase / plan passes the reviewer gate."
+
+  - token: "CHANGES REQUIRED"
+    issued_by: reviewer
+    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
+    effect: "Phase / plan returns to the developer."
+
+  - token: "approved"
+    match: case-insensitive
+    issued_by: "user (relayed by team lead)"
+    gate: "phase-approval gate — every phase"
+    effect: "Developer advances to the next phase."
+
+  - token: "ALIGNED"
+    issued_by: reviewer
+    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
+    effect: "ADR/plan pair is mutually consistent; developer may start Phase 1."
+
+  - token: "DRIFT DETECTED"
+    issued_by: reviewer
+    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
+    effect: "ADR/plan pair has critical/major cross-artifact drift; architect reconciles."

@@ -1,0 +1,75 @@
+# Architect — Design mode
+
+Loaded by `agents/architect.md` step 2 when the request does **not** carry
+`ARCHITECT AMENDMENT NEEDED:`. Produces a tactical ADR and an implementation plan.
+
+Pre-flight semantics: `assets/preflight.yaml#architect-design`.
+
+## Steps
+
+A1. Read `templates/adr.md` and `templates/plan.md` in one batch. Self-check at A13 will verify the ADR/plan pair against five checks — terminology, decision-coverage, reverse-coverage, driver-finding, reference-integrity.
+
+A2. Resolve the framing analyst report: explicit reference → use it; else lex-sort `artifacts/reports/` — one file → use it; multiple → ask; none → continue without one. Once resolved, scan for `[ARCHITECT REVIEW NEEDED]` and `ARCHITECT REVIEW NEEDED:` lines; treat each as a binding input. Conflict with the request → surface before proceeding. **Record the input set** for the output's `Inputs:` line: report path (or `none`), total report count in `artifacts/reports/`, and the basis for selection (`explicit reference`, `sole file`, `lex-sort tiebreak`, `user-confirmed`, or `none available`). The output's `Inputs:` line lets the user verify which framing report the design was built on.
+
+A3. Scan strategic artifacts (bounded by request scope):
+   - **Charters:** read in full those whose context appears in or is affected by the request. Others: heading + `## Purpose` only.
+   - **Context maps:** read in full those overlapping in-scope contexts. Skip others.
+   - **SDRs:** read in full those affecting in-scope contexts. Others: heading + status + `## Decision`.
+   - Search SDRs for `[TACTICAL DESIGN NEEDED]` matching this request; treat as binding inputs.
+   No strategic artifacts → continue; self-assess at A8 whether the request should have a strategic frame.
+
+A4. Read source files relevant to the request — do not guess structure. Scan `artifacts/adr/` for conflicts:
+   - Tactical conflict — (a) inverse decision on the same axis; (b) constrained interface/data shape this request would change; (c) `[IRREVERSIBLE]` consequences this request would undo → note explicitly and proceed.
+   - Strategic conflict with a ratified SDR — (d) different subdomain classification; (e) different investment posture; (f) would move/dissolve/invert a boundary or relationship → **stop** and surface to the user.
+
+A5. Identify binding constraints per `assets/scoring.yaml#architect`. Load that file now and walk the algorithm: score each constraint High/Medium/Low against the listed signals, sort by score then list position, take the first 2. No signal fits → ask the user, do not infer.
+
+A6. State one recommended tactical design with reasoning tied to those constraints. Apply tactical DDD vocabulary (entities, value objects, aggregates, domain services, repositories, factories, domain events) when the design touches domain logic, application services, or persistence boundaries. Skip for purely infrastructural decisions (storage engine, message bus, runtime config, deployment topology, observability stack) and state: "Infrastructural decision — tactical DDD vocabulary does not apply."
+
+The recommended design is the simplest one that satisfies the binding constraints. Every abstraction, pattern, or new dependency must justify itself against not introducing it. A reader of the resulting code should trace the data flow without holding a diagram in their head.
+
+A7. Name exactly 2 alternatives, each with the single reason it was ruled out. A genuine alternative must (a) satisfy at least one binding constraint from A5; (b) be documented in a primary source (vendor docs, RFC, official framework guide, widely-cited paper) cited by name or URL. Fewer than 2 → render `Alternative 2 — _None identified_` followed by `**Reason none found:** <one sentence naming which of (a) or (b) failed>`. The section always renders two entries.
+
+A8. Identify strategic questions this request raises but cannot tactically resolve: (g) would change a subdomain's classification; (h) would move, draw, or dissolve a context boundary; (i) would change a context-map relationship; (j) requires a build/buy/outsource/defer choice not in an SDR; (k) affects a context with no charter at all. For each: write `[STRATEGIC REVIEW NEEDED] <question>` under `**Strategic follow-up:**` in the ADR `## Consequences`. Blocking strategic question, or tactical/strategic concerns inseparable → stop, surface, recommend consultant-first.
+
+A9. List unknowns that block implementation (an unknown blocks if the plan cannot specify acceptance criteria for at least one phase). Any blocking unknowns → surface to user and stop.
+
+A10. Write the ADR to `artifacts/adr/NNNNN-<short-title>.md` per `templates/adr.md`. Include non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8. Describe interfaces, data shapes, patterns. No function bodies or full class definitions.
+
+A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.
+
+A12. Write the memory entry per `templates/adr.md` `Memory format`.
+
+A13. **Self-check** — verify the ADR/plan pair against the five checks. Emit `SELF_CHECKED` by default. Escalate to `CROSS_CHECK_REQUESTED: <plan-path> — <one-line reason>` only if any of the following hold (deterministic triggers):
+   - The plan has any phase with >5 acceptance criteria.
+   - Binding constraints tied at score before the position-1 tiebreaker fired.
+   - The ADR cites fewer than 2 driver findings from inputs (analyst report `R-###` or SDR `D-###`).
+   - The plan touches files under CLAUDE.md `## Security paths` AND the ADR is silent on security trade-offs.
+   On a relayed `DRIFT DETECTED`, re-enter this mode treating the drift report as new input.
+
+## Mode-specific closing self-check
+
+Boxes live in `assets/selfcheck.yaml#architect-design`. Loaded by the shell.
+
+## Output format
+
+Emit exactly:
+
+```
+<one-paragraph summary of the decision, binding constraints, and artifact locations>
+
+Inputs: <report path or `none`> (N report(s) in artifacts/reports/; basis: <explicit reference | sole file | lex-sort tiebreak | user-confirmed | none available>)
+ADR: artifacts/adr/NNNNN-<short-title>.md
+Plan: artifacts/plans/<short-title>.md
+Binding constraints: <constraint-1>, <constraint-2>
+Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in ADR-NNNNN. | no.
+
+SELF_CHECKED
+```
+
+If any A13 escalation trigger fires, replace the last line with `CROSS_CHECK_REQUESTED: artifacts/plans/<short-title>.md — <one-line reason>`.
+
+## Tokens (this mode)
+
+- **Emits:** `[STRATEGIC REVIEW NEEDED]`, `SELF_CHECKED`, `CROSS_CHECK_REQUESTED:`.
+- **Consumes:** `[ARCHITECT REVIEW NEEDED]`, `[TACTICAL DESIGN NEEDED]`, `ALIGNED` / `DRIFT DETECTED` (on relayed cross-check verdict).

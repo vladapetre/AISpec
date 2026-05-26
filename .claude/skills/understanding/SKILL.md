@@ -102,7 +102,13 @@ When invoked directly as `/understanding`:
 4. Begin the interview, applying every **Interview rule**. One question at a time. Provide your recommended answer with each.
 5. As each term resolves, update `.claude/MEMORY.md` inline per **Memory file conventions**. Create the file on first resolved entry if absent.
 6. As each non-trivial decision crystallises (hard to reverse, surprising without context, the result of a real trade-off), log under `## Decisions`.
-7. Session done or design tree exhausted → output a one-paragraph summary: terms added, ambiguities flagged, decisions recorded, open branches deferred.
+7. Stop at the **first** of these termination conditions and emit the closing summary:
+   - **User stop signal.** The user replies with `done`, `stop`, `that's enough`, `enough`, `wrap up`, `summarise` (case-insensitive, on its own line or as the entire turn).
+   - **Question cap.** You have asked **12 questions** in this session and none of the last 3 resolved a new term or decision — diminishing returns; offer to continue and stop pending the user's explicit `continue`.
+   - **Hard cap.** You have asked **20 questions** in this session — stop unconditionally and recommend ratifying or breaking the topic into a fresh session.
+   - **Design tree exhausted.** No open branches remain in your working list AND no new branches surfaced in the last reply.
+   Count questions you actually asked the user — not your own internal queries answered by Grep/Read.
+8. Closing summary (one paragraph): terms added, ambiguities flagged, decisions recorded, open branches deferred, and which termination condition fired.
 
 Agents that load this skill and have already validated input join at step 3.
 

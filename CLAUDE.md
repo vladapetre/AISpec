@@ -2,9 +2,25 @@
 
 ## Team Setup
 
-Before spawning any named agent (analyst, consultant, architect, developer, reviewer), check whether a team exists for this session. If not, create one with `TeamCreate`, then spawn the agent as a named teammate using `team_name` and `name`.
+Before spawning any named teammate, check whether a team exists for this session. If not, create one with `TeamCreate`, then spawn the agent as a named teammate using `team_name` and `name`.
 
-Each agent auto-loads its declared skills via the `skills:` frontmatter field — do not re-invoke those skills from the team lead. Skill bodies load lazily: an agent reads them only when it reaches a step that needs them. Do not pre-read skill bodies during pre-flight or scoping.
+**Skill loading.** A `skills:` frontmatter declaration loads the skill's *name and description only* into the agent's prompt — not its body. The agent reads the SKILL.md body (and any templates) on demand at the first step that needs it. The team lead never pre-reads skill bodies.
+
+## Agent registry
+
+The harness has five named teammates. The team lead spawns by role — each agent's own step-2 mode dispatch loads the matching mode file from `.claude/agents/assets/instructions/<agent>/<mode>.md`.
+
+| Agent | Spawn when | Modes |
+|---|---|---|
+| `analyst` | A source needs ingestion before design (code, docs, URLs, data). Pipeline entry. | single mode |
+| `architect` | Tactical design needed, OR request carries `ARCHITECT AMENDMENT NEEDED:`. | `design` (default), `amendment` (drift trigger) |
+| `consultant` | Strategic question, write request, or inbound `[STRATEGIC REVIEW NEEDED]` / `[CONSULTANT REVIEW NEEDED]`. | `discussion` (default), `artifact` (explicit write / ratification) |
+| `developer` | An approved plan and an unmarked phase exist. | `implement` (default), `rejection` (feedback path) |
+| `reviewer` | Request contains `## Phase N Complete`, `## All Phases Complete`, `CROSS_CHECK_REQUESTED:`, or starts with `/cross-check`. | `perphase` (incl. cumulative), `crosscheck` |
+
+Each multi-mode agent's `<instructions>` step 2 is a deterministic dispatch (regex on trigger tokens) that loads exactly one file under `assets/instructions/<agent>/`. The shell never carries mode-specific steps or output formats.
+
+Per-check pre-flight semantics for every agent-mode pair live in `.claude/agents/assets/preflight.yaml` (keyed by `<agent>-<mode>` for multi-mode agents, by `<agent>` otherwise).
 
 ## Agent Communication
 
@@ -20,8 +36,27 @@ Every named agent ends each turn with exactly one `SendMessage` to the team lead
 
 ## Asset references
 
-- `.claude/agents/assets/tokens.yaml` — canonical handoff-token vocabulary (routing tokens, verdict tokens, in-artifact markers, identifier prefixes). Agents reference token semantics here rather than restating them.
-- `.claude/agents/assets/mast.yaml` — designer's reference (MAST failure taxonomy + 14 design rules + audit checklist). Not loaded at runtime; consulted when authoring or amending agent/skill files. Each agent's `<instructions>` ends with a closing self-check that captures the active failure modes in plain language for that role.
+- `.claude/agents/assets/tokens.yaml` — index + quick-lookup for token vocabulary. Concrete entries live in three sibling files loaded on demand: `tokens.routing.yaml` (handoff), `tokens.verdicts.yaml` (gate decisions), `tokens.markers.yaml` (in-artifact + identifier prefixes). Agents reference token semantics there rather than restating them.
+- `.claude/agents/assets/preflight.yaml` — per-agent pre-flight semantics registry. Agents reference their entry by `#<agent>` or `#<agent>-<mode>` instead of restating per-check semantics.
+- `.claude/agents/assets/instructions/<agent>/<mode>.md` — mode-specific instructions, output formats, and per-mode token contracts for multi-mode agents (architect, consultant, reviewer). The shell agent file loads exactly one of these at step 2.
+- `.claude/agents/assets/scoring.yaml` — binding-constraint scoring rubrics for `architect` Design mode (A5) and `consultant` Artifact mode (A6). Loaded on demand at the scoring step.
+- `.claude/agents/assets/detectors.yaml` — test/lint detection cascade for the developer. Loaded on demand at step 7.
+- `.claude/agents/assets/selfcheck.yaml` — closing self-check registry. Each agent's `<instructions>` ends with one line referencing its keys (`#_universal` + `#<agent>` + `#<agent>-<mode>` where applicable). Loaded at the closing self-check step.
+- `.claude/agents/assets/mast.yaml` — designer's reference (MAST failure taxonomy + 14 design rules + audit checklist). Not loaded at runtime; consulted when authoring or amending agent/skill files. The runtime self-check boxes live in `selfcheck.yaml`; each box names its MAST FM code.
+
+## Agent memory layout
+
+Every named teammate persists memory under `.claude/agent-memory/<agent>/`. The layout is uniform:
+
+- `MEMORY.md` — the agent's **index**. Always present (lazily created on the first write). Carries one-line entries per topic / decision / plan / artifact with a pointer to the per-entity file when one exists.
+- `<entity>-<short-title>.md` — optional **per-entity files** when an agent has rich state to keep beyond a one-liner (developer: `plan-<short-title>.md`; analyst: `report-<short-title>.md` only if a long-form follow-up is needed). File naming uses the same short-title the artifact uses, so `git log` and search join cleanly across `artifacts/` and `agent-memory/`.
+
+Rules:
+- `MEMORY.md` is the only mandatory file. Per-entity files are optional and reference-by-name from `MEMORY.md`.
+- Never write the same fact in two places. The per-entity file holds the detail; `MEMORY.md` carries the pointer.
+- Short-titles match the host artifact's short-title verbatim — no aliasing.
+
+`.claude/MEMORY.md` at project root is the **shared** glossary and decision log owned by the `understanding` skill — separate from per-agent memory.
 
 ## Artifact Ownership
 
@@ -30,9 +65,9 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | Directory                | Owner               | Contents                                                       |
 | ------------------------ | ------------------- | -------------------------------------------------------------- |
 | `artifacts/reports/`     | analyst             | Analysis reports (written directly, not routed)                |
-| `artifacts/strategy/`    | consultant          | Bounded-context charters, context maps, SDRs, glossary entries |
-| `artifacts/adr/`         | architect           | Architectural decision records                                 |
-| `artifacts/plans/`       | architect           | Implementation plans                                           |
+| `artifacts/strategy/`    | consultant (Artifact mode) | Bounded-context charters, context maps, SDRs, glossary entries |
+| `artifacts/adr/`         | architect            | Architectural decision records (supersession ADRs come from Amendment mode) |
+| `artifacts/plans/`       | architect            | Implementation plans (Amendment mode may edit a future phase + Governing ADR pointer) |
 | `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                              |
 
 Exception: the developer may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once the user has approved the phase.
@@ -41,23 +76,52 @@ The analyst writes reports directly (no routing). All other owned artifacts go t
 
 ## Cross-Check (Pre-Implementation)
 
-By default the architect performs its own ADR↔plan self-check and emits `SELF_CHECK: ALIGNED` on the Mode A summary line. The plan goes straight to the developer for Phase 1.
+By default `architect` (Design mode) performs its own ADR↔plan self-check and emits `SELF_CHECKED` on the summary line. The plan goes straight to the developer for Phase 1.
 
-Escalation: if self-check uncertainty exists, the architect emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to the reviewer; wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to the architect for amendment.
+Escalation: if any of the A13 escalation triggers fire (large phase, tied constraints, sparse driver findings, security path without trade-off discussion), `architect` emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically).
 
 The cross-check (when fired) is a single read-only artifact↔artifact pass per ADR/plan pair, before Phase 1 only. Between-phase work uses the per-phase flow below.
 
 ## Implementation Review
 
-**Between phases: user approval only.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The reviewer is not invoked between phases. The user is the sole gate on phase advancement.
+**Between phases: user approval only.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The reviewer is not invoked between phases by default. The user is the sole gate on phase advancement.
 
-**At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to the reviewer. The reviewer runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
+**At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to the architect immediately. On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
+The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
 
-**Amendments use supersession, not in-place edits.** When the architect amends an ADR, it writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences. The original ADR is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. The architect loads only the specific ADR section named in the reviewer's reason and the cited diff hunks (±10 lines) — never the full ADR, plan, or source files.
+**Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences. The original ADR is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. Amendment mode loads only the specific ADR section named in the reviewer's reason and the cited diff hunks (±10 lines) — never the full ADR, plan, or source files.
 
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
+
+## Agent base constraints
+
+These apply to every named teammate (see Agent registry above). Each agent's `<operating_constraints>` lists only its agent-specific deltas — do not restate the rules below.
+
+- **Named teammate.** No `Agent` tool. All hand-offs through the team lead. Surface questions for other agents in the output; never message them directly.
+- **Bash is read-only by default**: `git log/blame/show/diff/status`, `rg`, `wc`, `npm view`, `pip show`. Any mutating command must be surfaced for routing. The developer's pre-existing-failure stash dance (`git stash --include-untracked && <test> && git stash pop`) is the only standing exception.
+- **Write paths are agent-scoped.** Each agent's `<operating_constraints>` names its allowed write roots; nothing else is writable.
+- **Skill bodies load lazily.** Auto-declared skills (`skills:` frontmatter) load their frontmatter only; templates and bodies load on demand at the step that needs them.
+
+## Security paths
+
+Paths whose changes always load `patterns.md` in full (Se1–Se3), bypass small-gate skipping in the reviewer's diff-size gate (Per-phase mode), and qualify as the surgical-context full-file exception in the architect's Amendment mode.
+
+- `src/auth/`
+- `src/crypto/`
+- `src/security/`
+- `Authentication/`
+- `Authorization/`
+
+Projects extend this list by appending paths below — the architect (Amendment mode), the reviewer (Per-phase mode), and `reviewing/SKILL.md` all read this block.
+
+## Compliance signal
+
+The architect (step A5, Design mode) and consultant (step A6, Artifact mode) score the `compliance` binding constraint as **Medium** when any of the following is present:
+
+- GDPR, HIPAA, SOC2, or PCI named in the request, CLAUDE.md, or a referenced artifact.
+- An environment variable matching `COMPLIANCE_*` set in the project's deployment manifests (`.env*`, `docker-compose*.yml`, helm/values, CI workflows).
+- A regulatory directive appended to this block by the project.
 
 ## Pre-flight protocol
 

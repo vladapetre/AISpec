@@ -1,0 +1,40 @@
+# Binding-constraint scoring rubric.
+# Loaded on demand by architect-design (step A5) and consultant-artifact (step A6).
+# Not auto-loaded — the agent reads this file only when scoring is contested or
+# the recommended design is challenged by the user.
+#
+# Algorithm (both agents):
+#   1. Walk the constraint list for the agent.
+#   2. Score each constraint High / Medium / Low against the signal table.
+#   3. Sort by score (High > Medium > Low), then by list position ascending.
+#   4. Take the first 2. Position-1 constraint wins ties — by design.
+#   5. No signal fits any rule → ask the user; do not infer.
+
+architect:
+  constraints: [maintainability, latency, consistency, scalability, operability, security, reversibility, cost, compliance, "team size"]
+  high_signals:
+    - "stated in the request, CLAUDE.md, a relevant existing ADR, a ratified SDR's consequences, or surfaced as [ARCHITECT REVIEW NEEDED] / [TACTICAL DESIGN NEEDED]"
+    - "maintainability auto-High if: refactor request, OR Core subdomain, OR readability/maintainability named as a project value (rg -i 'maintainab|readab' CLAUDE.md returns ≥1 hit)"
+  medium_signals:
+    latency: "public HTTP endpoint"
+    scalability: "multi-replica or load-balanced deploy manifest"
+    compliance: "any signal in CLAUDE.md ## Compliance signal"
+    consistency: "batch/ETL entry point (consistency wins over latency)"
+    operability: "<3 named owning engineers"
+    reversibility: "Core subdomain"
+    maintainability: "touched code imported by ≥3 modules, OR any function in touched files exceeds 60 LOC or 3 levels of nesting"
+  low: "general best practice not specific to this request"
+
+consultant:
+  constraints: [differentiation, compliance, "time-to-market", "team capacity", cost, "vendor lock-in", optionality, operability]
+  high_signals:
+    - "stated in request, CLAUDE.md, a ratified charter/SDR, or surfaced as [STRATEGIC REVIEW NEEDED]"
+  medium_signals:
+    differentiation: "Core subdomain"
+    compliance: "any signal in CLAUDE.md ## Compliance signal"
+    "time-to-market": "named launch date, quarter, or competitor in the request"
+    "team capacity": "<3 named engineers"
+    "vendor lock-in": "named vendor / SaaS in the request"
+    optionality: "explicit ask about reversibility or optionality"
+    operability: "Big Ball of Mud or Shared Kernel relationship in the context map"
+  low: "general best practice"

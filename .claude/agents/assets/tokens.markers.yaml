@@ -1,0 +1,33 @@
+# In-artifact markers and identifier prefixes. Index lives in tokens.yaml.
+#
+# Markers are status / quality annotations — not routing. Identifier prefixes are typed
+# cross-artifact ID vocabulary. Cross-artifact refs take the form `<short-title>#<ID>`
+# (short-title = host filename without `.md`, without numeric prefix for ADRs/SDRs).
+
+in_artifact_markers:
+  - "<!-- status:phase-N --> — architect writes the per-phase anchor in plan files."
+  - "**Status: Complete** — developer inserts after a phase anchor on user approval."
+  - "[IRREVERSIBLE] — architect / consultant mark hard-to-reverse decisions; triggers extra user confirm."
+  - "[PRE-EXISTING] — developer / reviewer mark failures/findings not introduced by the current phase; excluded from verdict."
+  - "[VERIFIED] / [INFERRED] / [ASSUMED] — analyst per-finding confidence markers (definitions in documenting SKILL.md)."
+  - "[ASSUMPTION] — analyst coverage/scoping caveat in Risks and Unknowns."
+  - "[UNKNOWN] — analyst: a required question left unanswered after full ingestion."
+  - "[withdrawn] — appended to an ID-led line whose entry no longer applies. ID stays in place — never re-number."
+
+identifier_prefixes:
+  - { prefix: "R-",    format: "R-###",          produced_by: analyst,             host: "reports/<title>.md",            in: "Each finding bullet in `### theme` subsection. Severity-tagged." }
+  - { prefix: "D-",    format: "D-###",          produced_by: "architect, consultant", host: "adr/, strategy/decisions/", in: "Sub-decision heading/bullet in `## Decision` (use only when artifact has multiple decisions)." }
+  - { prefix: "RISK-", format: "RISK-###",       produced_by: "architect, consultant", host: "adr/, strategy/decisions/", in: "`## Consequences > Risks` bullets. Severity-tagged." }
+  - { prefix: "T-",    format: "T-<phase>.<seq>", produced_by: architect,    host: "plans/<title>.md",              in: "Bullets under each phase's `**Done when:**`. Phase-namespaced so adding/removing phases does not renumber unrelated phases." }
+  - { prefix: "OQ-",   format: "OQ-###",         produced_by: "architect, consultant", host: "plans/, charters/", in: "`## Open Questions` / `## Open questions` bullets." }
+  - { prefix: "TF-",   format: "TF-###",         produced_by: consultant,  host: "strategy/decisions/",           in: "`## Tactical follow-up` bullets, each led by `**TF-###** [TACTICAL DESIGN NEEDED]`. architect cites these in tactical ADR `## Context`." }
+  - { prefix: "INV-",  format: "INV-###",        produced_by: consultant,  host: "strategy/charters/",            in: "`## Invariants` bullets. Cited by SDRs constraining the context and by reviewer checking design-intent alignment." }
+  - { prefix: "REL-",  format: "REL-###",        produced_by: consultant,  host: "strategy/context-maps/",        in: "First column of `## Relationships` rows. Cited by SDRs changing the relationship pattern." }
+  - { prefix: "X-",    format: "X-###",          produced_by: reviewer,  host: "(conversation channel only)",   in: "Cross-check output table. Resets per pass — IDs do not survive across passes. Severity-tagged." }
+
+identifier_rules:
+  - "Assign IDs in encounter order at first write; dense at first write, sparse after edits."
+  - "Never re-number a published ID. Withdraw by appending `[withdrawn]`."
+  - "Amending an artifact: next integer after the high-water mark — never reuse withdrawn numbers."
+  - "Cross-artifact refs: `<short-title>#<ID>` (short-title = host filename without `.md`, without numeric prefix for ADRs/SDRs)."
+  - "Severity-tagged prefixes carry `[critical | major | minor | pre-existing]` in brackets after the ID — values per the template's severity table, never paraphrased."

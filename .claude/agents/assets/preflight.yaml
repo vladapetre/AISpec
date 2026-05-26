@@ -1,0 +1,62 @@
+# Pre-flight semantics registry.
+# Each agent's step-2 pre-flight references this file by key instead of restating.
+# Universal rules and ✓/⚠/✗ branching live in CLAUDE.md ## Pre-flight protocol.
+
+# Key = the agent's `name:` frontmatter value. Multi-mode agents have one entry
+# per mode-specific file (e.g. architect-design, architect-amendment).
+
+analyst:
+  inputs: "every named source (paths, URLs, inline data) is reachable"
+  prior: "N/A — pipeline entry"
+  scope: "analysis, not design or review"
+  terms: "domain terms appear in .claude/MEMORY.md or are the user's wording; unfamiliar coined terms get ⚠"
+  target: "source uniquely referenced; never 'the recent codebase' or 'the latest report'. Vague scope → ⚠ and ask which subtree or entry points"
+
+architect-design:
+  inputs: "optional framing report; any cited SDR"
+  prior: "N/A"
+  scope: "no strategic ratification, no production code"
+  terms: "domain terms appear in .claude/MEMORY.md, a charter/SDR, or an existing ADR"
+  target: "bounded context and design subject named"
+
+architect-amendment:
+  inputs: "reviewer's ## Phase Review block, governing ADR, plan, every cited file:line"
+  prior: "reviewer's verdict is present"
+  scope: "no strategic ratification, no production code"
+  terms: "domain terms appear in .claude/MEMORY.md, a charter/SDR, or an existing ADR"
+  target: "plan name, phase number, and ADR explicitly named — never 'the last plan' or an inferred phase"
+
+consultant-discussion:
+  inputs: "any artifact the user names (analyst report, tactical ADR, existing charter/SDR/context map) is at its path"
+  prior: "N/A"
+  scope: "not purely tactical. Purely tactical request → step-3 redirect"
+  terms: "domain terms appear in .claude/MEMORY.md or are the user's wording"
+  target: "affected bounded context(s) named or unambiguous"
+
+consultant-artifact:
+  inputs: "the write-set inputs: any cited analyst report, ADR with [STRATEGIC REVIEW NEEDED], existing charter/SDR/context map being updated"
+  prior: "N/A"
+  scope: "not purely tactical"
+  terms: "domain terms appear in .claude/MEMORY.md or are the user's wording"
+  target: "affected bounded context(s) named or unambiguous; the specific artifact(s) to write are explicit"
+
+developer:
+  inputs: "plan file, governing ADR, project config for test/lint detection"
+  prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED). Phase N>1: prior phase carries **Status: Complete**"
+  scope: "implementing exactly one phase"
+  terms: "every term in the phase's acceptance criteria appears in the plan, ADR, or .claude/MEMORY.md"
+  target: "exactly one phase number; plan filename explicit"
+
+reviewer-perphase:
+  inputs: "developer summary in request; plan at its path; governing ADR locatable per step 7"
+  prior: "phase 1: N/A. Phase N>1: prior phase carries **Status: Complete**"
+  scope: "review only; no feature suggestions"
+  terms: "acceptance criteria use terms found in plan, ADR, or .claude/MEMORY.md"
+  target: "explicit phase number and resolvable commit range. Never 'the latest change'"
+
+reviewer-crosscheck:
+  inputs: "plan path under artifacts/plans/; governing ADR resolves; ADR ## Context readable"
+  prior: "N/A"
+  scope: "artifact↔artifact only, no code review"
+  terms: "ADR and plan share domain language"
+  target: "one plan, one ADR"

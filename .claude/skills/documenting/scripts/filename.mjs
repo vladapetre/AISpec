@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Deterministic filename-stem derivation for the documenting skill.
-// Usage: node filename.mjs <report|adr|plan> "<subject phrase>"
-// Prints the derived filename stem on stdout (ADRs include the NNNNN- prefix).
+// Usage: node filename.mjs <type> "<subject phrase>"
+// Types: report, adr, plan, sdr, charter, context-map, glossary, progress
+// Prints the derived filename stem on stdout (numbered types include the NNNNN- prefix).
 import { readdirSync, existsSync } from 'node:fs';
 
 function die(msg) {
@@ -9,13 +10,11 @@ function die(msg) {
   process.exit(1);
 }
 
+const TYPES = ['report', 'adr', 'plan', 'sdr', 'charter', 'context-map', 'glossary', 'progress'];
+
 const [type, subjectArg] = process.argv.slice(2);
-if (!type || !subjectArg) {
-  die('usage: filename.mjs <report|adr|plan> "<subject>"');
-}
-if (!['report', 'adr', 'plan'].includes(type)) {
-  die('type must be one of report, adr, plan');
-}
+if (!type || !subjectArg) die(`usage: filename.mjs <${TYPES.join('|')}> "<subject>"`);
+if (!TYPES.includes(type)) die(`type must be one of ${TYPES.join(', ')}`);
 
 let subject = subjectArg;
 
@@ -24,6 +23,8 @@ const meta = [
   'Specification of', 'Specification for', 'Documentation of',
   'Analysis of', 'Design of', 'Plan for', 'Review of', 'Audit of',
   'Migration to', 'Migration of', 'Refactor of',
+  'Charter for', 'Charter of', 'Glossary for', 'Map of', 'Context map of', 'Context map for',
+  'Progress for', 'Progress of', 'Progress on', 'SDR for', 'SDR on',
   'Spec of', 'Spec for', 'Scope of', 'Document',
 ];
 for (const m of meta) {
@@ -46,29 +47,43 @@ const stopwords = new Set(
 const tokens = subject.split(' ').filter((t) => t && !stopwords.has(t));
 
 // Step 5 — keep the first N tokens (uniform N=5 across types).
-const n = 5;
-const kept = tokens.slice(0, n);
+const kept = tokens.slice(0, 5);
 if (kept.length === 0) die('subject reduced to zero tokens after cleanup');
 let stem = kept.join('-');
 
-// Step 5 suffix — reports append -analysis.
-if (type === 'report') stem += '-analysis';
+// Per-type suffix — idempotent (don't double-append if already present in the stem).
+function appendOnce(s, suffix) {
+  const suffixToken = suffix.replace(/^-/, '');
+  return s.split('-').includes(suffixToken) ? s : `${s}${suffix}`;
+}
+if (type === 'report')      stem = appendOnce(stem, '-analysis');
+if (type === 'charter')     stem = appendOnce(stem, '-charter');
+if (type === 'glossary')    stem = appendOnce(stem, '-glossary');
+if (type === 'progress')    stem = appendOnce(stem, '-progress');
+if (type === 'context-map') stem = stem.includes('context-map') ? stem : `${stem}-context-map`;
 
-// Step 6 — ADRs prepend the next zero-padded 5-digit sequence number.
-// Plans inherit the paired ADR's prefix if one exists with a matching stem; otherwise unprefixed.
-if (type === 'adr') {
+// Numbered types prepend NNNNN-, scanning their host directory for the next free integer.
+function nextSequence(dir) {
   let next = 1;
-  if (existsSync('artifacts/adr')) {
-    for (const name of readdirSync('artifacts/adr')) {
-      const match = /^(\d{5})-/.exec(name);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num >= next) next = num + 1;
-      }
+  if (!existsSync(dir)) return next;
+  for (const name of readdirSync(dir)) {
+    const match = /^(\d{5})-/.exec(name);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= next) next = num + 1;
     }
   }
+  return next;
+}
+
+if (type === 'adr') {
+  const next = nextSequence('artifacts/adr');
+  process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
+} else if (type === 'sdr') {
+  const next = nextSequence('artifacts/strategy/decisions');
   process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
 } else if (type === 'plan') {
+  // Plans inherit the paired ADR's prefix if a matching stem exists; otherwise unprefixed.
   let prefix = '';
   if (existsSync('artifacts/adr')) {
     const pattern = new RegExp(`^(\\d{5})-${stem}\\.md$`);
@@ -78,6 +93,12 @@ if (type === 'adr') {
     }
   }
   process.stdout.write(prefix ? `${prefix}-${stem}\n` : `${stem}\n`);
+} else if (type === 'progress') {
+  // Progress files: `plan-<short-title>-progress.md` under .claude/agent-memory/developer/.
+  // The subject is expected to be the plan short-title; prepend `plan-` if not already there.
+  const out = stem.startsWith('plan-') ? stem : `plan-${stem}`;
+  process.stdout.write(`${out}\n`);
 } else {
+  // report, charter, context-map, glossary — no numeric prefix.
   process.stdout.write(`${stem}\n`);
 }

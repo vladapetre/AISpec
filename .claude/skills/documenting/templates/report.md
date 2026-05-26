@@ -6,26 +6,21 @@
 
 ## Caps and overflow
 
-| Field | Cap | Overflow path |
+| Field | Cap | Overflow |
 |---|---|---|
-| `## Findings` total entries | **≤50 findings** | At 50+, list the top 50 by severity / impact, then add a final bullet: `(N more omitted — see artifacts/reports/<short-title>-extras.md)` and write the overflow file. The 50 reported are the ones acted on. |
-| Per-finding length | **≤6 lines** (heading + ≤5 body lines, excluding fenced snippets) | Past 6 lines, split into two sibling findings under the same theme, or move the deep dive to a sibling note linked from the finding. |
-| `## Recommendations` | **Exactly 4** (already fixed by the template) | If more genuinely warranted, the top 4 are recommendations; the rest become Findings entries with their own action language. |
+| `## Findings` | **≤50** | Top 50 by severity; append `(N more omitted — see artifacts/reports/<short-title>-extras.md)` and write the overflow file. |
+| Per-finding | **≤6 lines** (heading + ≤5 body, fenced snippets excluded) | Split into siblings under the same theme, or link a sibling deep-dive note. |
+| `## Recommendations` | **Exactly 4** | Excess items demote to Findings with action language. |
 
-These caps coexist with the section-level constraints already stated in the file template (e.g. Executive Summary = 4 sentences).
+Section-level caps (e.g. Executive Summary = 4 sentences) are in the file template.
 
 ---
 
 ## Identifiers
 
-Findings carry stable IDs so the architect, consultant, reviewer, and downstream artifacts can cite them without paraphrasing.
-
-- Prefix: **R-###** (`R-001`, `R-002`, ...). Zero-padded to 3 digits.
-- Numbering: assigned in encounter order at first write — the first finding in the report is `R-001`. Dense at first write; sparse after edits.
-- **Stability:** never re-number an ID after the report is published. To remove a finding, append `[withdrawn]` to its line and leave the ID in place. Re-numbering a finding that another artifact references is a critical violation — write a new finding with the next ID instead.
-- Cross-artifact references use the form `<report-short-title>#R-###` (e.g. `auth-audit#R-007`). The short-title matches the report filename without `.md`.
-- The severity tag sits in square brackets after the ID, on the finding heading: `### R-007 [major] — token logged in plaintext [VERIFIED]`. Severity values come from the severity table below; never paraphrase.
-- Confidence markers (`[VERIFIED] | [INFERRED] | [ASSUMED]`) sit at the end of the finding heading, after severity. Confidence and severity are orthogonal — both are mandatory.
+- **Prefix `R-###`** (zero-padded). Assigned in encounter order at first write. Never re-number after publication; withdraw with `[withdrawn]` and keep the ID. Re-numbering a referenced finding is a critical violation.
+- **Cross-artifact reference:** `<report-short-title>#R-###` (e.g. `auth-audit#R-007`) — short-title is the filename without `.md`. **Intra-report:** bare `R-###` is fine.
+- **Heading format:** `### R-007 [<severity>] — <claim> [<confidence>]`. Severity and confidence are orthogonal; both mandatory.
 
 ## Severity
 

@@ -1,0 +1,31 @@
+# Test and linter detectors for the developer agent (step 7).
+# Loaded on demand. First match wins per category.
+# Replaces the inline cascade in developer.md — keeps the agent prompt lean.
+
+test_detectors:
+  - { signal: "package.json with a `test` script",                command_via: "npm test" }
+  - { signal: "Makefile with a `test` target",                    command_via: "make test" }
+  - { signal: "pytest.ini OR pyproject.toml [tool.pytest]",        command_via: "pytest" }
+  - { signal: "go.mod present AND any *_test.go file",            command_via: "go test ./..." }
+  - { signal: "Cargo.toml",                                       command_via: "cargo test" }
+  - { signal: "build.gradle OR build.gradle.kts",                 command_via: "./gradlew test" }
+  - { signal: "pom.xml",                                          command_via: "mvn test" }
+  - { signal: "CMakeLists.txt containing `enable_testing()`",     command_via: "ctest" }
+  - { signal: "deno.json with a `test` task",                     command_via: "deno test" }
+  - { signal: "any *.spec.ts or *.test.ts in changed paths",      command_via: "vitest run OR jest" }
+  - { signal: "no match",                                         command_via: "note 'no test suite detected'" }
+
+lint_detectors:
+  - { signal: "package.json with a `lint` script",                command_via: "npm run lint" }
+  - { signal: "biome.json OR biome.jsonc",                        command_via: "biome check" }
+  - { signal: ".eslintrc* OR eslint.config.*",                    command_via: "eslint" }
+  - { signal: "ruff.toml OR [tool.ruff] in pyproject.toml",        command_via: "ruff check" }
+  - { signal: ".flake8 OR setup.cfg [flake8]",                    command_via: "flake8" }
+  - { signal: ".golangci.yml OR .golangci.yaml",                  command_via: "golangci-lint run" }
+  - { signal: "Cargo.toml AND `clippy` enabled",                  command_via: "cargo clippy" }
+  - { signal: "Makefile with a `lint` target",                    command_via: "make lint" }
+  - { signal: "no match",                                         command_via: "note 'no linter detected'" }
+
+failure_handling:
+  test: "For each failing test, check against base via the stash dance: `git stash --include-untracked && <test> && git stash pop`. Also fails on base → tag [PRE-EXISTING], not blocking. Otherwise fix in this phase."
+  linter: "Linter failures introduced this phase must be fixed. Pre-existing may be tagged [PRE-EXISTING]."
