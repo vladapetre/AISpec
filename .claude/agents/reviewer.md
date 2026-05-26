@@ -64,8 +64,9 @@ Follow these steps in order on every invocation. **Parallelize independent reads
 2. **Mode dispatch.** Identify which mode the invocation is in. Both modes positive-match; the implicit fallback is STOP, not per-phase. Match against the **request's own lines** — ignore quoted/embedded occurrences inside code fences, error messages, or prior-turn quotations. Stop at first match:
 
 - IF the request contains a line starting with `CROSS_CHECK_REQUESTED:` or the request starts with `/cross-check` → **cross-check mode**. Jump to step CC-1. Skip per-phase steps 3–15.
-- ELSE IF the request contains a heading line matching `## Phase N Complete` (any integer `N`) → **per-phase review mode**. Continue at step 3.
-- ELSE → STOP. Emit `PAUSED — mode not identified: neither CROSS_CHECK_REQUESTED: nor a "## Phase N Complete" block found in the request.` and ask the user which mode applies. Do not guess.
+- ELSE IF the request contains a heading line matching `## All Phases Complete` → **cumulative review mode**. Continue at step 3 with the cumulative semantics noted at steps 6 and 8. This is the default end-of-plan trigger per CLAUDE.md `## Implementation Review`.
+- ELSE IF the request contains a heading line matching `## Phase N Complete` (any integer `N`) → **per-phase review mode** (ad-hoc; not the default flow). Continue at step 3.
+- ELSE → STOP. Emit `PAUSED — mode not identified: none of CROSS_CHECK_REQUESTED:, "## All Phases Complete", or "## Phase N Complete" found in the request.` and ask the user which mode applies. Do not guess.
 
 ---
 
@@ -117,13 +118,19 @@ CC-6. Write a cross-check entry to `.claude/agent-memory/reviewer/MEMORY.md`: AD
    - ELSE list `artifacts/plans/` lexicographically. Exactly one file → use it. Multiple → ask the user to choose.
    - IF no plan exists → stop: "No plan found — reviewer requires a plan."
 
-6. Identify the phase under review. Read the developer's `## Phase N Complete` summary in the request — extract the phase number and title. Read that phase's full section in the plan. The phase's commit range is `HEAD~1..HEAD` (one developer commit per phase). IF the request has no phase summary, or the repo's commit history does not match this: ask the user for the correct phase number and commit range — do not guess.
+6. Identify the phase(s) under review.
+   - **Per-phase mode:** read the developer's `## Phase N Complete` summary — extract the phase number and title. Read that phase's full section in the plan. The phase's commit range is `HEAD~1..HEAD` (one developer commit per phase).
+   - **Cumulative mode:** read the developer's `## All Phases Complete` summary — extract the full phase list (1..M). Read every phase section in the plan. The commit range is the full plan span — by default `<base-branch>..HEAD` (the developer's summary states the explicit range; if absent, ask the user). All M phases are reviewed in a single pass; the alignment check (step 10) and ADR-alignment check (step 11) cover every phase's criteria, not just one.
+   - IF the request has no phase summary, or the repo's commit history does not match: ask the user for the correct phase set and commit range — do not guess.
 
-7. Resolve the governing ADR. Plans pair with their ADR by matching `<short-title>` (per `templates/plan.md`): from the plan filename `artifacts/plans/<short-title>.md`, look for `artifacts/adr/NNNNN-<short-title>.md` — if exactly one matches, that is the governing ADR. IF zero matches or multiple matches: list `artifacts/adr/` lexicographically and ask the user to confirm. Read the full ADR. You will use it for the step-11 ADR-alignment check.
+7. Resolve the governing ADR.
+   - **Preferred:** read the plan's `**Governing ADR:**` pointer if present (set by the architect on initial publish and updated on supersession). Use that path verbatim.
+   - **Fallback (no pointer line):** glob `artifacts/adr/NNNNN-<short-title>*.md` from the plan filename. Filter out any file whose body contains a `**Superseded by:**` line directly beneath its title. Of the remaining (non-superseded) files, pick the one with the highest `-r<N>` revision suffix; the un-suffixed original wins only if no `-r*` siblings exist. IF zero non-superseded matches or multiple ambiguous matches: list `artifacts/adr/` lexicographically and ask the user to confirm.
+   Read the resolved ADR. IF the resolved ADR is a supersession (`-r<N>` suffix): also read the **`## Revised decision`** and **`## Delta consequences`** sections of every ancestor in the supersession chain (follow `**Supersedes:**` links upward) and read the `## Decision` + `## Consequences` of the original at the chain's root — these together form the effective ADR for the step-11 check. Do not re-walk frozen sections of intermediate revisions.
 
-8. Identify the changed file set for this phase. Resolution rules (stop at first match):
-   - (a) The "Changes made" file list from the developer's phase summary.
-   - (b) `git diff --name-only HEAD~1..HEAD`.
+8. Identify the changed file set. Resolution rules (stop at first match):
+   - (a) The "Changes made" file list from the developer's phase summary (per-phase mode) or the union "Changes made" list from the `## All Phases Complete` summary (cumulative mode).
+   - (b) `git diff --name-only <range>` where `<range>` is `HEAD~1..HEAD` in per-phase mode and the full plan span from step 6 in cumulative mode.
    - (c) Ask the user — do not proceed without a file list.
 
 9. Read every changed file in the step-8 set per these **read-scope rules** (conservative — never skip a security-sensitive path):
@@ -215,6 +222,7 @@ Produce this structure exactly. Empty severity lists use `(none)` as the body. T
 
 ```
 ## Phase Review — Phase N: <title exactly as written in the plan>
+<!-- Cumulative mode: replace the heading with `## Cumulative Review — <plan-short-title>` and list every phase number under review in a `**Phases:** 1..M` line directly beneath the heading. The alignment table (section 1) groups rows under a `**Phase N**` sub-header per phase. Everything else in this template applies unchanged. -->
 
 **Plan:** artifacts/plans/<short-title>.md
 **Governing ADR:** artifacts/adr/NNNNN-<short-title>.md

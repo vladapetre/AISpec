@@ -7,8 +7,6 @@ description: >
   is the per-phase quality gate; the architect re-engages only if the reviewer flags an
   amendment).
 tools: Read, Edit, Write, Bash, Glob, Grep, SendMessage
-skills:
-  - documenting
 model: sonnet
 effort: medium
 memory: project

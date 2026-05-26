@@ -24,7 +24,8 @@
       "Bash(git shortlog*)",
       "Bash(git stash list*)",
       "Bash(mkdir -p /home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing/templates)",
-      "Edit(/.claude/skills/documenting/**)"
+      "Edit(/.claude/skills/documenting/**)",
+      "Edit(.claude/agents/*.md)"
     ],
     "ask": [
       "Bash(rm *)",

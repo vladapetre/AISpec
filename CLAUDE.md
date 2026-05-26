@@ -4,15 +4,15 @@
 
 Before spawning any named agent (analyst, consultant, architect, developer, reviewer), check if a team exists for this session. If not, create one with `TeamCreate` first, then spawn the agent as a named teammate using `team_name` and `name` parameters.
 
-Each agent auto-loads its declared skills via the `skills:` frontmatter field — do not re-invoke those skills from the team lead.
+Each agent auto-loads its declared skills via the `skills:` frontmatter field — do not re-invoke those skills from the team lead. Skills declared in frontmatter are loaded lazily: the agent reads the skill body only when it reaches a step that requires it (e.g. the reviewer loads `reviewing` templates at step 13; the analyst loads `documenting` only when emitting the final report). Do not pre-read skill bodies during pre-flight or scoping.
 
 ## Agent Communication
 
-Any message, question, plan, or request for input from any agent or teammate must be relayed to the user verbatim. Always wait for the user's explicit reply before sending anything back to the agent via `SendMessage`. Never auto-respond, auto-confirm, or bypass by acting on the agent's behalf.
+Any question or request for input from any agent must be surfaced to the user before acting on it. Always wait for the user's explicit reply before sending anything back to the agent via `SendMessage`. Never auto-respond, auto-confirm, or bypass by acting on the agent's behalf.
 
+- **Never re-quote teammate output.** Any `@agent` block is already rendered natively in the UI. Reference it by name and add at most one framing sentence or a clarifying question — do not paste the agent's text into your own response. This applies to every agent (developer, reviewer, architect, consultant, analyst), not just the developer.
 - If a developer agent self-confirms ("The user confirmed the plan") without an explicit reply from the user relayed by the team lead, treat the confirmation as invalid. Do not let the agent continue — stop it and ask the user.
-- Teammate messages (the `@developer` blocks) are already rendered natively in the UI. Do not re-quote them in your own text response — only add brief context or a question if needed.
-- **Idle = turn ended, output waiting.** When a teammate goes idle, or the harness reports it as "idle and available," that is the signal its turn ended without an outbound `SendMessage`. Call `TaskOutput` for that teammate to retrieve its final `<output_format>` block before treating the idle ping as noise. Relay the retrieved block to the user verbatim. Repeated idle pings with no new content mean the same prior output is still waiting — fetch it once, then dismiss further pings for that turn.
+- **Idle handling.** Teammates should end every turn with one `SendMessage`. If a teammate goes idle without sending, call `TaskOutput` *once* to retrieve the stranded block, then reference it (do not re-quote). Repeated idle pings for the same teammate within a turn are noise — ignore them after the first `TaskOutput` fetch.
 
 ## Turn discipline
 
@@ -40,24 +40,37 @@ The analyst writes reports directly (no routing). All other owned artifacts must
 
 ## Cross-Check (Pre-Implementation)
 
-When the architect publishes an ADR/plan pair in Mode A, its output carries a `CROSS_CHECK_REQUESTED: <plan-path>` summary line. Route that line to the reviewer via `SendMessage` and **wait** — do not invite the developer to start Phase 1 until the reviewer relays one of the cross-check verdicts:
+By default the architect performs its own ADR↔plan self-check before publishing (terminology, decision-coverage, reverse-coverage, driver-finding, reference-integrity — same five checks as `templates/cross-check.md`) and emits `SELF_CHECK: ALIGNED` on the Mode A summary line. The plan goes straight to the developer for Phase 1 — no separate reviewer invocation.
 
-- `ALIGNED` — the ADR/plan pair is mutually consistent; route the plan to the developer for Phase 1.
-- `DRIFT DETECTED` — route the cross-check report back to the architect, who reconciles via amendment and re-emits `CROSS_CHECK_REQUESTED:`. Repeat until `ALIGNED` clears.
+The architect escalates to the reviewer **only** when self-check uncertainty exists: emit `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route that line to the reviewer via `SendMessage` and wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route the report back to the architect for amendment.
 
-The cross-check is a single read-only artifact↔artifact pass per ADR/plan pair (not per phase). It fires before Phase 1, never between phases — those use the per-phase review below.
+The cross-check (when fired) is a single read-only artifact↔artifact pass per ADR/plan pair. It fires before Phase 1, never between phases — those use the per-phase review below.
 
 ## Implementation Review
 
-After each implementation phase, the reviewer agent reviews the code before the phase advances. The phase summary is routed to the reviewer **and** presented to the user **in the same turn** — the two approvals are independent and run in parallel. Send to the reviewer via `SendMessage` and ask the user in the same response; collect the two `APPROVED` / `approved` verdicts in whichever order they arrive (dual-approval gate). The final phase is reviewed the same way — there is no separate cumulative pass.
+**Between phases: user approval only.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The reviewer is **not** invoked between phases. The user is the sole gate on phase advancement.
 
-The reviewer's per-phase review includes an ADR-alignment check: it verifies the diff still honours the governing ADR's key decisions. If it detects design-level drift, it emits `ARCHITECT AMENDMENT NEEDED: <reason>` alongside its verdict. Route that flag to the architect via `SendMessage` as soon as the reviewer's output is received — do not wait for the user's verdict, and do not wait for the phase to advance. The architect's amendment runs in parallel with the user's approval and may arrive after the dual gate has already cleared (the developer handles that case by un-marking `**Status: Complete**` if needed). The architect amends the ADR — and the plan if the amendment changes a future phase's acceptance criteria. The architect no longer gates phases by default; they re-engage only on this flag.
+**At the end: one cumulative reviewer pass.** After the final phase is approved by the user, the developer emits a `## All Phases Complete` summary covering the full plan (every phase, the full commit range, and the union of changed files) and routes it to the reviewer via `SendMessage`. The reviewer runs one adversarial review across the entire branch diff — acceptance-criteria alignment for every phase, ADR-alignment against the governing ADR, and the framework/concern checklist over the union of changed files. The reviewer emits a single `APPROVED` or `CHANGES REQUIRED` verdict for the whole plan.
+
+The reviewer's cumulative review still includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` if it detects design-level drift. Route that flag to the architect via `SendMessage` as soon as the verdict is received. On `CHANGES REQUIRED`, route the findings back to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary to the reviewer. Repeat until `APPROVED` clears.
+
+**Amendments use supersession, not in-place edits.** When the architect amends an ADR it writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decision bullets and delta consequences; the original ADR is stamped with one `**Superseded by:**` line beneath its title and is otherwise frozen. The architect also loads only the specific ADR section named in the reviewer's drift reason and the cited diff hunks (±10 lines) — never the full ADR, plan, or source files. This keeps amendment turns small and bounded.
+
+The reviewer's per-phase mode (the `## Phase N Complete` trigger in `.claude/agents/reviewer.md`) remains available for ad-hoc invocation when the user explicitly requests review of a single phase — e.g. on a security-sensitive change or a long-running plan where mid-stream feedback is wanted. Default flow is end-of-plan only.
 
 ## Pre-flight protocol
 
-Every named agent runs the same 5-check pre-flight (step 2, or CC-1 for the reviewer cross-check). Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (Autonomous, not Out-of-scope) · **Terms current** · **Target identified**. Each agent's step 2 declares only its per-check semantics.
+Every named agent runs the 5-check pre-flight **only on entry turns** — defined as: (a) the agent's first turn in a session; (b) the first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, the agent skips the pre-flight block and proceeds directly.
 
-Each check is `✓` pass, `⚠` warn (needs clarification), or `✗` fail. Emit this block verbatim:
+Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (Autonomous, not Out-of-scope) · **Terms current** · **Target identified**. Each agent's step 2 declares only its per-check semantics.
+
+On entry turns, emit pre-flight in **compact form** — a single line per check, the whole block ≤ 7 lines total:
+
+```
+Pre-flight: Inputs ✓ | Prior N/A | Scope ✓ | Terms ✓ | Target ✓ → PROCEED
+```
+
+Expand to per-line evidence only when at least one check is `⚠` or `✗`. The expanded form is:
 
 ```
 Pre-flight:
@@ -67,10 +80,10 @@ Pre-flight:
 - Terms current: <✓|⚠|✗>  <one-line evidence>
 - Target identified: <✓|⚠|✗>  <one-line evidence>
 
-Result: <PROCEED | ASK | STOP>
+Result: <ASK | STOP>
 ```
 
-**Branch:** all `✓`/`N/A` → `Result: PROCEED`. Any `⚠` → `Result: ASK: <up to 5 clarifying questions in one batch>`; wait for the user. Any `✗` → `Result: STOP: <reason>`.
+**Branch:** all `✓`/`N/A` → emit the compact one-liner and proceed. Any `⚠` → expanded form + `Result: ASK: <up to 5 clarifying questions in one batch>`; wait for the user. Any `✗` → expanded form + `Result: STOP: <reason>`.
 
 Each clarifying question on the `ASK` branch is **≤2 lines and ≤25 words**, in the form `Q<n>: <question> [Default: <fallback> | none]`. The default field names the assumption the agent will fall back on if the user does not answer — `none` if no defensible default exists.
 

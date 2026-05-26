@@ -38,6 +38,8 @@ Acceptance criteria carry stable IDs so the reviewer can cite them in alignment 
 ```
 # Plan: Title
 
+**Governing ADR:** artifacts/adr/NNNNN-<short-title>.md
+
 ## Problem
 One sentence: what are we solving and why now.
 
@@ -68,6 +70,7 @@ Each phase is independently shippable. List in execution order. Produce between 
 - Plans are always paired with an ADR. Write both in the same invocation.
 - Architect memory for plans is recorded in the ADR memory entry (see `adr.md` template). Developer plan-progress memory uses `progress.md` — separate concern.
 - Every phase must include the `<!-- status:phase-N -->` anchor on its own line immediately after the **last `**T-N.<seq>**` bullet** of that phase's `**Done when:**` block (see the File template above for placement). The developer agent inserts `**Status: Complete**` on the line immediately following this anchor when the phase is approved.
+- The `**Governing ADR:**` line is the canonical pointer the reviewer uses to locate the active ADR (step 7 of `.claude/agents/reviewer.md`). On amendment via supersession, the architect updates this line to the new `-r<N>` ADR path — the original ADR path is preserved in the supersession ADR's `**Supersedes:**` field, so history is never lost from this pointer.
 
 ---
 
