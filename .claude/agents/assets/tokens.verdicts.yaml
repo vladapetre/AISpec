@@ -2,8 +2,9 @@
 #
 # Phase-approval gate: every phase needs the user's `approved`. Reviewer's APPROVED is
 # cumulative at end-of-plan unless the user asks for ad-hoc per-phase review.
-# Cross-check gate fires once per ADR/plan pair before Phase 1 (only if architect
-# escalated via CROSS_CHECK_REQUESTED — default is SELF_CHECKED).
+# Cross-check gate fires once per ADR/plan pair before Phase 1. Default: architect
+# emits CROSS_CHECK_REQUESTED (never self-certifies — MAST R10); SELF_CHECKED waives
+# it only under the trivial/low-risk A13 carve-out.
 
 verdict_tokens:
   - token: "APPROVED"

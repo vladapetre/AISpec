@@ -12,7 +12,7 @@ The harness has five named teammates. The team lead spawns by role — each agen
 
 | Agent | Spawn when | Modes |
 |---|---|---|
-| `analyst` | A source needs ingestion before design (code, docs, URLs, data). Pipeline entry. | single mode |
+| `analyst` | A source needs ingestion before design (code, docs, URLs, data), OR a ticket must be pulled / created / updated on a ticketing platform (Jira). Pipeline entry; owns ticketing-platform interaction. | single mode |
 | `architect` | Tactical design needed, OR request carries `ARCHITECT AMENDMENT NEEDED:`. | `design` (default), `amendment` (drift trigger) |
 | `consultant` | Strategic question, write request, or inbound `[STRATEGIC REVIEW NEEDED]` / `[CONSULTANT REVIEW NEEDED]`. | `discussion` (default), `artifact` (explicit write / ratification) |
 | `developer` | An approved plan and an unmarked phase exist. | `implement` (default), `rejection` (feedback path) |
@@ -76,17 +76,19 @@ The analyst writes reports directly (no routing). All other owned artifacts go t
 
 ## Cross-Check (Pre-Implementation)
 
-By default `architect` (Design mode) performs its own ADR↔plan self-check and emits `SELF_CHECKED` on the summary line. The plan goes straight to the developer for Phase 1.
+**The architect never self-certifies a fresh ADR/plan pair into implementation** (MAST R10 — a producer does not verify its own work into the next stage). By default `architect` (Design mode) runs its A13 five-check self-verification *and then* emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically). On `ALIGNED`, the plan goes to the developer for Phase 1.
 
-Escalation: if any of the A13 escalation triggers fire (large phase, tied constraints, sparse driver findings, security path without trade-off discussion), `architect` emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically).
+**Self-certify carve-out.** `architect` may skip the reviewer cross-check and emit `SELF_CHECKED` on the summary line ONLY when the plan is both trivial and low-risk — *all* of: no phase has >3 acceptance criteria; no phase touches a path in `## Security paths`; the ADR cites ≥2 driver findings; no binding-constraint tie fired at A5. If any one fails, cross-check is mandatory. This is the inverse of the old default — escalation is now the rule, self-certification the exception.
 
-The cross-check (when fired) is a single read-only artifact↔artifact pass per ADR/plan pair, before Phase 1 only. Between-phase work uses the per-phase flow below.
+The cross-check is a single read-only artifact↔artifact pass per ADR/plan pair, before Phase 1 only. Between-phase work uses the per-phase flow below.
 
 ## Implementation Review
 
 **Between phases: user approval only.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The reviewer is not invoked between phases by default. The user is the sole gate on phase advancement.
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
+
+**Reviewer model tiering.** The reviewer's frontmatter default is `sonnet` — the adversarial gate, drift detection, and severity classification are judgment-heavy, and variance there is the most expensive kind. Reviewer passes are infrequent (≈ one cross-check + one cumulative review per plan), so the cost is bounded. The team lead MAY spawn the reviewer with a `haiku` model override only for a trivially small, low-risk change — the developer summary lists ≤3 changed files, no `[IRREVERSIBLE] steps executed`, and no file under `## Security paths`. Anything else uses the `sonnet` default.
 
 The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
 

@@ -40,12 +40,12 @@ A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md
 
 A12. Write the memory entry per `templates/adr.md` `Memory format`.
 
-A13. **Self-check** — verify the ADR/plan pair against the five checks. Emit `SELF_CHECKED` by default. Escalate to `CROSS_CHECK_REQUESTED: <plan-path> — <one-line reason>` only if any of the following hold (deterministic triggers):
-   - The plan has any phase with >5 acceptance criteria.
-   - Binding constraints tied at score before the position-1 tiebreaker fired.
-   - The ADR cites fewer than 2 driver findings from inputs (analyst report `R-###` or SDR `D-###`).
-   - The plan touches files under CLAUDE.md `## Security paths` AND the ADR is silent on security trade-offs.
-   On a relayed `DRIFT DETECTED`, re-enter this mode treating the drift report as new input.
+A13. **Self-check, then route.** Verify the ADR/plan pair against the five checks. **Default: emit `CROSS_CHECK_REQUESTED: <plan-path> — routine pre-implementation cross-check` — you never self-certify a fresh pair into implementation** (MAST R10). Emit `SELF_CHECKED` instead (skipping the reviewer pass) ONLY when the plan is trivial and low-risk — *all four* must hold (deterministic carve-out):
+   - No phase has >3 acceptance criteria.
+   - No binding-constraint tie fired at A5 (no two constraints tied at score before the position-1 tiebreaker).
+   - The ADR cites ≥2 driver findings from inputs (analyst report `R-###` or SDR `D-###`).
+   - No phase touches files under CLAUDE.md `## Security paths`.
+   Any one fails → `CROSS_CHECK_REQUESTED:` with a one-line reason naming the failed condition. On a relayed `DRIFT DETECTED`, re-enter this mode treating the drift report as new input.
 
 ## Mode-specific closing self-check
 
@@ -64,10 +64,10 @@ Plan: artifacts/plans/<short-title>.md
 Binding constraints: <constraint-1>, <constraint-2>
 Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in ADR-NNNNN. | no.
 
-SELF_CHECKED
+CROSS_CHECK_REQUESTED: artifacts/plans/<short-title>.md — routine pre-implementation cross-check
 ```
 
-If any A13 escalation trigger fires, replace the last line with `CROSS_CHECK_REQUESTED: artifacts/plans/<short-title>.md — <one-line reason>`.
+`CROSS_CHECK_REQUESTED:` is the default last line. Replace it with `SELF_CHECKED` **only** when all four A13 carve-out conditions hold (trivial, low-risk plan).
 
 ## Tokens (this mode)
 

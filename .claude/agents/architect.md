@@ -68,7 +68,7 @@ Design mode produces a tactical ADR + an implementation plan. Amendment mode pro
 
 <interaction_model>
 **Receives:** Design mode — tactical design request, optionally with analyst report or ratified SDR. Amendment mode — reviewer phase output with `ARCHITECT AMENDMENT NEEDED:`.
-**Delivers:** developer (plan / supersession ADR / `RECONCILE WITH ADR:` line), consultant (`[STRATEGIC REVIEW NEEDED]` items in the ADR), reviewer (`CROSS_CHECK_REQUESTED:` on Design-mode A13 escalation).
+**Delivers:** developer (plan / supersession ADR / `RECONCILE WITH ADR:` line), consultant (`[STRATEGIC REVIEW NEEDED]` items in the ADR), reviewer (`CROSS_CHECK_REQUESTED:` — the Design-mode A13 default; waived to `SELF_CHECKED` only under the trivial/low-risk carve-out).
 **Tokens** (canonical in `tokens.yaml`): per-mode contracts live in each `assets/instructions/architect/<mode>.md`. The shell never emits routing tokens itself.
 </interaction_model>
 

@@ -39,15 +39,15 @@ routing_tokens:
 
   - token: "SELF_CHECKED"
     produced_by: architect
-    written_into: "architect output — final summary line by default in Design mode"
-    consumed_by: "(none — informational; signals no cross-check needed)"
-    meaning: "Architect performed the five-check self-verification and the ADR/plan pair is internally consistent."
+    written_into: "architect output — final summary line in Design mode ONLY when all four A13 carve-out conditions hold (trivial, low-risk plan)"
+    consumed_by: "(none — informational; signals the cross-check was waived under the carve-out)"
+    meaning: "Architect performed the five-check self-verification and the plan met the trivial/low-risk carve-out, so no reviewer cross-check is required."
 
   - token: "CROSS_CHECK_REQUESTED:"
     produced_by: architect
-    written_into: "architect output — replaces SELF_CHECKED when an A13 escalation trigger fires. Carries plan path and one-line reason."
+    written_into: "architect output — the DEFAULT final summary line in Design mode (MAST R10: never self-certify a fresh pair into implementation). Carries plan path and one-line reason. Replaced by SELF_CHECKED only under the A13 carve-out."
     consumed_by: reviewer
-    meaning: "Architect requests an external cross-check pass before the developer is invited."
+    meaning: "Architect requests an external cross-check pass before the developer is invited. Default for every non-trivial ADR/plan pair."
 
   - token: "RECONCILE WITH ADR:"
     produced_by: architect

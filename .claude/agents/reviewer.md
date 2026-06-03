@@ -11,7 +11,7 @@ description: >
 tools: Read, Write, Bash, Glob, Grep, SendMessage
 skills:
   - reviewing
-model: haiku
+model: sonnet
 effort: medium
 memory: project
 color: red
