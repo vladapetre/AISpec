@@ -84,7 +84,14 @@ The cross-check is a single read-only artifact↔artifact pass per ADR/plan pair
 
 ## Implementation Review
 
-**Between phases: user approval only.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The reviewer is not invoked between phases by default. The user is the sole gate on phase advancement.
+**Between phases: user approval, plus checkpoints on long plans.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases — only at the checkpoints defined next.
+
+**Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, the developer routes an automatic per-phase reviewer pass (reviewer Per-phase mode — diff-size gated, so small phases stay cheap) *after* the user approves a phase and *before* advancing, whenever any of these hold:
+- (a) the plan has ≥5 phases AND this is every 3rd approved phase (phases 3, 6, 9, …);
+- (b) the phase summary lists `[IRREVERSIBLE] steps executed`;
+- (c) the phase touched a path under `## Security paths`.
+
+On `CHANGES REQUIRED`, route findings to the developer and clear them before the next phase; on `ARCHITECT AMENDMENT NEEDED:`, route to the architect first. Plans with <5 phases and no irreversible/security phase keep the user-approval-only flow and the single end-of-plan cumulative pass. The checkpoint never replaces the end-of-plan cumulative review.
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 

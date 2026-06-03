@@ -104,24 +104,12 @@ Critical blocks `APPROVED`. Major and Minor do not.
 
 ## Steps (standalone invocation)
 
-When invoked directly as `/reviewing`:
+The procedure is owned by the reviewer agent's mode files — the single source of truth, so the standalone and agent paths cannot drift apart. When invoked directly as `/reviewing`, identify the mode, then read the matching mode file and execute its numbered steps using the detection rules, template registry, diff-size gate, and severity definitions above:
 
-1. Identify mode: invocation contains `CROSS_CHECK_REQUESTED:` or `/cross-check` → cross-check; otherwise per-phase.
+- **Cross-check** — invocation contains `CROSS_CHECK_REQUESTED:` or starts with `/cross-check` → `.claude/agents/assets/instructions/reviewer/crosscheck.md`.
+- **Per-phase / cumulative** — otherwise → `.claude/agents/assets/instructions/reviewer/perphase.md`. No plan/phase reference and no changed-file set → ask "Which plan and phase, and which files, should I review?" and stop.
 
-2. **Cross-check mode:**
-   - Resolve ADR and plan paths (plan path explicit; ADR paired by short-title).
-   - Read both plus any reports/SDRs/charters the ADR `## Context` cites.
-   - Read `templates/cross-check.md`. Run the five checks in order.
-   - Output the fixed-column table per the template. Final line: exactly `ALIGNED` or `DRIFT DETECTED`. Stop.
-
-3. **Per-phase mode:**
-   - No plan/phase reference and no changed-file set → ask "Which plan and phase, and which files, should I review?" Stop.
-   - Apply framework and concern detection. Record matches.
-   - Load `templates/alignment.md` and `templates/patterns.md` plus every matched template.
-   - Run the alignment check against the phase's acceptance criteria (cited by `T-<phase>.<seq>` ID), then every checklist item against the changed files. Assign severity. Tag `[PRE-EXISTING]` for findings on lines this phase did not change; exclude from verdict.
-   - Output an alignment table then findings grouped by severity. Final line: exactly `APPROVED` or `CHANGES REQUIRED`. Never approve while an alignment criterion is FAIL or a Critical is open.
-
-The reviewer agent drives the same procedure through its own `<instructions>` and `<output_format>`, additionally fixing the commit range and adding `git blame` provenance for `[PRE-EXISTING]`.
+Standalone invocation differs from the agent only in provenance depth: the default commit range is `HEAD~1..HEAD`, and when no commit range is supplied the `git blame` step for `[PRE-EXISTING]` falls back to changed-file membership. The final line is exactly the mode's verdict token — `ALIGNED` / `DRIFT DETECTED` (cross-check) or `APPROVED` / `CHANGES REQUIRED` (per-phase); never approve while an alignment criterion is FAIL or a Critical is open.
 
 ---
 
