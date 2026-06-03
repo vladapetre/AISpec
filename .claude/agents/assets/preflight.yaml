@@ -6,11 +6,11 @@
 # per mode-specific file (e.g. architect-design, architect-amendment).
 
 analyst:
-  inputs: "every named source (paths, URLs, inline data) is reachable"
+  inputs: "every named source (paths, URLs, inline data, Jira keys/JQL) is reachable"
   prior: "N/A — pipeline entry"
-  scope: "analysis, not design or review"
+  scope: "analysis or ticketing-platform interaction (pull/create/update); not design or review"
   terms: "domain terms appear in .claude/MEMORY.md or are the user's wording; unfamiliar coined terms get ⚠"
-  target: "source uniquely referenced; never 'the recent codebase' or 'the latest report'. Vague scope → ⚠ and ask which subtree or entry points"
+  target: "source uniquely referenced; never 'the recent codebase' or 'the latest report'. Vague scope → ⚠ and ask which subtree or entry points. For ticket creation, the destination project + issue type is named or asked"
 
 architect-design:
   inputs: "optional framing report; any cited SDR"

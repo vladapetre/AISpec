@@ -14,6 +14,7 @@ _universal:
 
 analyst:
   - { fm: FM-1.2, check: "Described, did not design or prescribe solutions." }
+  - { fm: FM-1.2, check: "Any mutating ticket action (create/edit/transition/comment/link) was surfaced and user-confirmed before execution; read-only pulls need no confirmation." }
   - { fm: FM-1.3, check: "Every required model question is answered or surfaced as [UNKNOWN]." }
   - { fm: FM-3.3, check: "Every finding carries exactly one confidence marker; [VERIFIED] only for directly observed." }
   - { fm: FM-2.4, check: "Every finding meeting step-10 criteria carries the right flag and the matching summary line is emitted." }
