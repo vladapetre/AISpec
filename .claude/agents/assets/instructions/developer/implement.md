@@ -4,9 +4,20 @@ Loaded by `agents/developer.md` step 2 on a fresh phase or a clean continuation.
 
 Pre-flight semantics: `assets/preflight.yaml#developer`.
 
+## Worktree readiness (entry turn only)
+
+Runs **once per task entry** — the first phase of a plan, or the first turn resuming one — never on ordinary phase-to-phase continuation. Skip it entirely on continuation turns.
+
+**Gate.** Applies only when the project uses the worktree workflow: `.claude/branching/manifest.yaml` exists, OR `src/` holds ≥2 nested git repos. Neither → single-repo project; skip silently and work in the current checkout.
+
+When the gate holds, before step 5:
+1. Determine the **feature branch name** — from the plan (its short-title or an explicit branch reference) or from what the user/team lead supplied. Unknown → ask the user for it and stop; **never invent one** (the `branching` skill enforces the same rule).
+2. Load the `branching` skill and run its **create-or-resume** operation for that branch. It resumes the feature's existing worktree(s) if present, else creates one per repo the feature touches. Surface its mutating `git worktree` command(s) for confirmation as usual.
+3. Implement the phase **inside the resolved worktree path(s)**, not the umbrella's main checkout. Record the worktree path(s) in the per-plan progress file so later phases resume in place.
+
 ## Steps
 
-5. Read every file you will touch. Verify no conflict with completed phases (overwrites earlier work, depends on something removed, criteria require redoing completed work). Conflict → surface and stop.
+5. Read every file you will touch (in the worktree resolved above when the gate applied). Verify no conflict with completed phases (overwrites earlier work, depends on something removed, criteria require redoing completed work). Conflict → surface and stop.
 
 6. Implement the phase. Apply the craftsmanship charter — part of the job, not extra. Do not implement ahead. Plan prescribes a **craft** anti-pattern → silently apply your authority (rename, split, restructure). Plan prescribes a **structural** anti-pattern (contradicts a real constraint, or has been overtaken by a requirement) → stop and propose an alternative to the architect.
 
