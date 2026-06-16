@@ -205,6 +205,103 @@ function alignH6Right(styles) {
   return styles.slice(0, h6.index) + updated + styles.slice(h6.index + h6[0].length);
 }
 
+// ---------------------------------------------------------------------------
+// Flatten named-style formatting into DIRECT formatting. Word and LibreOffice
+// honour named paragraph/table styles, but Google Docs (and some converters)
+// discard the custom style *definitions* on import and render close to
+// unstyled. Baking the key properties directly onto runs and cells makes the
+// styling survive every viewer. Values are parsed from the embedded styles.xml
+// so this stays agnostic to whichever reference doc was used.
+// ---------------------------------------------------------------------------
+
+function styleBlock(styles, id) {
+  const m = new RegExp(`<w:style\\b[^>]*w:styleId="${id}"[\\s\\S]*?</w:style>`).exec(styles);
+  return m ? m[0] : '';
+}
+
+function innerRpr(block) {
+  const m = /<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(block);
+  return m ? m[1] : '';
+}
+
+function propElements(inner) {
+  return inner.match(/<w:[A-Za-z]+\b[^>]*\/>/g) || [];
+}
+
+// Return the property elements from `inner` whose tag is not already present in
+// `existing` — so merging never produces duplicate rPr children.
+function missingProps(existing, inner) {
+  return propElements(inner)
+    .filter((el) => {
+      const tag = /<(w:[A-Za-z]+)/.exec(el)[1];
+      return !new RegExp(`<${tag}[\\s/>]`).test(existing);
+    })
+    .join('');
+}
+
+function applyRunProps(run, inner) {
+  if (/<w:rPr>/.test(run)) {
+    return run.replace(/<w:rPr>([\s\S]*?)<\/w:rPr>/, (m, ex) => `<w:rPr>${ex}${missingProps(ex, inner)}</w:rPr>`);
+  }
+  const i = run.indexOf('>') + 1;
+  return run.slice(0, i) + `<w:rPr>${inner}</w:rPr>` + run.slice(i);
+}
+
+function ensureCellShd(rowXml, shd) {
+  if (!shd) return rowXml;
+  let x = rowXml.replaceAll('<w:tcPr />', `<w:tcPr>${shd}</w:tcPr>`);
+  x = x.replace(/<w:tcPr>(?!<w:shd)/g, `<w:tcPr>${shd}`);
+  return x;
+}
+
+function ensureRunColor(rowXml, colorEl) {
+  if (!colorEl) return rowXml;
+  return rowXml.replace(/<w:rPr>((?:(?!<\/w:rPr>)[\s\S])*?)<\/w:rPr>/g, (m, inr) =>
+    /<w:color\b/.test(inr) ? m : `<w:rPr>${inr}${colorEl}</w:rPr>`,
+  );
+}
+
+function inlineDirectFormatting(doc, styles) {
+  // Headings — bake the heading style's run properties onto each heading run.
+  const headingRpr = {};
+  for (const id of ['Heading1', 'Heading2', 'Heading3', 'Heading4', 'Heading5', 'Heading6']) {
+    const inner = innerRpr(styleBlock(styles, id));
+    if (inner) headingRpr[id] = inner;
+  }
+  doc = doc.replace(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g, (para) => {
+    const ps = /<w:pStyle w:val="(Heading[1-6])"\s*\/>/.exec(para);
+    if (!ps || !headingRpr[ps[1]]) return para;
+    return para.replace(/<w:r\b[^>]*>[\s\S]*?<\/w:r>/g, (run) => applyRunProps(run, headingRpr[ps[1]]));
+  });
+
+  // Tables — bake borders, header-row fill + text colour, and row banding from
+  // the default table style onto the table and its cells.
+  const tbl = styleBlock(styles, 'Table');
+  const borders = (/<w:tblBorders>[\s\S]*?<\/w:tblBorders>/.exec(tbl) || [''])[0];
+  const firstRow = (/<w:tblStylePr w:type="firstRow">[\s\S]*?<\/w:tblStylePr>/.exec(tbl) || [''])[0];
+  const headShd = (/<w:shd\b[^>]*\/>/.exec(firstRow) || [''])[0];
+  const headColor = (/<w:color\b[^>]*\/>/.exec(firstRow) || [''])[0];
+  const bandRow = (/<w:tblStylePr w:type="band1Row">[\s\S]*?<\/w:tblStylePr>/.exec(tbl) || [''])[0];
+  const bandShd = (/<w:shd\b[^>]*\/>/.exec(bandRow) || [''])[0];
+
+  doc = doc.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, (table) => {
+    if (borders && !table.includes('<w:tblBorders>')) {
+      table = table.replace('<w:tblLook', `${borders}<w:tblLook`);
+    }
+    let rowIndex = 0;
+    return table.replace(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g, (tr) => {
+      const isHeader = rowIndex === 0;
+      const bodyIndex = rowIndex - 1;
+      rowIndex++;
+      if (isHeader) return ensureRunColor(ensureCellShd(tr, headShd), headColor);
+      if (bandShd && bodyIndex % 2 === 0) return ensureCellShd(tr, bandShd);
+      return tr;
+    });
+  });
+
+  return doc;
+}
+
 export function fixPandocTables(docxPath) {
   const entries = readZip(readFileSync(docxPath));
   const docEntry = entries.find((e) => e.name === 'word/document.xml');
@@ -270,6 +367,10 @@ export function fixPandocTables(docxPath) {
     '<w:spacing w:after="200" w:before="200" w:line="320" w:lineRule="auto" />',
     `<w:spacing w:after="${SPACING_AFTER}" w:before="0" w:line="320" w:lineRule="auto" />`,
   );
+
+  // --- portability: flatten named-style formatting into direct formatting ---
+  // Runs last, reading the final styles, so inlined values match the styles.
+  doc = inlineDirectFormatting(doc, styles);
 
   docEntry.content = Buffer.from(doc, 'utf8');
   stylesEntry.content = Buffer.from(styles, 'utf8');

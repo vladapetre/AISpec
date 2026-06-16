@@ -109,6 +109,8 @@ A finding that mixes verifiable and inferred content takes the weakest marker th
 
 Any artifact type can be exported to a styled `.docx` after its Markdown is written. API documentation is the primary consumer; the mechanism is general and works for every template.
 
+> **The ONLY supported way to export is `scripts/export.mjs`.** Never call `pandoc` directly and never hand-roll the conversion. A bare `pandoc` call (or one missing `--reference-doc`) produces a document whose styling lives only in named-style *definitions* — which **Word and LibreOffice render but Google Docs and many converters discard, showing an unstyled document**. `export.mjs` applies the reference styling *and* flattens it into direct formatting (via `docx-postprocess.mjs`) so the result renders identically in every viewer. If the script errors, fix the cause and re-run it — do not fall back to plain pandoc.
+
 **Trigger.** The user passes `--export` (optionally `--export <path/file.docx>`) in the request. Parse it before writing:
 - Strip the flag (and its optional value) from the input before treating the remainder as the subject.
 - No value given → derive the output path from the artifact's own derived short-title in its artifact directory (e.g. `artifacts/api/<short-title>.docx`).
@@ -117,14 +119,14 @@ Any artifact type can be exported to a styled `.docx` after its Markdown is writ
 **Steps** (run only when `--export` was present, after the Markdown file is fully written):
 
 1. Ensure the Markdown is saved to disk at its artifact path.
-2. Run the cross-OS export script (Node + pandoc; no PowerShell or Python needed):
+2. Run the export script exactly as below (cross-OS — Node + pandoc only; no PowerShell or Python). Use the path verbatim; do not substitute a manual `pandoc` invocation:
 
    ```bash
    node .claude/skills/documenting/scripts/export.mjs --input "<artifact>.md" --output "<artifact>.docx"
    ```
 
-   The script invokes pandoc with the bundled `scripts/reference.docx` styling, then post-processes the result (`scripts/docx-postprocess.mjs`: rescales tables to the text area, bolds header rows, normalises heading sizes, strips anchor bookmarks). Pass `--reference <ref.docx>` to override the styling template.
-3. Report the `.md` path, the `.docx` path, and whether pandoc succeeded (include the exit code on failure). If pandoc is not installed, the script prints the install message from <https://pandoc.org/installing.html> and exits non-zero — relay that and stop.
+   The script: (a) invokes pandoc with the bundled `scripts/reference.docx` styling, then (b) post-processes the result with `scripts/docx-postprocess.mjs` — rescales tables to the text area, applies table borders, shades and bolds the header row, bands body rows, normalises heading sizes/colours/fonts, strips anchor bookmarks, and **flattens all of that into direct formatting** so styling survives Word, LibreOffice, and Google Docs alike. Pass `--reference <ref.docx>` only to override the styling template.
+3. Verify the script printed `Done: <path>` and exited 0. Report the `.md` path, the `.docx` path, and the outcome. If pandoc is not installed the script prints the install message from <https://pandoc.org/installing.html> and exits non-zero — relay that and stop. **Never report success on a non-zero exit, and never produce the `.docx` by any means other than this script.**
 
 ---
 
