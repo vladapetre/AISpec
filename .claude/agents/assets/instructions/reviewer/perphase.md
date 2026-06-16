@@ -14,7 +14,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 6. Identify the phase(s) under review.
    - **Per-phase:** read the `## Phase N Complete` summary. Commit range = `HEAD~1..HEAD`.
-   - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one.
+   - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one, and step 11a (cross-flow impact) runs.
 
 7. Resolve the governing ADR.
    - Prefer the plan's `**Governing ADR:**` pointer.
@@ -34,6 +34,12 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 11. **ADR-alignment** — read the effective ADR's `## Decision` and `## Consequences`. For each key decision (pattern, boundary, data shape, binding-constraint trade-off, every `[IRREVERSIBLE]` consequence): verify the diff honours it. Drift → record decision + `file:line` + one-line reason. Drift is **orthogonal to the verdict** — clean code can still drift. Emit `ARCHITECT AMENDMENT NEEDED: <reason>` whenever drift is recorded, regardless of verdict.
 
+11a. **Cross-flow impact analysis** — *cumulative branch only; skip entirely in per-phase.* The cumulative diff spans the whole branch, so a change to shared logic can silently alter flows the plan never named. A locally-correct edit is not enough — the question is what *else* moved. For each changed symbol, query, guard, or side-effecting call in the step-8 set:
+    - **Find consumers.** `git grep` / `grep` for callers of every changed exported symbol and references to every changed shared query, helper, or config value. Any consumer **outside** the plan's documented scope (not named in an acceptance criterion, the plan's scope, or the ADR consequences) is a *candidate impacted flow*.
+    - **Flag behaviour-shifting edits** even when the local diff reads correctly: removed or weakened de-duplication / filtering / ordering (`.Distinct()`, `.Where(...)`, SQL `DISTINCT` / `GROUP BY`), removed idempotency keys, guards, or `if`-early-returns, changed loop bounds or default values, signature / contract / return-shape changes, and any change to the **volume, frequency, recipients, or triggering condition** of a side-effecting operation (SMS / email / push notification / payment / queue publish / external write).
+    - For each candidate, classify the ripple **documented** (named in an acceptance criterion, plan scope, or ADR consequence) or **undocumented**. Undocumented behaviour-shifting ripples are findings — severity per `SKILL.md`: an undocumented change that fires duplicate side effects (e.g. a dropped `.Distinct()` that sends multiple SMS), corrupts a sibling flow, or changes who receives a side effect is **Critical**. Cite both the change `file:line` **and** the impacted consumer `file:line`.
+    - Cross-flow analysis is **not** diff-size gated — it always runs in the cumulative pass. Nothing found → record `cross-flow impact: none identified`.
+
 12. **Diff-size gate** — compute per `SKILL.md` `## Diff-size template gating` using the resolved commit range. Apply security/`[IRREVERSIBLE]` carve-outs. Record `gate: small | medium | large [+ carve-out]`.
 
 13. **Template load** — apply framework and concern detection rules from `SKILL.md`. Load every matching framework template (all gates). Load concern templates only on medium/large. `patterns.md`: full on large, skip SOLID/DRY on medium, skip entirely on small (security carve-out forces full).
@@ -43,7 +49,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 14. **Adversarial review** — for each loaded template, run every checklist item on the changed files (scoped per 13a if re-review). PASS → skip silently. FAIL → finding: severity + check name + `file:line` + ≤3-line snippet if Critical. Not applicable → skip silently.
    - **Pre-existing classification**: tag `[PRE-EXISTING]` if either holds — (a) file not in step-8 set; (b) `git blame -L <line>,<line>` shows the line's SHA is not in `git rev-list <range>`. Pre-existing findings are listed but excluded from the verdict.
 
-15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row or an open Critical.
+15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
 
 16. Write the memory entry: lookup key `<plan-short-title>#phase-<N>`, ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create file with `# Reviewer Memory` heading if missing.
 
@@ -79,6 +85,17 @@ Produce this exactly. Empty severity lists use `(none)`. Omit the `ARCHITECT AME
 | <decision> | YES / DRIFT | <file:line + one-line reason if DRIFT> |
 
 **ADR-alignment verdict:** HONOURED | DRIFT — see ARCHITECT AMENDMENT NEEDED below
+
+---
+
+### 2b. Cross-Flow Impact
+<!-- Cumulative reviews only. Omit this entire section in per-phase reviews. -->
+
+| Changed element (file:line) | Impacted flow / consumer (file:line) | Documented? | Behaviour shift | Severity |
+|-----------------------------|--------------------------------------|-------------|-----------------|----------|
+| <symbol/query + change> | <consumer> | YES / NO | <one-line shift> | Critical / Major / Minor |
+
+**Cross-flow impact verdict:** NONE IDENTIFIED | N undocumented ripples (N critical)
 
 ---
 

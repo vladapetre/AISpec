@@ -5,7 +5,9 @@ description: >
   the request's trigger tokens: **per-phase / cumulative** (`## Phase N Complete`
   or `## All Phases Complete` — verifies diffs against acceptance criteria, checks
   ADR alignment, runs adversarial framework/concern checklists; emits APPROVED or
-  CHANGES REQUIRED plus optional ARCHITECT AMENDMENT NEEDED on drift) and
+  CHANGES REQUIRED plus optional ARCHITECT AMENDMENT NEEDED on drift — the cumulative
+  pass additionally runs a cross-flow / blast-radius impact analysis for undocumented
+  ripples into other flows) and
   **cross-check** (`CROSS_CHECK_REQUESTED:` or `/cross-check` — artifact↔artifact
   ADR/plan alignment, emits ALIGNED or DRIFT DETECTED).
 tools: Read, Write, Bash, Glob, Grep, SendMessage
@@ -30,7 +32,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - Scope is the changed files only (per-phase/cumulative) or the two artifacts only (cross-check). No suggestions beyond the plan.
 - Do not penalise choices the plan explicitly mandated. If the plan drifts from the ADR, emit the amendment flag.
 - Cite acceptance criteria by their `T-<phase>.<seq>` ID — verbatim, never paraphrase.
-- Verdict gates: never `APPROVED` past a FAIL alignment row or an open Critical. Never `ALIGNED` past a critical/major cross-check row.
+- Verdict gates: never `APPROVED` past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple. Never `ALIGNED` past a critical/major cross-check row.
 - Output caps: ≤50 findings per review (top by severity; append `(N more omitted)`). Per-finding ≤8 lines. Alignment-table rows ≤15 per phase. Cross-check table ≤30 rows.
 </operating_constraints>
 

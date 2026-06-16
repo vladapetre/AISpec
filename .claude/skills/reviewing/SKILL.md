@@ -97,7 +97,7 @@ Critical blocks `APPROVED`. Major and Minor do not.
 
 ## Modes
 
-- **per-phase / cumulative** (default) — fires on a developer phase summary or `## All Phases Complete`. Runs alignment + framework + concern templates + `patterns.md` against the changed files. Emits `APPROVED` or `CHANGES REQUIRED` plus optional `ARCHITECT AMENDMENT NEEDED:`.
+- **per-phase / cumulative** (default) — fires on a developer phase summary or `## All Phases Complete`. Runs alignment + framework + concern templates + `patterns.md` against the changed files. The cumulative (full-scope) pass additionally runs a **cross-flow impact analysis** (step 11a): it traces consumers of changed shared logic and flags undocumented behaviour-shifting ripples into flows the plan never named — e.g. a dropped `.Distinct()` that fires duplicate SMS. Emits `APPROVED` or `CHANGES REQUIRED` plus optional `ARCHITECT AMENDMENT NEEDED:`.
 - **cross-check** — fires once per ADR/plan pair before Phase 1, on `CROSS_CHECK_REQUESTED:` (architect) or `/cross-check` (user). Runs `templates/cross-check.md` only. Emits `ALIGNED` or `DRIFT DETECTED`. Read-only.
 
 ---
