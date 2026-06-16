@@ -32,8 +32,9 @@ Central registry for output-format conventions and artifact templates. Agents lo
 | Context map               | `templates/context-map.md`           | consultant   |
 | Strategic decision (SDR)  | `templates/sdr.md`                   | consultant   |
 | Glossary entry            | `templates/glossary.md`              | consultant   |
+| REST API documentation    | `templates/api.md`                   | analyst (or user via `/documenting`) |
 
-Read the template for your artifact type before writing. Worked examples (`report`, `adr`, `plan`, `progress`) live in `examples/<type>.md` — read only if uncertain about tone or section shape after reading the template.
+Read the template for your artifact type before writing. Worked examples (`report`, `adr`, `plan`, `progress`, `api`) live in `examples/<type>.md` — read only if uncertain about tone or section shape after reading the template.
 
 **Tactical ADR vs SDR.** `adr.md` is for tactical decisions (architect — implementation patterns, component design, API shape within a context). `sdr.md` is for strategic decision records (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern). The file name is the disambiguator: never use `adr.md` for a strategic decision. Numbering is independent: tactical at `artifacts/adr/NNNNN-*`, strategic at `artifacts/strategy/decisions/NNNNN-*`.
 
@@ -63,6 +64,7 @@ Read the template for your artifact type before writing. Worked examples (`repor
 | SDR | Always strategic-stakeholder |
 | Glossary | Always mixed — business-language definition first, implementation pointer second |
 | Progress | Always developer |
+| API documentation | Always external integrator — no source access; no implementation leakage |
 
 Only analysis reports run detection. All other types use the fixed audience.
 
@@ -74,7 +76,7 @@ Derived deterministically by `scripts/filename.mjs`. Run it — do not derive by
 node .claude/skills/documenting/scripts/filename.mjs <type> "<subject>"
 ```
 
-Supported types: `report`, `adr`, `plan`, `sdr`, `charter`, `context-map`, `glossary`, `progress`.
+Supported types: `report`, `adr`, `plan`, `sdr`, `charter`, `context-map`, `glossary`, `progress`, `api`.
 
 `<subject>` is the subject noun phrase from the request. The script strips a leading meta verb, lowercases, drops stopwords, hyphenates, truncates to 5 tokens, then applies a per-type suffix and (where applicable) a zero-padded 5-digit sequence prefix scanned from the host directory.
 
@@ -89,6 +91,7 @@ Supported types: `report`, `adr`, `plan`, `sdr`, `charter`, `context-map`, `glos
 | "Context map for the platform" | context-map | `platform-context-map` |
 | "Glossary for the Order domain" | glossary | `order-domain-glossary` |
 | "auth rewrite" | progress | `plan-auth-rewrite-progress` |
+| "POST /v1/rental-orders/confirm" | api | `rental-orders-confirm` (HTTP method + version segment stripped) |
 
 For a paired ADR and plan, run with the **same** `<subject>` for each — write the ADR first so the plan inherits the prefix. SDR numbering is independent of ADR numbering; the script scans `artifacts/strategy/decisions/` for SDR sequence and `artifacts/adr/` for ADR sequence.
 
@@ -102,19 +105,41 @@ Marker strings (`[VERIFIED]`, `[INFERRED]`, `[ASSUMED]`) are defined in `tokens.
 
 A finding that mixes verifiable and inferred content takes the weakest marker that applies. Split into sub-points to keep verified parts `[VERIFIED]`. Confidence markers do not apply to ADRs or plans.
 
+### Export to Word (pandoc)
+
+Any artifact type can be exported to a styled `.docx` after its Markdown is written. API documentation is the primary consumer; the mechanism is general and works for every template.
+
+**Trigger.** The user passes `--export` (optionally `--export <path/file.docx>`) in the request. Parse it before writing:
+- Strip the flag (and its optional value) from the input before treating the remainder as the subject.
+- No value given → derive the output path from the artifact's own derived short-title in its artifact directory (e.g. `artifacts/api/<short-title>.docx`).
+- A value given → use exactly that path; create any missing parent directories.
+
+**Steps** (run only when `--export` was present, after the Markdown file is fully written):
+
+1. Ensure the Markdown is saved to disk at its artifact path.
+2. Run the cross-OS export script (Node + pandoc; no PowerShell or Python needed):
+
+   ```bash
+   node .claude/skills/documenting/scripts/export.mjs --input "<artifact>.md" --output "<artifact>.docx"
+   ```
+
+   The script invokes pandoc with the bundled `scripts/reference.docx` styling, then post-processes the result (`scripts/docx-postprocess.mjs`: rescales tables to the text area, bolds header rows, normalises heading sizes, strips anchor bookmarks). Pass `--reference <ref.docx>` to override the styling template.
+3. Report the `.md` path, the `.docx` path, and whether pandoc succeeded (include the exit code on failure). If pandoc is not installed, the script prints the install message from <https://pandoc.org/installing.html> and exits non-zero — relay that and stop.
+
 ---
 
 ## Steps (standalone invocation)
 
 When invoked directly as `/documenting`:
 
-1. No subject, notes, or sources → ask "What should I document? Provide a subject and any notes or sources." Stop.
-2. Identify artifact type. Analysis report → run **Audience detection**. ADR or plan → skip (always developer).
+1. No subject, notes, or sources → ask "What should I document? Provide a subject and any notes or sources." Stop. Parse any `--export` flag first (see **Export to Word (pandoc)**).
+2. Identify artifact type. Analysis report → run **Audience detection**. ADR or plan → skip (always developer). API documentation → skip (always external integrator).
 3. Derive filename via `scripts/filename.mjs`.
 4. Read the template for the artifact type.
 5. Write the artifact using that template.
 6. Write the memory entry defined in the template.
-7. Output a one-paragraph summary: what was produced, where, and whether architect review is flagged.
+7. If `--export` was present, run the export steps under **Export to Word (pandoc)**.
+8. Output a one-paragraph summary: what was produced, where, the `.docx` path if exported, and whether architect review is flagged.
 
 Agents that load this skill for format reference join at step 3 once input is validated and artifact type known.
 
@@ -124,7 +149,11 @@ Agents that load this skill for format reference join at step 3 once input is va
 
 ```
 .claude/skills/documenting/
-  SKILL.md              this file
-  scripts/filename.mjs  deterministic filename-stem derivation (Node)
-  templates/            one artifact skeleton per registered type (read on demand)
+  SKILL.md                      this file
+  scripts/filename.mjs          deterministic filename-stem derivation (Node)
+  scripts/export.mjs            Markdown → styled .docx via pandoc (cross-OS, Node)
+  scripts/docx-postprocess.mjs  in-place .docx table/heading/spacing fixes (pure Node)
+  scripts/reference.docx        pandoc reference doc (Word styling template)
+  templates/                    one artifact skeleton per registered type (read on demand)
+  examples/                     worked examples (report, adr, plan, progress, api)
 ```

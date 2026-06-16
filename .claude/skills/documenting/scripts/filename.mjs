@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Deterministic filename-stem derivation for the documenting skill.
 // Usage: node filename.mjs <type> "<subject phrase>"
-// Types: report, adr, plan, sdr, charter, context-map, glossary, progress
+// Types: report, adr, plan, sdr, charter, context-map, glossary, progress, api
 // Prints the derived filename stem on stdout (numbered types include the NNNNN- prefix).
 import { readdirSync, existsSync } from 'node:fs';
 
@@ -10,13 +10,19 @@ function die(msg) {
   process.exit(1);
 }
 
-const TYPES = ['report', 'adr', 'plan', 'sdr', 'charter', 'context-map', 'glossary', 'progress'];
+const TYPES = ['report', 'adr', 'plan', 'sdr', 'charter', 'context-map', 'glossary', 'progress', 'api'];
 
 const [type, subjectArg] = process.argv.slice(2);
 if (!type || !subjectArg) die(`usage: filename.mjs <${TYPES.join('|')}> "<subject>"`);
 if (!TYPES.includes(type)) die(`type must be one of ${TYPES.join(', ')}`);
 
 let subject = subjectArg;
+
+// API subjects are usually an endpoint path (e.g. "POST /v1/rental-orders/confirm").
+// Strip a leading HTTP method so it does not pollute the stem.
+if (type === 'api') {
+  subject = subject.replace(/^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/i, '').trim();
+}
 
 // Step 1 — strip a leading meta verb / prefix (case-insensitive, longest first).
 const meta = [
@@ -44,7 +50,12 @@ subject = subject.replace(/[^a-z0-9]+/g, ' ');
 const stopwords = new Set(
   'a an the of for to in on at with and or but by from as into our your my this that these those'.split(' '),
 );
-const tokens = subject.split(' ').filter((t) => t && !stopwords.has(t));
+let tokens = subject.split(' ').filter((t) => t && !stopwords.has(t));
+
+// API stems drop URL noise — a leading `api` segment and version markers (`v1`, `v2`).
+if (type === 'api') {
+  tokens = tokens.filter((t) => t !== 'api' && !/^v\d+$/.test(t));
+}
 
 // Step 5 — keep the first N tokens (uniform N=5 across types).
 const kept = tokens.slice(0, 5);

@@ -65,6 +65,7 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | Directory                | Owner               | Contents                                                       |
 | ------------------------ | ------------------- | -------------------------------------------------------------- |
 | `artifacts/reports/`     | analyst             | Analysis reports (written directly, not routed)                |
+| `artifacts/api/`         | analyst             | REST API documentation (written directly; `documenting` `templates/api.md`) |
 | `artifacts/strategy/`    | consultant (Artifact mode) | Bounded-context charters, context maps, SDRs, glossary entries |
 | `artifacts/adr/`         | architect            | Architectural decision records (supersession ADRs come from Amendment mode) |
 | `artifacts/plans/`       | architect            | Implementation plans (Amendment mode may edit a future phase + Governing ADR pointer) |
@@ -72,7 +73,7 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 
 Exception: the developer may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once the user has approved the phase.
 
-The analyst writes reports directly (no routing). All other owned artifacts go through their owning agent.
+The analyst writes reports and API documentation directly (no routing). All other owned artifacts go through their owning agent.
 
 ## Cross-Check (Pre-Implementation)
 
