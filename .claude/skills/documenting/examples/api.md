@@ -15,9 +15,9 @@ Creates a new to-do item owned by the authenticated user and returns the full it
 
 All requests must include a valid Bearer token issued by the authentication service. The token identifies the user who will own the created item; requests without a valid token are rejected with `401`.
 
-| Header          | Value                  |
-| --------------- | ---------------------- |
-| `Authorization` | `Bearer {accessToken}` |
+| Header        | Value                |
+| ------------- | -------------------- |
+| Authorization | Bearer {accessToken} |
 
 ### Request
 
@@ -38,12 +38,12 @@ The request body carries the item's initial data. No path or query parameters ar
 
 Defines every field accepted in the JSON request body. `title` is the only required field; all others are optional and fall back to documented defaults when omitted.
 
-| Field         | Type           | Required | Validation           | Description                         |
-| ------------- | -------------- | -------- | -------------------- | ----------------------------------- |
-| `title`       | string         | Yes      | 1–255 chars          | Short label for the to-do item      |
-| `description` | string         | No       | max 1 000 chars      | Optional longer description         |
-| `dueDate`     | string         | No       | ISO 8601 datetime    | When the item is due                |
-| `priority`    | integer (enum) | No       | Priority — see Enums | Defaults to `1` (Medium) if omitted |
+| Field       | Type           | Required | Validation           | Description                         |
+| ----------- | -------------- | -------- | -------------------- | ----------------------------------- |
+| title       | string         | Yes      | 1–255 chars          | Short label for the to-do item      |
+| description | string         | No       | max 1 000 chars      | Optional longer description         |
+| dueDate     | string         | No       | ISO 8601 datetime    | When the item is due                |
+| priority    | integer (enum) | No       | Priority — see Enums | Defaults to `1` (Medium) if omitted |
 
 ### Response
 
@@ -68,16 +68,16 @@ On success the API returns `201 Created` with the full item object in the body, 
 
 Documents every field present in the `201` response body. Enum fields (`priority`, `status`) are integers — consult the Enums & Mappings section for their named values.
 
-| Field         | Type           | Description                                     |
-| ------------- | -------------- | ----------------------------------------------- |
-| `todoId`      | string         | UUID assigned to the new item                   |
-| `title`       | string         | Title as submitted                              |
-| `description` | string         | Description as submitted, or `null`             |
-| `isCompleted` | boolean        | Always `false` on creation                      |
-| `dueDate`     | string         | ISO 8601 due date, or `null` if not provided    |
-| `priority`    | integer (enum) | Resolved priority — see `Priority` in Enums     |
-| `status`      | integer (enum) | Current item status — see `TodoStatus` in Enums |
-| `createdAt`   | ISO 8601       | Server-assigned creation timestamp              |
+| Field       | Type           | Description                                     |
+| ----------- | -------------- | ----------------------------------------------- |
+| todoId      | string         | UUID assigned to the new item                   |
+| title       | string         | Title as submitted                              |
+| description | string         | Description as submitted, or `null`             |
+| isCompleted | boolean        | Always `false` on creation                      |
+| dueDate     | string         | ISO 8601 due date, or `null` if not provided    |
+| priority    | integer (enum) | Resolved priority — see `Priority` in Enums     |
+| status      | integer (enum) | Current item status — see `TodoStatus` in Enums |
+| createdAt   | ISO 8601       | Server-assigned creation timestamp              |
 
 ### Error Responses
 
@@ -149,7 +149,7 @@ Identifies the specific to-do item to retrieve. The value must be a valid UUID p
 
 | Parameter | Type   | Required | Description                     |
 | --------- | ------ | -------- | ------------------------------- |
-| `todoId`  | string | Yes      | UUID of the to-do item to fetch |
+| todoId    | string | Yes      | UUID of the to-do item to fetch |
 
 ### Response
 
@@ -175,17 +175,17 @@ On success the API returns `200 OK` with the full current state of the item, inc
 
 Documents every field in the `200` response body. Compared to the create response, this adds `updatedAt` reflecting any changes since creation.
 
-| Field         | Type           | Description                                     |
-| ------------- | -------------- | ----------------------------------------------- |
-| `todoId`      | string         | UUID of the item                                |
-| `title`       | string         | Current title                                   |
-| `description` | string         | Current description, or `null`                  |
-| `isCompleted` | boolean        | Whether the item has been marked complete       |
-| `dueDate`     | string         | ISO 8601 due date, or `null`                    |
-| `priority`    | integer (enum) | Current priority — see `Priority` in Enums      |
-| `status`      | integer (enum) | Current item status — see `TodoStatus` in Enums |
-| `createdAt`   | ISO 8601       | Creation timestamp                              |
-| `updatedAt`   | ISO 8601       | Last modification timestamp                     |
+| Field       | Type           | Description                                     |
+| ----------- | -------------- | ----------------------------------------------- |
+| todoId      | string         | UUID of the item                                |
+| title       | string         | Current title                                   |
+| description | string         | Current description, or `null`                  |
+| isCompleted | boolean        | Whether the item has been marked complete       |
+| dueDate     | string         | ISO 8601 due date, or `null`                    |
+| priority    | integer (enum) | Current priority — see `Priority` in Enums      |
+| status      | integer (enum) | Current item status — see `TodoStatus` in Enums |
+| createdAt   | ISO 8601       | Creation timestamp                              |
+| updatedAt   | ISO 8601       | Last modification timestamp                     |
 
 ### Error Responses
 
@@ -217,20 +217,20 @@ Centralised reference for every integer enum used across all endpoints in this d
 
 Controls the urgency level of a to-do item. Accepted as input on `POST /v1/todos` and returned on both `POST /v1/todos` and `GET /v1/todos/{todoId}`.
 
-| Value | Name     | Description                               |
-| ----- | -------- | ----------------------------------------- |
-| `0`   | `None`   | No priority assigned                      |
-| `1`   | `Low`    | Low urgency; can be deferred              |
-| `2`   | `Medium` | Default priority when field is omitted    |
-| `3`   | `High`   | High urgency; should be resolved promptly |
+| Value | Name   | Description                               |
+| ----- | ------ | ----------------------------------------- |
+| 0     | None   | No priority assigned                      |
+| 1     | Low    | Low urgency; can be deferred              |
+| 2     | Medium | Default priority when field is omitted    |
+| 3     | High   | High urgency; should be resolved promptly |
 
 ### TodoStatus
 
 Represents the lifecycle state of a to-do item. Returned in all responses; cannot be set directly by the client — the server advances the status based on actions performed on the item.
 
-| Value | Name         | Description                                  |
-| ----- | ------------ | -------------------------------------------- |
-| `0`   | `Pending`    | Item created but not yet started             |
-| `1`   | `InProgress` | Item is actively being worked on             |
-| `2`   | `Completed`  | Item has been marked complete                |
-| `3`   | `Cancelled`  | Item was cancelled and will not be completed |
+| Value | Name       | Description                                  |
+| ----- | ---------- | -------------------------------------------- |
+| 0     | Pending    | Item created but not yet started             |
+| 1     | InProgress | Item is actively being worked on             |
+| 2     | Completed  | Item has been marked complete                |
+| 3     | Cancelled  | Item was cancelled and will not be completed |

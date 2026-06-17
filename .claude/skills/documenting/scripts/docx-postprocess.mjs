@@ -1,14 +1,22 @@
 // Post-processes a pandoc-generated .docx in place: rescales tables to the text
-// area, bolds header rows, fixes heading sizes, strips anchor bookmarks, and tunes
-// code-block spacing. Pure Node — no external zip dependency — so it runs on any OS.
+// area, bolds header rows, fixes heading sizes, strips anchor bookmarks, tunes
+// code-block spacing, flattens named styles into direct formatting, and embeds
+// the Cascadia Code font so code renders where the font is not installed. Pure
+// Node — no external zip dependency — so it runs on any OS.
 //
-// Ported from the original fix_tables.py. A .docx is a ZIP of XML parts; we read
-// every entry, rewrite word/document.xml and word/styles.xml, and repackage.
+// Ported from the original fix_tables.py + embed_fonts.py. A .docx is a ZIP of
+// XML parts; we read every entry, rewrite the parts we need, add the font
+// binaries, and repackage.
 //
 // Usage (standalone):  node docx-postprocess.mjs <path-to-docx>
 // Or import { fixPandocTables } and call it directly.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { inflateRawSync, deflateRawSync } from 'node:zlib';
+import { randomBytes } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 
 // Padding after tables and code blocks (twips). 280 ≈ 19.5pt.
 const SPACING_AFTER = 280;
@@ -274,15 +282,14 @@ function inlineDirectFormatting(doc, styles) {
     return para.replace(/<w:r\b[^>]*>[\s\S]*?<\/w:r>/g, (run) => applyRunProps(run, headingRpr[ps[1]]));
   });
 
-  // Tables — bake borders, header-row fill + text colour, and row banding from
-  // the default table style onto the table and its cells.
+  // Tables — bake borders and header-row fill + text colour from the default
+  // table style onto the table and its cells. Body rows are left plain (no row
+  // banding), and only the first (header) row is styled.
   const tbl = styleBlock(styles, 'Table');
   const borders = (/<w:tblBorders>[\s\S]*?<\/w:tblBorders>/.exec(tbl) || [''])[0];
   const firstRow = (/<w:tblStylePr w:type="firstRow">[\s\S]*?<\/w:tblStylePr>/.exec(tbl) || [''])[0];
   const headShd = (/<w:shd\b[^>]*\/>/.exec(firstRow) || [''])[0];
   const headColor = (/<w:color\b[^>]*\/>/.exec(firstRow) || [''])[0];
-  const bandRow = (/<w:tblStylePr w:type="band1Row">[\s\S]*?<\/w:tblStylePr>/.exec(tbl) || [''])[0];
-  const bandShd = (/<w:shd\b[^>]*\/>/.exec(bandRow) || [''])[0];
 
   doc = doc.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, (table) => {
     if (borders && !table.includes('<w:tblBorders>')) {
@@ -291,15 +298,128 @@ function inlineDirectFormatting(doc, styles) {
     let rowIndex = 0;
     return table.replace(/<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g, (tr) => {
       const isHeader = rowIndex === 0;
-      const bodyIndex = rowIndex - 1;
       rowIndex++;
-      if (isHeader) return ensureRunColor(ensureCellShd(tr, headShd), headColor);
-      if (bandShd && bodyIndex % 2 === 0) return ensureCellShd(tr, bandShd);
-      return tr;
+      return isHeader ? ensureRunColor(ensureCellShd(tr, headShd), headColor) : tr;
     });
   });
 
   return doc;
+}
+
+// ---------------------------------------------------------------------------
+// Embed the Cascadia Code font into the package so code blocks render correctly
+// on machines where the font is not installed. Pandoc rebuilds the output from
+// its own template and discards any font binaries baked into the reference doc,
+// so the font must be injected into the FINAL document here.
+//
+// Ported from embed_fonts.py. Cascadia Code is SIL OFL (embedding permitted);
+// the bundled .ttf files are a Latin subset (full ASCII coverage) — what code
+// styles need. Raw fonts live in scripts/fonts/ and are obfuscated per the
+// OOXML spec (XOR the first 32 bytes with the reversed 16-byte GUID) at runtime.
+// ---------------------------------------------------------------------------
+
+const FONT_FAMILY = 'Cascadia Code';
+const FONTS_DIR = join(SCRIPT_DIR, 'fonts');
+const FONT_REL_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/font';
+// slot (fontTable embed element) → base filename (no extension)
+const FONT_SLOTS = {
+  embedRegular: 'CascadiaCode-Regular',
+  embedBold: 'CascadiaCode-Bold',
+  embedItalic: 'CascadiaCode-Italic',
+  embedBoldItalic: 'CascadiaCode-BoldItalic',
+};
+
+function obfuscateFont(data, guidHex) {
+  const key = Buffer.from(guidHex, 'hex'); // 16 bytes
+  const d = Buffer.from(data); // copy — never mutate the cached read
+  for (let i = 0; i < 32; i++) d[i] ^= key[15 - (i % 16)];
+  return d;
+}
+
+function getEntry(entries, name) {
+  return entries.find((e) => e.name === name);
+}
+
+function embedFonts(entries) {
+  const fontTable = getEntry(entries, 'word/fontTable.xml');
+  if (!fontTable) return; // nothing to attach fonts to
+
+  // Only embed when the document actually references the family (the reference
+  // doc's code style names it), so non-code docs are not bloated by ~300KB.
+  const stylesXml = getEntry(entries, 'word/styles.xml')?.content.toString('utf8') ?? '';
+  let ftXml = fontTable.content.toString('utf8');
+  if (!stylesXml.includes(FONT_FAMILY) && !ftXml.includes(FONT_FAMILY)) return;
+
+  // 1. Obfuscate each weight with a fresh per-file GUID and add the binary part.
+  const embeds = [];
+  let i = 0;
+  for (const slot of Object.keys(FONT_SLOTS)) {
+    const base = FONT_SLOTS[slot];
+    const ttfPath = join(FONTS_DIR, `${base}.ttf`);
+    if (!existsSync(ttfPath)) return; // fonts missing → skip rather than corrupt
+    const g = randomBytes(16).toString('hex').toUpperCase();
+    entries.push({ name: `word/fonts/${base}.odttf`, content: obfuscateFont(readFileSync(ttfPath), g) });
+    const guid = `{${g.slice(0, 8)}-${g.slice(8, 12)}-${g.slice(12, 16)}-${g.slice(16, 20)}-${g.slice(20, 32)}}`;
+    embeds.push({ slot, file: `${base}.odttf`, guid, relId: `rId${9100 + i}` });
+    i++;
+  }
+
+  // 2. fontTable.xml — replace any existing Cascadia entry, add one with embeds.
+  ftXml = ftXml.replace(new RegExp(`<w:font w:name="${FONT_FAMILY}">[\\s\\S]*?</w:font>`), '');
+  const embedXml = embeds.map((e) => `<w:${e.slot} r:id="${e.relId}" w:fontKey="${e.guid}"/>`).join('');
+  const fontXml =
+    `<w:font w:name="${FONT_FAMILY}"><w:charset w:val="00"/><w:family w:val="modern"/>` +
+    `<w:pitch w:val="fixed"/><w:sig w:usb0="00000003" w:usb1="00000000" w:usb2="00000000" ` +
+    `w:usb3="00000000" w:csb0="00000001" w:csb1="00000000"/>${embedXml}</w:font>`;
+  if (!ftXml.includes('</w:fonts>')) return; // malformed fontTable
+  fontTable.content = Buffer.from(ftXml.replace('</w:fonts>', `${fontXml}</w:fonts>`), 'utf8');
+
+  // 3. word/_rels/fontTable.xml.rels — merge or create.
+  const relName = 'word/_rels/fontTable.xml.rels';
+  const relXml = embeds
+    .map((e) => `<Relationship Id="${e.relId}" Type="${FONT_REL_TYPE}" Target="fonts/${e.file}"/>`)
+    .join('');
+  const relEntry = getEntry(entries, relName);
+  if (relEntry) {
+    relEntry.content = Buffer.from(
+      relEntry.content.toString('utf8').replace('</Relationships>', `${relXml}</Relationships>`),
+      'utf8',
+    );
+  } else {
+    entries.push({
+      name: relName,
+      content: Buffer.from(
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+          `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relXml}</Relationships>`,
+        'utf8',
+      ),
+    });
+  }
+
+  // 4. [Content_Types].xml — register the .odttf extension.
+  const ct = getEntry(entries, '[Content_Types].xml');
+  if (ct) {
+    let ctx = ct.content.toString('utf8');
+    if (!ctx.includes('Extension="odttf"')) {
+      ctx = ctx.replace(
+        '</Types>',
+        '<Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/></Types>',
+      );
+      ct.content = Buffer.from(ctx, 'utf8');
+    }
+  }
+
+  // 5. settings.xml — flag embedded fonts (before embedSystemFonts in schema order).
+  const settings = getEntry(entries, 'word/settings.xml');
+  if (settings) {
+    let st = settings.content.toString('utf8');
+    if (!st.includes('embedTrueTypeFonts')) {
+      st = st.includes('<w:embedSystemFonts')
+        ? st.replace(/(<w:embedSystemFonts\s*\/>)/, '<w:embedTrueTypeFonts/>$1')
+        : st.replace(/(<w:settings\b[^>]*>)/, '$1<w:embedTrueTypeFonts/>');
+      settings.content = Buffer.from(st, 'utf8');
+    }
+  }
 }
 
 export function fixPandocTables(docxPath) {
@@ -330,10 +450,11 @@ export function fixPandocTables(docxPath) {
     `$1<w:jc w:val="left" /><w:tblInd w:type="dxa" w:w="${BORDER_HALF}" />`,
   );
 
-  // --- conditional banding: enable row banding and header/first-col flags ---
+  // --- table look: keep header (firstRow) styling, disable all row/col banding ---
+  // (firstRow 0x20 | noHBand 0x200 | noVBand 0x400 = 0x620). Body rows stay plain.
   doc = doc.replaceAll(
     'w:noHBand="0" w:noVBand="0" w:val="0020"',
-    'w:noHBand="0" w:noVBand="1" w:val="0460"',
+    'w:noHBand="1" w:noVBand="1" w:val="0620"',
   );
 
   // --- table header: force bold directly on first-row runs ---
@@ -374,6 +495,9 @@ export function fixPandocTables(docxPath) {
 
   docEntry.content = Buffer.from(doc, 'utf8');
   stylesEntry.content = Buffer.from(styles, 'utf8');
+
+  // --- fonts: embed Cascadia Code so code blocks render without it installed ---
+  embedFonts(entries);
 
   writeFileSync(docxPath, writeZip(entries));
 }

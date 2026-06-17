@@ -14,7 +14,7 @@ These rules are strictly enforced — they are the substance of this artifact ty
 
 - All field names use **camelCase** (`todoId`, `isCompleted`, `dueDate`).
 - Every code block carries a language tag: ` ```json `, ` ```bash `, ` ```js `, ` ```python `.
-- Inline identifiers use single backticks: `fieldName`, `GET /todos`.
+- **Backticks are for prose only.** Use single backticks when an identifier appears *inside a sentence* — descriptions, validation text, business rules (e.g. "required when `otherField` is set"). Do **not** backtick the bare identifier in the **Field** / **Parameter** column of a schema table — write it as plain text (e.g. the Field cell reads `nameOfField`, not a code span). The same applies to enum value/name cells.
 - Produce one self-contained section per endpoint; repeat the full endpoint block for each.
 - Omit sub-sections that genuinely do not apply (e.g. no path parameters → omit that table). Never leave a section blank or write "N/A".
 - HTTP status codes covered: 200/201, 400, 401, 403, 404, 500 (add others if relevant).
@@ -98,9 +98,9 @@ One or two sentences: (a) primary actor, (b) action performed, (c) immediate ret
 
 Explain why the token matters — what it identifies and what it scopes. State company/tenant scoping explicitly for multi-tenant APIs.
 
-| Header          | Value                  |
-| --------------- | ---------------------- |
-| `Authorization` | `Bearer {accessToken}` |
+| Header        | Value                |
+| ------------- | -------------------- |
+| Authorization | Bearer {accessToken} |
 
 ### Request
 
@@ -112,7 +112,7 @@ Scalar values embedded in the URL that identify the resource. Every path paramet
 
 | Parameter | Type   | Required | Description |
 | --------- | ------ | -------- | ----------- |
-| `param`   | string | Yes      | …           |
+| param     | string | Yes      | …           |
 
 #### Query Parameters
 
@@ -120,7 +120,7 @@ Optional key-value pairs that filter, paginate, or modify the response without c
 
 | Parameter | Type   | Required | Default | Description |
 | --------- | ------ | -------- | ------- | ----------- |
-| `param`   | string | No       | —       | …           |
+| param     | string | No       | —       | …           |
 
 ###### Request Body
 
@@ -134,10 +134,10 @@ Optional key-value pairs that filter, paginate, or modify the response without c
 
 Every field accepted in the JSON body: type, required, validation, plain-language purpose.
 
-| Field       | Type    | Required | Validation       | Description |
-| ----------- | ------- | -------- | ---------------- | ----------- |
-| `fieldName` | string  | Yes      | 1–255 chars      | …           |
-| `numField`  | integer | No       | min: 1, max: 100 | …           |
+| Field     | Type    | Required | Validation       | Description |
+| --------- | ------- | -------- | ---------------- | ----------- |
+| fieldName | string  | Yes      | 1–255 chars      | …           |
+| numField  | integer | No       | min: 1, max: 100 | …           |
 
 ### Response
 
@@ -153,10 +153,10 @@ Every field accepted in the JSON body: type, required, validation, plain-languag
 
 Every field in the success body. Enum fields reference the enum by name and point to Enums & Mappings.
 
-| Field       | Type     | Description               |
-| ----------- | -------- | ------------------------- |
-| `fieldName` | string   | …                         |
-| `createdAt` | ISO 8601 | Server-assigned timestamp |
+| Field     | Type     | Description               |
+| --------- | -------- | ------------------------- |
+| fieldName | string   | …                         |
+| createdAt | ISO 8601 | Server-assigned timestamp |
 
 ### Error Responses
 
@@ -212,10 +212,10 @@ Centralised reference for every integer enum used across all endpoints. Consumer
 
 Short description of what this enum controls and where it is used.
 
-| Value | Name         | Description                      |
-| ----- | ------------ | -------------------------------- |
-| `0`   | `Unknown`    | Unset / not specified            |
-| `1`   | `MemberName` | What this value means in context |
+| Value | Name       | Description                      |
+| ----- | ---------- | -------------------------------- |
+| 0     | Unknown    | Unset / not specified            |
+| 1     | MemberName | What this value means in context |
 
 > Repeat `### EnumName` for each distinct enum in the document.
 ```

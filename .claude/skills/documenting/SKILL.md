@@ -125,7 +125,7 @@ Any artifact type can be exported to a styled `.docx` after its Markdown is writ
    node .claude/skills/documenting/scripts/export.mjs --input "<artifact>.md" --output "<artifact>.docx"
    ```
 
-   The script: (a) invokes pandoc with the bundled `scripts/reference.docx` styling, then (b) post-processes the result with `scripts/docx-postprocess.mjs` — rescales tables to the text area, applies table borders, shades and bolds the header row, bands body rows, normalises heading sizes/colours/fonts, strips anchor bookmarks, and **flattens all of that into direct formatting** so styling survives Word, LibreOffice, and Google Docs alike. Pass `--reference <ref.docx>` only to override the styling template.
+   The script: (a) invokes pandoc with the bundled `scripts/reference.docx` styling, then (b) post-processes the result with `scripts/docx-postprocess.mjs` — rescales tables to the text area, applies table borders, shades and bolds the header row (body rows stay plain), normalises heading sizes/colours/fonts, strips anchor bookmarks, **flattens all of that into direct formatting** so styling survives Word, LibreOffice, and Google Docs alike, and **embeds the Cascadia Code font** (from `scripts/fonts/`) so code blocks render correctly even where the font is not installed. Pass `--reference <ref.docx>` only to override the styling template.
 3. Verify the script printed `Done: <path>` and exited 0. Report the `.md` path, the `.docx` path, and the outcome. If pandoc is not installed the script prints the install message from <https://pandoc.org/installing.html> and exits non-zero — relay that and stop. **Never report success on a non-zero exit, and never produce the `.docx` by any means other than this script.**
 
 ---
@@ -154,8 +154,9 @@ Agents that load this skill for format reference join at step 3 once input is va
   SKILL.md                      this file
   scripts/filename.mjs          deterministic filename-stem derivation (Node)
   scripts/export.mjs            Markdown → styled .docx via pandoc (cross-OS, Node)
-  scripts/docx-postprocess.mjs  in-place .docx table/heading/spacing fixes (pure Node)
+  scripts/docx-postprocess.mjs  in-place .docx fixes: tables/headings/spacing, direct-format flattening, font embedding (pure Node)
   scripts/reference.docx        pandoc reference doc (Word styling template)
+  scripts/fonts/                Cascadia Code .ttf weights (SIL OFL) embedded into exports
   templates/                    one artifact skeleton per registered type (read on demand)
   examples/                     worked examples (report, adr, plan, progress, api)
 ```
