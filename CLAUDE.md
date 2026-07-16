@@ -166,6 +166,19 @@ Operational facts about the host project that every agent needs and none should 
 
 (none recorded yet)
 
+## Hook enforcement layer
+
+The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically enforce contracts that used to be prompt-discipline. Naming: `guard.*` blocks, `lint.*` feeds violations back, `inject.*` adds context. A blocked call or a bounced stop is the harness working, not an error to route around — fix the violation, don't retry variants.
+
+| Hook | Event | Enforces |
+|---|---|---|
+| `guard.write.mjs` | PreToolUse (Write\|Edit) | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (`## Agent memory layout`) |
+| `guard.bash.mjs` | PreToolUse (Bash) | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (rm, sudo, git push/reset/…) denied; meta-commands (xargs, eval, sh -c), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal prompt. `npm run` scripts are resolved via package.json and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent) |
+| `lint.write.mjs` | PostToolUse (Write\|Edit) | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs`. Also runs standalone: `node .claude/hooks/lint.write.mjs --all` |
+| `guard.verdict.mjs` | Stop | Review/amendment/phase blocks must close with their exact contract lines (verdict tokens, Classification, routing/approval lines) before the turn may end |
+
+The matching `selfcheck.yaml` boxes remain — the hook is the backstop, the self-check is the habit.
+
 ## Pre-flight protocol
 
 Every named agent runs the 5-check pre-flight **only on entry turns**: (a) first turn in a session; (b) first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, skip the pre-flight block.

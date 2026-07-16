@@ -20,6 +20,7 @@
     "lint:agents": "node scripts/lint-agents.mjs"
   },
   "dependencies": {
-    "opensrc": "^0.7.2"
+    "opensrc": "^0.7.2",
+    "shell-quote": "^1.10.0"
   }
 }
