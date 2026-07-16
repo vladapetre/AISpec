@@ -16,7 +16,7 @@ A1. Confirm the write set. The user's request or the inbound flag determines wha
 
 A2. Read only the templates in the write set: `sdr.md`, `charter.md`, `context-map.md`, `glossary.md`. Plus any existing artifact you will update.
 
-A3. Resolve the framing analyst report deterministically: explicit reference → use it; else lex-sort `artifacts/reports/` — one file → use it; multiple → ask; none → continue. Once resolved, scan for `[CONSULTANT REVIEW NEEDED]`, `CONSULTANT REVIEW NEEDED:`, `STRATEGIC REVIEW NEEDED:`; treat each as a binding input. Conflict with the request → surface before proceeding.
+A3. Resolve the framing analyst report deterministically: explicit reference → use it; else lex-sort `artifacts/reports/` — one file → use it; multiple → ask; none → continue. Once resolved, scan for `[CONSULTANT REVIEW NEEDED]` (in-artifact) and `STRATEGIC REVIEW NEEDED:` (summary line) — the two registered forms (tokens.routing.yaml); treat each as a binding input. Conflict with the request → surface before proceeding.
 
 A4. Scan `artifacts/adr/` for `[STRATEGIC REVIEW NEEDED]`. Each is a binding input.
 
@@ -60,4 +60,4 @@ Tactical follow-up: yes — see [TACTICAL DESIGN NEEDED] items in SDR-NNNNN. | n
 ## Tokens (this mode)
 
 - **Emits:** `[TACTICAL DESIGN NEEDED]`.
-- **Consumes:** `[CONSULTANT REVIEW NEEDED]` / `CONSULTANT REVIEW NEEDED:` / `STRATEGIC REVIEW NEEDED:` (analyst); `[STRATEGIC REVIEW NEEDED]` (architect).
+- **Consumes:** `[CONSULTANT REVIEW NEEDED]` / `STRATEGIC REVIEW NEEDED:` (analyst); `[STRATEGIC REVIEW NEEDED]` (architect).

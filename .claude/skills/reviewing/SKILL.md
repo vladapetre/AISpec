@@ -89,11 +89,12 @@ First match wins:
 
 | Severity | Condition |
 |----------|-----------|
-| **Critical** | Incorrect behaviour, data loss, security vulnerability, or unhandled exception in the happy path — OR a direct FAIL in the alignment check |
+| **Critical** | Incorrect behaviour, data loss, security vulnerability, or unhandled exception in the happy path — OR a direct FAIL in the alignment check (the row blocks the verdict; any *companion code-review finding* about the same gap takes its severity from `templates/alignment.md`'s severity rules) |
 | **Major** | Violates a framework-specific best practice explicitly listed in the matching template — no Critical condition applies |
 | **Minor** | Advisory: style, naming, readability, or a best practice not in any template |
+| **Pre-existing** | Introduced before the range under review (`git blame` SHA outside the range, or file outside the changed set) — listed for visibility, excluded from the verdict |
 
-Critical blocks `APPROVED`. Major and Minor do not.
+**Verdict blocking — the single authority.** `APPROVED` is blocked by: any open Critical; any FAIL alignment row; any **UNCLEAR** alignment row; (cumulative) any undocumented Critical cross-flow ripple. UNCLEAR blocks *fail-closed* — an unjudgeable criterion is a **plan defect, not a developer defect**: its transport to the architect is `ARCHITECT AMENDMENT NEEDED: <T-ids> too ambiguous to verify` on its own line (a table row alone reaches nobody), and the verdict reason must name the ambiguity so the team lead routes to the architect, not back to the developer. Major, Minor, and Pre-existing never block.
 
 ---
 

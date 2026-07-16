@@ -40,12 +40,19 @@ consultant-artifact:
   terms: "domain terms appear in .claude/MEMORY.md or are the user's wording"
   target: "affected bounded context(s) named or unambiguous; the specific artifact(s) to write are explicit"
 
-developer:
+developer-implement:
   inputs: "plan file, governing ADR, project config for test/lint detection. Plan header carries **Spec: ON HOLD** → ⚠ and ask; never implement against a held plan"
   prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED; SELF_CHECKED (delta) satisfies this only in the pre-Phase-1 amendment case — e.g. a plan amended under a spec hold before implementation started). Phase N>1: prior phase carries **Status: Complete** (verify via plan-status.mjs check)"
   scope: "implementing exactly one phase"
   terms: "every term in the phase's acceptance criteria appears in the plan, ADR, or .claude/MEMORY.md"
   target: "exactly one phase number; plan filename explicit"
+
+developer-rejection:
+  inputs: "the feedback itself (reviewer verdict block, RECONCILE WITH ADR: list, or the user's rejection text), plan file, governing ADR"
+  prior: "the rejected phase's ## Phase N Complete summary exists in-conversation (feedback without a phase summary → ⚠ and ask what is being rejected)"
+  scope: "addressing feedback on the current phase only — no new-phase work, no future-phase work"
+  terms: "every term in the phase's acceptance criteria appears in the plan, ADR, or .claude/MEMORY.md"
+  target: "phase number and feedback source (user | reviewer | architect) both unambiguous"
 
 reviewer-perphase:
   inputs: "developer summary in request; plan at its path; governing ADR locatable per step 7"

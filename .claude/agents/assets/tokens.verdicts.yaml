@@ -10,13 +10,13 @@
 verdict_tokens:
   - token: "APPROVED"
     issued_by: reviewer
-    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
+    gate: "end-of-plan cumulative review; mandatory mid-plan checkpoints (CLAUDE.md ## Implementation Review); ad-hoc per-phase on user request"
     effect: "Phase / plan passes the reviewer gate."
 
   - token: "CHANGES REQUIRED"
     issued_by: reviewer
-    gate: "end-of-plan cumulative review (or ad-hoc per-phase if user requested)"
-    effect: "Phase / plan returns to the developer."
+    gate: "end-of-plan cumulative review; mandatory mid-plan checkpoints (CLAUDE.md ## Implementation Review); ad-hoc per-phase on user request"
+    effect: "Phase / plan returns to the developer — unless the verdict reason names plan ambiguity (UNCLEAR rows), which routes to the architect instead."
 
   - token: "approved"
     match: case-insensitive
@@ -26,10 +26,10 @@ verdict_tokens:
 
   - token: "ALIGNED"
     issued_by: reviewer
-    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
+    gate: "cross-check gate (architect CROSS_CHECK_REQUESTED, or user /cross-check)"
     effect: "ADR/plan pair is mutually consistent; developer may start Phase 1."
 
   - token: "DRIFT DETECTED"
     issued_by: reviewer
-    gate: "cross-check gate (only if architect escalated via CROSS_CHECK_REQUESTED)"
-    effect: "ADR/plan pair has critical/major cross-artifact drift; architect reconciles."
+    gate: "cross-check gate (architect CROSS_CHECK_REQUESTED, or user /cross-check)"
+    effect: "ADR/plan pair has critical/major cross-artifact drift; architect reconciles (Amendment mode via ARCHITECT AMENDMENT NEEDED:)."

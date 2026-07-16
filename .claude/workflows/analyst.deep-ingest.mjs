@@ -93,15 +93,21 @@ phase('Read')
 const firstRound = scout.clusters.slice(0, MAX_CLUSTERS_PER_ROUND)
 if (scout.clusters.length > MAX_CLUSTERS_PER_ROUND)
   log(`capping round to ${MAX_CLUSTERS_PER_ROUND} clusters; ${scout.clusters.length - MAX_CLUSTERS_PER_ROUND} deferred to gap rounds`)
-let readings = (
-  await parallel(firstRound.map((c) => () => agent(readerPrompt(c), { label: `read:${c.name}`, phase: 'Read', schema: READER_SCHEMA })))
-).filter(Boolean)
-let pendingClusters = scout.clusters.slice(MAX_CLUSTERS_PER_ROUND)
+// Failed readers are RE-QUEUED, never silently dropped — a null result must
+// not become an invisible coverage hole (this workflow's own first production
+// run lost a cluster exactly this way).
+const firstResults = await parallel(firstRound.map((c) => () => agent(readerPrompt(c), { label: `read:${c.name}`, phase: 'Read', schema: READER_SCHEMA })))
+let readings = []
+const failedFirst = []
+firstResults.forEach((r, i) => (r ? readings.push(r) : failedFirst.push(firstRound[i])))
+if (failedFirst.length) log(`${failedFirst.length} reader(s) failed — re-queued: ${failedFirst.map((c) => c.name).join(', ')}`)
+let pendingClusters = [...failedFirst, ...scout.clusters.slice(MAX_CLUSTERS_PER_ROUND)]
 
 // ---------------------------------------------------------------- Synthesize (barrier — needs all readings)
 phase('Synthesize')
 const synthPrompt = (rounds) =>
   `You are the synthesis analyst. Subject: ${A.subject}. Audience: ${A.audience ?? 'run the documenting skill audience detection; default technical collaborator'}.
+Provenance (state this in the report's Sources line — a partial round must be visible, never implied complete): ${rounds.length} cluster reading(s) received of ${scout.clusters.length} scouted.
 Cluster readings (JSON):
 ${JSON.stringify(rounds)}
 
@@ -146,10 +152,13 @@ What is MISSING — a cluster nobody read, a required model question unanswered 
     break
   }
   log(`critic round ${round}: ${critic.gaps.length} gap(s), reading ${gapClusters.length} cluster(s)`)
-  const extra = (
-    await parallel(gapClusters.map((c) => () => agent(readerPrompt(c), { label: `read:${c.name}`, phase: 'Critic', schema: READER_SCHEMA })))
-  ).filter(Boolean)
+  const gapResults = await parallel(gapClusters.map((c) => () => agent(readerPrompt(c), { label: `read:${c.name}`, phase: 'Critic', schema: READER_SCHEMA })))
+  const extra = []
+  gapResults.forEach((r, i) => (r ? extra.push(r) : pendingClusters.push(gapClusters[i])))
+  if (extra.length < gapResults.length) log(`${gapResults.length - extra.length} gap reader(s) failed — re-queued for the next round`)
   readings = readings.concat(extra)
+  if (!extra.length) continue // nothing new to fold in — don't burn a revision pass on an empty set
+
   synth = await agent(
     `Revise the report at ${synth.reportPath} in place with these additional cluster readings (same rules as before: R-### ids continue in encounter order, never renumber; confidence markers; cites; update the analyst MEMORY.md index line if the hook changed):
 ${JSON.stringify(extra)}

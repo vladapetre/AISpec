@@ -32,15 +32,39 @@ routing_tokens:
     meaning: "A ratified strategic decision needs tactical design."
 
   - token: "ARCHITECT AMENDMENT NEEDED:"
-    produced_by: reviewer
-    written_into: "Per-phase review output — summary line above the verdict. Orthogonal to APPROVED/CHANGES REQUIRED."
+    produced_by: "reviewer; team lead (attached)"
+    written_into: "Per-phase review output — summary line above the verdict (orthogonal to APPROVED/CHANGES REQUIRED); or the head of a team-lead amendment request."
     consumed_by: architect
-    meaning: "Phase diff drifted from the governing ADR; architect must respond."
+    meaning: "The governing design artifacts (ADR/plan) need architect attention."
+    note: >-
+      One meaning, three legal emission conditions — the architect's M2a classifies which:
+      (1) reviewer-recorded ADR drift; (2) team-lead-attached user/PO ruling changing an
+      existing decision; (3) reviewer-detected plan defect (criterion too ambiguous to
+      verify, or phase over the alignment-table cap). All three mean "revise the governing
+      artifacts" — never "fix the code" (that is CHANGES REQUIRED's job).
+
+  - token: "## Phase N Complete"
+    produced_by: developer
+    written_into: "Phase summary heading (implement.md Output format)"
+    consumed_by: "team lead (routes to user for approval; to reviewer at checkpoints); reviewer mode dispatch"
+    meaning: "A phase is implemented, verified, and awaiting the user's `approved`."
+
+  - token: "## All Phases Complete"
+    produced_by: developer
+    written_into: "End-of-plan summary heading (implement.md Output format)"
+    consumed_by: "team lead (routes to reviewer); reviewer mode dispatch (cumulative branch)"
+    meaning: "Every phase is approved; the plan awaits its one cumulative review."
+
+  - token: "## Phase N Stalled"
+    produced_by: developer
+    written_into: "Stall block heading at the 3-rejection bound (rejection.md Output format)"
+    consumed_by: "team lead (surfaces the user decision; SHOULD offer a fresh-eyes developer respawn per CLAUDE.md ## Agent lifecycle)"
+    meaning: "Three rejections of the same phase; a user decision is required to proceed."
 
   - token: "SELF_CHECKED"
     produced_by: architect
     written_into: "architect output — final summary line in Design mode ONLY when all four A13 carve-out conditions hold (trivial, low-risk plan)"
-    consumed_by: "(none — informational; signals the cross-check was waived under the carve-out)"
+    consumed_by: "developer pre-flight (satisfies the phase-1 'prior' check when no ALIGNED exists — preflight.yaml#developer-implement)"
     meaning: "Architect performed the five-check self-verification and the plan met the trivial/low-risk carve-out, so no reviewer cross-check is required."
 
   - token: "SELF_CHECKED (delta)"

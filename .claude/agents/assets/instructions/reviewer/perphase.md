@@ -13,7 +13,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 5. Locate the plan: explicit reference → use it. Else lex-sort `artifacts/plans/` — one file → use it; multiple → ask. None → stop. Then run `node .claude/skills/documenting/scripts/plan-status.mjs check <plan-path>` — its output is the authoritative phase-completion state (never eyeball stamps by hand); any `problem:` line (missing/duplicate anchor, orphan stamp) is itself a Major finding.
 
 6. Identify the phase(s) under review.
-   - **Per-phase:** read the `## Phase N Complete` summary. Commit range = `HEAD~1..HEAD`.
+   - **Per-phase:** read the `## Phase N Complete` summary. Commit range = the summary's `**Commit range:**` field; field absent (older summary) → fall back to `HEAD~1..HEAD` and record the assumption under Read scope — a multi-commit phase under the fallback under-counts the diff-size gate.
    - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one, and steps 11a (cross-flow impact) runs.
    - **Nested-repo rule:** resolve the range in the repository that actually contains the changed files — a worktree or nested sub-repo has its own history and branch, so running `git` from the umbrella root produces false "branch mismatch" flags and empty diffs. When the developer summary names a worktree path, run all git commands `-C` that path.
 
@@ -31,7 +31,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
    - **Full file** if any holds: ≤500 LOC; diff covers ≥15% of file; path matches CLAUDE.md `## Security paths`; file is in the developer's `[IRREVERSIBLE] steps executed`.
    - **Hunks + context** otherwise: diff hunks + exported symbols + 20 lines context above/below each hunk. Record `<file>: hunks-only (NNN LOC, X% covered)` under Read scope.
 
-10. **Acceptance-criteria alignment** — load `templates/alignment.md`. For every criterion of the phase(s) under review: map to evidence (file/symbol/test); mark PASS (cite evidence), FAIL (absent/partial/contradicts), or UNCLEAR (ambiguous — surface to architect). Table format per `templates/alignment.md` (4 columns: Criterion | Result | Evidence | Note).
+10. **Acceptance-criteria alignment** — load `templates/alignment.md`. For every criterion of the phase(s) under review: map to evidence (file/symbol/test); mark PASS (cite evidence), FAIL (absent/partial/contradicts), or UNCLEAR (ambiguous). Table format per `templates/alignment.md` (4 columns: Criterion | Result | Evidence | Note). Any UNCLEAR row emits `ARCHITECT AMENDMENT NEEDED: <T-ids> too ambiguous to verify` on its own line — that flag is the transport to the architect; the table row alone reaches nobody (SKILL.md verdict-blocking rule).
 
 11. **ADR-alignment** — read the effective ADR's `## Decision` and `## Consequences`. For each key decision (pattern, boundary, data shape, binding-constraint trade-off, every `[IRREVERSIBLE]` consequence): verify the diff honours it. Drift → record decision + `file:line` + one-line reason. Drift is **orthogonal to the verdict** — clean code can still drift. Emit `ARCHITECT AMENDMENT NEEDED: <reason>` whenever drift is recorded, regardless of verdict.
 
@@ -52,7 +52,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 14. **Adversarial review** — for each loaded template, run every checklist item on the changed files (scoped per 13a if re-review). PASS → skip silently. FAIL → finding: severity + check name + `file:line` + ≤3-line snippet if Critical. Not applicable → skip silently.
    - **Pre-existing classification**: tag `[PRE-EXISTING]` if either holds — (a) file not in step-8 set; (b) `git blame -L <line>,<line>` shows the line's SHA is not in `git rev-list <range>`. Pre-existing findings are listed but excluded from the verdict.
 
-15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
+15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an **UNCLEAR alignment row** (plan ambiguity — fail closed; the verdict reason names the ambiguity so the team lead routes to the architect, not the developer), an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
 
 16. Write memory. Lookup key `<plan-short-title>#phase-<N>`, ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create `MEMORY.md` with `# Reviewer Memory` heading if missing.
    - **Clean pass** (`APPROVED`, zero Critical/Major, no amendment flag) → one index line in `MEMORY.md` only; write NO per-review file.
@@ -79,7 +79,7 @@ Produce this exactly. Empty severity lists use `(none)`. Omit the `ARCHITECT AME
 |-----------|--------|-------------------------------|------|
 | <T-N.seq — verbatim text> | PASS / FAIL / UNCLEAR | <evidence> | <one short clause or empty> |
 
-**Alignment verdict:** PASS | FAIL — N criteria: [list] | UNCLEAR — N criteria: [surface to architect]
+**Alignment verdict:** PASS | FAIL — N criteria: [list] | UNCLEAR — N criteria: [list] | FAIL — N + UNCLEAR — M: [both lists]
 
 ---
 
@@ -146,4 +146,4 @@ The final line is exactly `APPROVED` or `CHANGES REQUIRED`, nothing else on that
 ## Tokens (this mode)
 
 - **Emits:** `APPROVED`, `CHANGES REQUIRED`, `ARCHITECT AMENDMENT NEEDED:`, `[PRE-EXISTING]`.
-- **Consumes:** developer summaries (not tokens).
+- **Consumes:** `## Phase N Complete`, `## All Phases Complete` (developer phase-summary headers — registered routing tokens in tokens.routing.yaml).

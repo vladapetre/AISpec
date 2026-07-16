@@ -67,12 +67,22 @@ if (op === 'check') {
 // stamp
 const n = parseInt(phaseArg, 10);
 if (!Number.isInteger(n) || n < 1) die('stamp needs a positive integer phase number');
+// Refuse to stamp a structurally broken plan — with duplicate anchors the last
+// occurrence would silently win, and an orphan stamp means state is already
+// corrupt. Fix the structure first (check reports it), then stamp.
+if (problems.length) {
+  for (const p of problems) process.stderr.write(`problem: ${p}\n`);
+  die(`plan structure is broken — refusing to stamp; run 'check', fix the problems above, then re-run`);
+}
 const entry = phases.get(n);
-if (!entry) die(`no <!-- status:phase-${n} --> anchor in ${planPath} — insert manually after **Done when:** and note the deviation`);
+if (!entry) die(`no <!-- status:phase-${n} --> anchor in ${planPath} — sanctioned fallback: insert **Status: Complete** manually after that phase's **Done when:** and record the deviation; flag the missing anchor for the architect to backfill`);
 if (entry.stamped) {
   process.stdout.write(`phase ${n}: already stamped — no change\n`);
   process.exit(0);
 }
 lines.splice(entry.line + 1, 0, '**Status: Complete**');
-writeFileSync(planPath, lines.join('\n'));
+// Preserve the file's own line endings — rewriting CRLF plans as LF churns
+// every line in git.
+const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+writeFileSync(planPath, lines.join(eol));
 process.stdout.write(`phase ${n}: stamped **Status: Complete** (${planPath})\n`);

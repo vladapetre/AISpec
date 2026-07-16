@@ -57,7 +57,7 @@ Discussion mode produces a conversation turn (recommendation + alternatives + tr
 1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/consultant/MEMORY.md` and `.claude/MEMORY.md`. Missing → continue.
 
 2. **Mode dispatch — deterministic, first match wins.** Match the request's own lines (ignore quoted or embedded text):
-   - Request carries `[STRATEGIC REVIEW NEEDED]` from a tactical ADR asking for ratification, OR `[CONSULTANT REVIEW NEEDED]` / `CONSULTANT REVIEW NEEDED:` from an analyst report blocking a downstream decision → **Artifact mode** → load `assets/instructions/consultant/artifact.md`.
+   - Request carries `[STRATEGIC REVIEW NEEDED]` from a tactical ADR asking for ratification, OR `[CONSULTANT REVIEW NEEDED]` (in-artifact) / `STRATEGIC REVIEW NEEDED:` (the analyst's summary-line form — tokens.routing.yaml) from an analyst report blocking a downstream decision → **Artifact mode** → load `assets/instructions/consultant/artifact.md`.
    - Request matches the explicit-write regex — **a write verb AND an artifact noun must both be present in the same request line**:
      - Verb (case-insensitive): `\b(write|draft|create|document|ratify|update|amend|map|add)\b`, OR a phrase from `\b(write this up|lock this in|make it official|get this on paper|needs? a)\b`.
      - Artifact noun (case-insensitive): `\b(sdr|strategic decision record|charter|context[- ]map|relationship map|glossary( entry)?|bounded[- ]context)\b`.

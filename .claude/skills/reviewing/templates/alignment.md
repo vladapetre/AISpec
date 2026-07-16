@@ -50,7 +50,7 @@ Partial satisfaction of an acceptance criterion is **FAIL** on the alignment row
 | Finding | Alignment row | Code-review severity |
 |---------|---------------|----------------------|
 | Criterion fully satisfied with cited evidence | **PASS** | (no finding) |
-| Criterion ambiguous (uses "should", "consider", "as needed") | **UNCLEAR** — blocks approval; surface to architect | (no finding) |
+| Criterion ambiguous (uses "should", "consider", "as needed") | **UNCLEAR** — blocks approval; transport = `ARCHITECT AMENDMENT NEEDED: <T-ids> too ambiguous to verify` (SKILL.md verdict-blocking rule) | (no finding) |
 | Criterion partially satisfied (core behaviour present, edge case missing) | **FAIL** — blocks approval | **Major** — note the diff-level gap; not the alignment finding |
 | Criterion absent or contradicted | **FAIL** — blocks approval | **Critical** if the missing behaviour is the criterion's core, **Major** otherwise |
 

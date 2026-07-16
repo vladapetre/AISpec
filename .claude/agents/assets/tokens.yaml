@@ -19,10 +19,15 @@ files:
 # Quick lookup — token → file. Agents resolve by token name, then load the matching file.
 quick_lookup:
   "[ARCHITECT REVIEW NEEDED]":   routing
+  "ARCHITECT REVIEW NEEDED:":    routing
   "[CONSULTANT REVIEW NEEDED]":  routing
+  "STRATEGIC REVIEW NEEDED:":    routing
   "[STRATEGIC REVIEW NEEDED]":   routing
   "[TACTICAL DESIGN NEEDED]":    routing
   "ARCHITECT AMENDMENT NEEDED:": routing
+  "## Phase N Complete":         routing
+  "## All Phases Complete":      routing
+  "## Phase N Stalled":          routing
   "SELF_CHECKED":                routing
   "SELF_CHECKED (delta)":        routing
   "CROSS_CHECK_REQUESTED:":      routing
@@ -42,3 +47,4 @@ quick_lookup:
   "[withdrawn]":                 markers
   "<!-- status:phase-N -->":     markers
   "**Status: Complete**":        markers
+  "**Spec: ON HOLD**":           markers

@@ -4,6 +4,14 @@
 // Types: report, adr, plan, sdr, charter, context-map, glossary, progress, api
 // Prints the derived filename stem on stdout (numbered types include the NNNNN- prefix).
 import { readdirSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+
+// Sequence scanning is anchored to the repo root derived from this script's own
+// location (.claude/skills/documenting/scripts → four levels up) — NOT the cwd.
+// A cwd-relative scan silently resets ADR/SDR sequences to 00001 and drops plan
+// prefixes when run from a subdirectory.
+const REPO_ROOT = fileURLToPath(new URL('../../../..', import.meta.url));
 
 function die(msg) {
   process.stderr.write(`error: ${msg}\n`);
@@ -88,17 +96,17 @@ function nextSequence(dir) {
 }
 
 if (type === 'adr') {
-  const next = nextSequence('artifacts/adr');
+  const next = nextSequence(join(REPO_ROOT, 'artifacts/adr'));
   process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
 } else if (type === 'sdr') {
-  const next = nextSequence('artifacts/strategy/decisions');
+  const next = nextSequence(join(REPO_ROOT, 'artifacts/strategy/decisions'));
   process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
 } else if (type === 'plan') {
   // Plans inherit the paired ADR's prefix if a matching stem exists; otherwise unprefixed.
   let prefix = '';
-  if (existsSync('artifacts/adr')) {
+  if (existsSync(join(REPO_ROOT, 'artifacts/adr'))) {
     const pattern = new RegExp(`^(\\d{5})-${stem}\\.md$`);
-    for (const name of readdirSync('artifacts/adr')) {
+    for (const name of readdirSync(join(REPO_ROOT, 'artifacts/adr'))) {
       const match = pattern.exec(name);
       if (match && match[1] > prefix) prefix = match[1];
     }

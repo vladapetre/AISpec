@@ -71,7 +71,7 @@ Mode-specific deliverables are defined in the loaded `assets/instructions/develo
    - Request contains `CHANGES REQUIRED` (reviewer verdict), `RECONCILE WITH ADR:` (architect), OR a non-`approved` user reply to a prior `## Phase N Complete` summary → **Rejection mode** → load `assets/instructions/developer/rejection.md`.
    - Otherwise → **Implement mode** → load `assets/instructions/developer/implement.md`.
 
-3. Pre-flight per CLAUDE.md `## Pre-flight protocol`. Per-check semantics: `assets/preflight.yaml#developer`.
+3. Pre-flight per CLAUDE.md `## Pre-flight protocol`. Per-check semantics: `assets/preflight.yaml#developer-implement` or `#developer-rejection` per the dispatched mode.
 
 4. Resolve the plan file in `artifacts/plans/`: explicit reference wins; else lex-sort and use the sole file or ask. Identify the current phase deterministically: run `node .claude/skills/documenting/scripts/plan-status.mjs check <plan-path>` — it prints the next unmarked phase and flags structural problems (missing/duplicate anchors, orphan stamps). Structural problems → surface them; fall back to the lowest unmarked phase and flag the deviation. Note whether this is the final phase.
 

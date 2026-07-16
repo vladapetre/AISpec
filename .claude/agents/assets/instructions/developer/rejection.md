@@ -2,7 +2,7 @@
 
 Loaded by `agents/developer.md` step 2 when the request carries a non-`approved` user reply, a reviewer `CHANGES REQUIRED`, or an architect `RECONCILE WITH ADR:`. Carries feedback classification and re-request.
 
-Pre-flight semantics: `assets/preflight.yaml#developer`.
+Pre-flight semantics: `assets/preflight.yaml#developer-rejection`.
 
 ## Steps
 

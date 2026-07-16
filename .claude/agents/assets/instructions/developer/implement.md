@@ -2,7 +2,7 @@
 
 Loaded by `agents/developer.md` step 2 on a fresh phase or a clean continuation. Carries the implement-and-request-approval path.
 
-Pre-flight semantics: `assets/preflight.yaml#developer`.
+Pre-flight semantics: `assets/preflight.yaml#developer-implement`.
 
 ## Worktree readiness (entry turn only)
 
@@ -49,6 +49,7 @@ Emit before requesting review. Always render every block; use `_None_` for empty
 ## Phase N Complete — <title from the plan>
 
 **Plan:** <plan filename> — <N> phases total, <M> complete after this phase
+**Commit range:** <first..last of this phase's commits> | uncommitted (working tree)
 
 **Changes made:**
 - files modified or created

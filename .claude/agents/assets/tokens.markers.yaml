@@ -11,8 +11,9 @@ in_artifact_markers:
   - "[PRE-EXISTING] — developer / reviewer mark failures/findings not introduced by the current phase; excluded from verdict."
   - "[VERIFIED] / [INFERRED] / [ASSUMED] — analyst per-finding confidence markers (definitions in documenting SKILL.md)."
   - "[ASSUMPTION] — analyst coverage/scoping caveat in Risks and Unknowns."
-  - "[UNKNOWN] — analyst: a required question left unanswered after full ingestion."
+  - "[UNKNOWN] — analyst: a required question left unanswered after full ingestion; architect (A9b): a load-bearing assumption downgraded into the plan with a named fallback."
   - "[withdrawn] — appended to an ID-led line whose entry no longer applies. ID stays in place — never re-number."
+  - "**Spec: ON HOLD — <reason>, <date>** — team lead inserts beneath a plan title while the governing spec is renegotiated (CLAUDE.md ## Spec volatility); developer pre-flight marks Inputs ⚠ while present; removed when the settled deltas are absorbed by ONE amendment."
 
 identifier_prefixes:
   - { prefix: "R-",    format: "R-###",          produced_by: analyst,             host: "reports/<title>.md",            in: "Each finding bullet in `### theme` subsection. Severity-tagged." }
