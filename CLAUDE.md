@@ -121,7 +121,7 @@ On `CHANGES REQUIRED`, route findings to the developer and clear them before the
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-**Accelerated cumulative review (opt-in workflow).** When the user explicitly opts into multi-agent orchestration for a cumulative pass ("use the review workflow", "fan out the review"), the team lead runs the saved workflow instead of the reviewer teammate: `Workflow {name: "cumulative-review", args: {plan, summary, range, date}}`. It fans the dimensions out in parallel (alignment, ADR drift, cross-flow, removed guards, code checklists), adversarially verifies every Critical/Major finding before it can block, assembles the same review-block format deterministically, and writes the reviewer memory line. Its `APPROVED` / `CHANGES REQUIRED` and `ARCHITECT AMENDMENT NEEDED:` feed the same gates as the teammate path. Default remains the reviewer teammate — the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
+**Accelerated cumulative review (opt-in workflow).** When the user explicitly opts in — `/review-fanout`, or "use the review workflow" / "fan out the review" in their own words — the team lead runs the saved workflow instead of the reviewer teammate: `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` (see `## Workflows`). It fans the dimensions out in parallel (alignment, ADR drift, cross-flow, removed guards, code checklists), adversarially verifies every Critical/Major finding before it can block, assembles the same review-block format deterministically, and writes the reviewer memory line. Its `APPROVED` / `CHANGES REQUIRED` and `ARCHITECT AMENDMENT NEEDED:` feed the same gates as the teammate path. Default remains the reviewer teammate — the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
 
 **Reviewer model tiering.** The reviewer's frontmatter default is `sonnet` — the adversarial gate, drift detection, and severity classification are judgment-heavy, and variance there is the most expensive kind. Reviewer passes are infrequent (≈ one cross-check + one cumulative review per plan), so the cost is bounded. The team lead MAY spawn the reviewer with a `haiku` model override only for a trivially small, low-risk change — the developer summary lists ≤3 changed files, no `[IRREVERSIBLE] steps executed`, and no file under `## Security paths`. Anything else uses the `sonnet` default.
 
@@ -195,6 +195,20 @@ The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically en
 | `emit.metrics.mjs` | Stop | Telemetry: appends per-turn session usage + emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored). Analyse with `node .claude/telemetry/report.mjs` — gate hit rates, amendment mix, token spend; tune carve-outs and cadences from its numbers, not from feel |
 
 The matching `selfcheck.yaml` boxes remain — the hook is the backstop, the self-check is the habit.
+
+## Workflows
+
+Saved multi-agent workflows live in `.claude/workflows/`, named **`<owner-role>.<action>.mjs`** — the owner is the pipeline role whose responsibility the workflow accelerates (the activity's owner, not its trigger: assumption verification serves the architect's A9b gate but is analyst work). Each script's `meta.name` matches its filename stem.
+
+| Workflow | Launcher | Replaces / accelerates |
+|---|---|---|
+| `analyst.deep-ingest` | `/ingest <sources…> [--subject "…"]` | Analyst ingestion of source sets beyond the single-context 60-file cap: scout → parallel cluster readers → synthesis → completeness-critic loop |
+| `analyst.verify-assumptions` | `/verify-assumptions <claims…>` | The A9b assumption round-trip: one verifier per claim in parallel, every CONFIRMED adversarially cross-examined |
+| `reviewer.cumulative-review` | `/review-fanout [plan]` | End-of-plan cumulative pass: five dimensions in parallel, Critical/Major findings refuted before they can block |
+
+**Opt-in.** Workflows spawn many agents, so each run needs the user's explicit opt-in. The launcher skills exist to make that a keystroke: **typing the slash command IS the opt-in.** Equivalent forms: asking in your own words ("use a workflow", "fan out the review"), or including the `ultracode` keyword (which makes workflow orchestration the standing default for that scope). The named teammates remain the default path for everything else — workflow verdicts and reports feed the same tokens, gates, and memory rules as teammate output, so downstream routing is identical.
+
+Named teammates never call Workflow themselves (no such tool); the team lead runs it — e.g. on an architect A9b pause, offer `/verify-assumptions` with the listed claims.
 
 ## Pre-flight protocol
 

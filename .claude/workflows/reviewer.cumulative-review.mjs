@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'cumulative-review',
+  name: 'reviewer.cumulative-review',
   description: 'Fan-out cumulative review: parallel dimensions, adversarial verification of findings, deterministic verdict',
   whenToUse: 'End-of-plan cumulative review when the user explicitly opts into the accelerated multi-agent path (default remains the reviewer teammate)',
   phases: [
