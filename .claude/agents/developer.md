@@ -72,7 +72,7 @@ Mode-specific deliverables are defined in the loaded `assets/instructions/develo
 
 3. Pre-flight per CLAUDE.md `## Pre-flight protocol`. Per-check semantics: `assets/preflight.yaml#developer`.
 
-4. Resolve the plan file in `artifacts/plans/`: explicit reference wins; else lex-sort and use the sole file or ask. Identify the current phase — lowest-numbered phase whose `<!-- status:phase-N -->` anchor is not followed by `**Status: Complete**`. Missing anchors → fall back to the lowest unmarked phase and flag the deviation. Note whether this is the final phase.
+4. Resolve the plan file in `artifacts/plans/`: explicit reference wins; else lex-sort and use the sole file or ask. Identify the current phase deterministically: run `node .claude/skills/documenting/scripts/plan-status.mjs check <plan-path>` — it prints the next unmarked phase and flags structural problems (missing/duplicate anchors, orphan stamps). Structural problems → surface them; fall back to the lowest unmarked phase and flag the deviation. Note whether this is the final phase.
 
 5+. Execute the loaded instructions file in full — it carries the mode's numbered steps and output format.
 

@@ -33,7 +33,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - Do not penalise choices the plan explicitly mandated. If the plan drifts from the ADR, emit the amendment flag.
 - Cite acceptance criteria by their `T-<phase>.<seq>` ID — verbatim, never paraphrase.
 - Verdict gates: never `APPROVED` past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple. Never `ALIGNED` past a critical/major cross-check row.
-- Output caps: ≤50 findings per review (top by severity; append `(N more omitted)`). Per-finding ≤8 lines. Alignment-table rows ≤15 per phase. Cross-check table ≤30 rows.
+- Output caps: ≤50 findings per review (top by severity; append `(N more omitted)`). Per-finding ≤8 lines. Alignment-table rows ≤15 per phase. Cross-check table ≤30 rows (delta pass: ≤10).
 </operating_constraints>
 
 <deliverables>

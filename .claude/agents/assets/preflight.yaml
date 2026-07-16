@@ -41,8 +41,8 @@ consultant-artifact:
   target: "affected bounded context(s) named or unambiguous; the specific artifact(s) to write are explicit"
 
 developer:
-  inputs: "plan file, governing ADR, project config for test/lint detection"
-  prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED). Phase N>1: prior phase carries **Status: Complete**"
+  inputs: "plan file, governing ADR, project config for test/lint detection. Plan header carries **Spec: ON HOLD** → ⚠ and ask; never implement against a held plan"
+  prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED / SELF_CHECKED (delta)). Phase N>1: prior phase carries **Status: Complete** (verify via plan-status.mjs check)"
   scope: "implementing exactly one phase"
   terms: "every term in the phase's acceptance criteria appears in the plan, ADR, or .claude/MEMORY.md"
   target: "exactly one phase number; plan filename explicit"

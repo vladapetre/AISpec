@@ -8,7 +8,7 @@ Pre-flight semantics: `assets/preflight.yaml#developer`.
 
 Runs **once per task entry** — the first phase of a plan, or the first turn resuming one — never on ordinary phase-to-phase continuation. Skip it entirely on continuation turns.
 
-**Gate.** Applies only when the project uses the worktree workflow: `.claude/branching/manifest.yaml` exists, OR `src/` holds ≥2 nested git repos. Neither → single-repo project; skip silently and work in the current checkout.
+**Gate.** Applies only when the project uses the worktree workflow. Trust the manifest first: `.claude/branching/manifest.yaml` exists → gate holds (it self-heals; do not re-derive). Manifest absent → probe once for ≥2 nested git repos under `src/`. Neither → single-repo project; skip silently and work in the current checkout.
 
 When the gate holds, before step 5:
 1. Determine the **feature branch name** — from the plan (its short-title or an explicit branch reference) or from what the user/team lead supplied. Unknown → ask the user for it and stop; **never invent one** (the `branching` skill enforces the same rule).
@@ -29,9 +29,9 @@ When the gate holds, before step 5:
 
 10. Wait for the team lead to relay the user's `approved` (case-insensitive). Anything else is a rejection.
 
-11. On approval: insert `**Status: Complete**` immediately after the phase's `<!-- status:phase-N -->` anchor (missing anchor → after `**Done when:**` and note the deviation). Update the per-plan progress file. Then, in order:
+11. On approval: stamp the phase via `node .claude/skills/documenting/scripts/plan-status.mjs stamp <plan-path> <N>` — never hand-edit the stamp (missing anchor → the script errors; insert manually after `**Done when:**` and note the deviation). Update the per-plan progress file. Then, in order:
    - **Final phase** → emit the `## All Phases Complete` summary covering the full plan and route to the reviewer for cumulative review.
-   - **Mid-plan checkpoint** (CLAUDE.md `## Implementation Review` — the plan has ≥5 phases and this is every 3rd approved phase, OR this phase reported `[IRREVERSIBLE] steps executed`, OR it touched a `## Security paths` file) → route this phase's `## Phase N Complete` to the reviewer (Per-phase mode) and wait for `APPROVED` before advancing. `CHANGES REQUIRED` → re-enter Rejection mode; `ARCHITECT AMENDMENT NEEDED:` → surface for routing to the architect first.
+   - **Mid-plan checkpoint** (CLAUDE.md `## Implementation Review` — the plan has ≥6 phases and this is the ⌈N/2⌉-th approved phase, OR this phase reported `[IRREVERSIBLE] steps executed`, OR it touched a `## Security paths` file) → route this phase's `## Phase N Complete` to the reviewer (Per-phase mode) and wait for `APPROVED` before advancing. `CHANGES REQUIRED` → re-enter Rejection mode; `ARCHITECT AMENDMENT NEEDED:` → surface for routing to the architect first.
    - **Otherwise** → re-read the plan (the architect may have amended a future phase) and advance.
 
 ## Output format
@@ -63,7 +63,7 @@ Emit before requesting review. Always render every block; use `_None_` for empty
 
 ---
 Requesting approval from: USER
-(reviewer runs cumulatively at end-of-plan; also at mid-plan checkpoints — every 3rd phase of a ≥5-phase plan, or any irreversible/security-path phase — and ad-hoc on request)
+(reviewer runs cumulatively at end-of-plan; also at mid-plan checkpoints — the midpoint phase of a ≥6-phase plan, or any irreversible/security-path phase — and ad-hoc on request)
 ```
 
 At end-of-plan, after the final phase's user approval, emit instead:

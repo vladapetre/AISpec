@@ -13,7 +13,7 @@ The harness has five named teammates. The team lead spawns by role — each agen
 | Agent | Spawn when | Modes |
 |---|---|---|
 | `analyst` | A source needs ingestion before design (code, docs, URLs, data), OR a ticket must be pulled / created / updated on a ticketing platform (Jira). Pipeline entry; owns ticketing-platform interaction. | single mode |
-| `architect` | Tactical design needed, OR request carries `ARCHITECT AMENDMENT NEEDED:`. | `design` (default), `amendment` (drift trigger) |
+| `architect` | Tactical design needed, OR request carries `ARCHITECT AMENDMENT NEEDED:` (reviewer drift flag, or team-lead-attached for a user/PO ruling changing an existing ADR). | `design` (default), `amendment` |
 | `consultant` | Strategic question, write request, or inbound `[STRATEGIC REVIEW NEEDED]` / `[CONSULTANT REVIEW NEEDED]`. | `discussion` (default), `artifact` (explicit write / ratification) |
 | `developer` | An approved plan and an unmarked phase exist. | `implement` (default), `rejection` (feedback path) |
 | `reviewer` | Request contains `## Phase N Complete`, `## All Phases Complete`, `CROSS_CHECK_REQUESTED:`, or starts with `/cross-check`. | `perphase` (incl. cumulative), `crosscheck` |
@@ -55,6 +55,9 @@ Rules:
 - `MEMORY.md` is the only mandatory file. Per-entity files are optional and reference-by-name from `MEMORY.md`.
 - Never write the same fact in two places. The per-entity file holds the detail; `MEMORY.md` carries the pointer.
 - Short-titles match the host artifact's short-title verbatim — no aliasing.
+- **Index-entry cap:** a `MEMORY.md` entry is ≤2 lines and ≤50 words — a hook, not a summary. Overflow goes to the per-entity file (create it if needed); detail already recorded in an artifact is a pointer, never a restatement.
+- **Registered file kinds only:** an agent writes `MEMORY.md`, per-entity files (`plan-*`, `adr-*`, `report-*`, `review-*`, `sdr-*`, `charter-*`), and optionally `lessons.md`. No other files. `lessons.md` holds one line per lesson and only *reusable rules* (a fact that will change a future decision) — never history, never a second copy of the index.
+- **Compaction protocol:** on an entry turn, if `MEMORY.md` exceeds 150 lines, compact before starting work — entries for closed/superseded plans and shipped ADRs collapse to one line; anything whose detail lives in an artifact loses the inline detail and keeps the pointer. Note `memory compacted <date>` at the top.
 
 `.claude/MEMORY.md` at project root is the **shared** glossary and decision log owned by the `understanding` skill — separate from per-agent memory.
 
@@ -66,12 +69,18 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | ------------------------ | ------------------- | -------------------------------------------------------------- |
 | `artifacts/reports/`     | analyst             | Analysis reports (written directly, not routed)                |
 | `artifacts/api/`         | analyst             | REST API documentation (written directly; `documenting` `templates/api.md`) |
+| `artifacts/inbound/`     | analyst             | Raw received specs / handoffs, verbatim — ingestion sources, never edited after landing |
 | `artifacts/strategy/`    | consultant (Artifact mode) | Bounded-context charters, context maps, SDRs, glossary entries |
-| `artifacts/adr/`         | architect            | Architectural decision records (supersession ADRs come from Amendment mode) |
+| `artifacts/adr/`         | architect            | Architectural decision records (supersession ADRs come from Amendment mode; scope changes live in the supersession's `**Trigger:**` line — no separate scope-change files) |
 | `artifacts/plans/`       | architect            | Implementation plans (Amendment mode may edit a future phase + Governing ADR pointer) |
+| `artifacts/sql/`         | developer           | Verification / diagnostic queries produced during phases (read-only against the DB) |
 | `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                              |
 
-Exception: the developer may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once the user has approved the phase.
+Directories not in this table are not written by any agent — a new artifact kind gets a row here first.
+
+Exceptions:
+- The developer may edit a plan file in `artifacts/plans/` solely to insert `**Status: Complete**` after a phase's `<!-- status:phase-N -->` anchor once the user has approved the phase (via `plan-status.mjs stamp`).
+- The team lead may insert/remove a single `**Spec: ON HOLD — <reason>, <date>**` line beneath a plan's title per `## Spec volatility`.
 
 The analyst writes reports and API documentation directly (no routing). All other owned artifacts go through their owning agent.
 
@@ -81,28 +90,44 @@ The analyst writes reports and API documentation directly (no routing). All othe
 
 **Self-certify carve-out.** `architect` may skip the reviewer cross-check and emit `SELF_CHECKED` on the summary line ONLY when the plan is both trivial and low-risk — *all* of: no phase has >3 acceptance criteria; no phase touches a path in `## Security paths`; the ADR cites ≥2 driver findings; no binding-constraint tie fired at A5. If any one fails, cross-check is mandatory. This is the inverse of the old default — escalation is now the rule, self-certification the exception.
 
-The cross-check is a single read-only artifact↔artifact pass per ADR/plan pair, before Phase 1 only. Between-phase work uses the per-phase flow below.
+The cross-check is a read-only artifact↔artifact pass per ADR/plan pair, before Phase 1. Between-phase work uses the per-phase flow below.
+
+**Post-amendment re-checks are delta-scoped.** When a supersession ADR (`-r<N>`) follows a prior `ALIGNED` for the same pair, the reviewer scopes the pass to the amendment's revised decisions, delta consequences, and edited plan phase(s) only (reviewer CC-2) — never a fresh full pass. The architect's Amendment mode may waive the re-check entirely with `SELF_CHECKED (delta)` when the amendment is user-directed, semantics-preserving, revises ≤2 decisions, and touches no `## Security paths` (M5a). Reviewer-driven drift always re-checks. `CODE_DRIFT` amendments change no artifact and need no re-check.
 
 ## Implementation Review
 
 **Between phases: user approval, plus checkpoints on long plans.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases — only at the checkpoints defined next.
 
 **Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, the developer routes an automatic per-phase reviewer pass (reviewer Per-phase mode — diff-size gated, so small phases stay cheap) *after* the user approves a phase and *before* advancing, whenever any of these hold:
-- (a) the plan has ≥5 phases AND this is every 3rd approved phase (phases 3, 6, 9, …);
+- (a) the plan has ≥6 phases AND this is the ⌈N/2⌉-th approved phase (once per plan, at the midpoint);
 - (b) the phase summary lists `[IRREVERSIBLE] steps executed`;
 - (c) the phase touched a path under `## Security paths`.
 
-On `CHANGES REQUIRED`, route findings to the developer and clear them before the next phase; on `ARCHITECT AMENDMENT NEEDED:`, route to the architect first. Plans with <5 phases and no irreversible/security phase keep the user-approval-only flow and the single end-of-plan cumulative pass. The checkpoint never replaces the end-of-plan cumulative review.
+On `CHANGES REQUIRED`, route findings to the developer and clear them before the next phase; on `ARCHITECT AMENDMENT NEEDED:`, route to the architect first. Plans with <6 phases and no irreversible/security phase keep the user-approval-only flow and the single end-of-plan cumulative pass. The checkpoint never replaces the end-of-plan cumulative review.
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
 **Reviewer model tiering.** The reviewer's frontmatter default is `sonnet` — the adversarial gate, drift detection, and severity classification are judgment-heavy, and variance there is the most expensive kind. Reviewer passes are infrequent (≈ one cross-check + one cumulative review per plan), so the cost is bounded. The team lead MAY spawn the reviewer with a `haiku` model override only for a trivially small, low-risk change — the developer summary lists ≤3 changed files, no `[IRREVERSIBLE] steps executed`, and no file under `## Security paths`. Anything else uses the `sonnet` default.
+
+**Architect and analyst tiering.** Frontmatter defaults stay `opus` (full designs and full ingestion reports earn it). The team lead spawns with a `sonnet` override for the mechanical slices of each role:
+- `architect` Amendment mode when the trigger is user-directed or the expected classification is `CODE_DRIFT` — the surgical-context rule already bounds the work; keep `opus` when the amendment must produce new design content against a reviewer drift flag.
+- `analyst` for ticket pulls, JQL searches, ticket drafting, and delta reports against an existing report — keep `opus` for fresh ingestion of code/docs/data.
 
 The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
 
 **Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences. The original ADR is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. Amendment mode loads only the specific ADR section named in the reviewer's reason and the cited diff hunks (±10 lines) — never the full ADR, plan, or source files.
 
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
+
+## Spec volatility (hold-and-batch)
+
+When a plan's governing ticket or spec is being actively renegotiated (Jira ticket amended mid-plan, PO rulings pending, the user announces the requirements are moving), do NOT absorb the changes one ruling at a time — each ruling would otherwise cost a full amendment + re-check round.
+
+1. The team lead inserts one line beneath the plan's title: `**Spec: ON HOLD — <reason>, <YYYY-MM-DD>**` (this stamp is the team lead's only legal plan edit — see Artifact Ownership).
+2. While the stamp is present, the developer's pre-flight marks `Inputs ⚠` and asks — no phase is implemented against a held plan. Completed phases stay completed.
+3. Deltas accumulate; when the spec settles, route **one** analyst delta report (what changed vs the framing report/ADR) and **one** architect amendment absorbing all of it, then remove the stamp.
+
+The signal to hold is the *second* change request against the same plan while a first is still being absorbed.
 
 ## Agent base constraints
 
@@ -132,6 +157,14 @@ The architect (step A5, Design mode) and consultant (step A6, Artifact mode) sco
 - GDPR, HIPAA, SOC2, or PCI named in the request, CLAUDE.md, or a referenced artifact.
 - An environment variable matching `COMPLIANCE_*` set in the project's deployment manifests (`.env*`, `docker-compose*.yml`, helm/values, CI workflows).
 - A regulatory directive appended to this block by the project.
+
+## Project facts
+
+Operational facts about the host project that every agent needs and none should rediscover — nested-repo layout ("`src/Rent` is its own git repo; run git `-C` there"), test conventions ("pipeline-only tests", fixed ports, shared dev DB), tool quirks, build entry points. Projects append facts below as one-liners.
+
+**Promotion rule.** When an agent records an *environmental* fact in its own memory (not a review/plan/analysis fact), the team lead promotes it to this block and the agent's copy becomes redundant. One discovery, all agents — an operational gotcha that lives in one agent's memory will be rediscovered by every other agent at full cost.
+
+(none recorded yet)
 
 ## Pre-flight protocol
 

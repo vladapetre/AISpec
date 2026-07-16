@@ -11,6 +11,7 @@ _universal:
   - { fm: FM-1.2, check: "Stayed inside <decision_authority> — no out-of-scope work." }
   - { fm: FM-3.1, check: "<output_format> block fully rendered; required fields populated." }
   - { fm: FM-3.4, check: "Memory entry written per the active template / role rule." }
+  - { fm: FM-3.4, check: "Index entry within cap (≤2 lines / ≤50 words); no fact duplicated between MEMORY.md and an entity file or artifact; only registered memory file kinds written." }
 
 analyst:
   - { fm: FM-1.2, check: "Described, did not design or prescribe solutions." }
@@ -24,11 +25,13 @@ architect:
     - { fm: FM-1.2, check: "No code, no strategic ratification." }
 architect-design:
   - { fm: FM-1.3, check: "SELF_CHECKED or CROSS_CHECK_REQUESTED line present per A13." }
+  - { fm: FM-1.1, check: "A9b assumption gate ran: every load-bearing [INFERRED]/[ASSUMED] premise about existing schema/data/legacy behaviour was verified or downgraded to a plan [UNKNOWN] with a named fallback; no acceptance criterion silently rests on an [ASSUMED] finding." }
   - { fm: FM-2.4, check: "Every blocking [STRATEGIC REVIEW NEEDED] emitted where step rules require it." }
   - { fm: FM-3.1, check: "Exactly 2 binding constraints; exactly 2 alternatives (or _None identified_); single recommended design." }
 architect-amendment:
   - { fm: FM-1.1, check: "Surgical context only — no full-ADR, full-plan, or full-file re-reads (Security paths excepted)." }
   - { fm: FM-2.4, check: "RECONCILE WITH ADR: emitted (CODE_DRIFT) or supersession ADR written (ADR_AMENDED / PLAN_UPDATED)." }
+  - { fm: FM-2.4, check: "M5a routing line present: CROSS_CHECK_REQUESTED (default) or SELF_CHECKED (delta) with all four carve-out conditions genuinely held; trigger source classified." }
   - { fm: FM-3.1, check: "Classification line is exactly one of CODE_DRIFT / ADR_AMENDED / PLAN_UPDATED." }
 
 consultant:
@@ -38,7 +41,7 @@ consultant:
 consultant-discussion:
   - { fm: FM-1.3, check: "Strategic question framed sharply; recommendation given; blocking unknowns named." }
   - { fm: FM-3.2, check: "Every alternative states what is gained AND what is sacrificed; [IRREVERSIBLE] items marked." }
-  - { fm: FM-3.4, check: "Resolved terms and crystallised decisions written to .claude/MEMORY.md." }
+  - { fm: FM-3.4, check: "Every new or overloaded term this turn exists in .claude/MEMORY.md ## Language or was added; each crystallised decision logged as ≤3 sentences + pointer to its owning artifact (detail with no artifact home → that signals writing the SDR, not inlining it)." }
 consultant-artifact:
   - { fm: FM-3.4, check: "Memory entry written per touched template." }
 
@@ -62,6 +65,7 @@ reviewer:
     - { fm: FM-1.3, check: "Every <output_format> field rendered; UNCLEAR rows surfaced." }
 reviewer-perphase:
   - { fm: FM-2.4, check: "Amendment flag emitted whenever step 11 recorded drift, independent of verdict." }
+  - { fm: FM-1.3, check: "Step 11b removed-guard check ran: every deleted/weakened guard, filter, or validation maps to a criterion mandating its removal, or is a finding." }
   - { fm: FM-1.3, check: "Cumulative only — step 11a cross-flow impact analysis run; consumers of changed shared logic traced; undocumented behaviour-shifting ripples flagged with both change and consumer file:line, and section 2b rendered. (Per-phase: N/A.)" }
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }

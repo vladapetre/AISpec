@@ -43,13 +43,14 @@ _Avoid_: {alias-1}, {alias-2}
 
 ## Decisions
 
-- **{Short decision title}** — {one-sentence statement of the choice and why.}
+- **{Short decision title}** — {≤3 sentences: the choice, why, and what was rejected.} {Pointer to the owning artifact — SDR/ADR path — when one exists.}
 ```
 
 ### Rules
 
 - **Be opinionated.** Several words for one concept → pick the canonical and list the rest under `_Avoid_`.
 - **One or two sentences per term.** Define what it IS, not what it does.
+- **Decisions are hooks, not essays.** A `## Decisions` entry is ≤3 sentences plus a pointer to the artifact that holds the detail (SDR, ADR, charter). If a decision's detail has no artifact home, that is the signal to ratify it into an SDR — never to inline the detail here. `.claude/MEMORY.md` is loaded every consultant turn; every excess word is a recurring tax.
 - **Project-specific only.** General programming concepts do not belong.
 - **Flag conflicts explicitly.** Term used two ways in one session → log under *Flagged ambiguities* with the resolution.
 - **Update inline, not in batch.** Resolved → edit immediately.

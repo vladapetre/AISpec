@@ -31,6 +31,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - **Non-obvious findings**: explain anything not inferrable from identifier names alone (e.g. silent failure modes, env-var overrides, hidden coupling).
 - **Traceability**: every finding cites a source location and carries exactly one confidence marker.
 - **Stable IDs**: `R-###` assigned in encounter order at first write. Never re-number after publication. Withdraw with `[withdrawn]`, keep the ID.
+- **Inline memory cap**: a MEMORY.md entry that would exceed 8 lines is not an inline entry — write it as a report file (grep-able, loaded on demand) and keep a 1-line hook in the index.
 </operating_constraints>
 
 <deliverables>

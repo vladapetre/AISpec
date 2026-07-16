@@ -153,6 +153,9 @@ Agents that load this skill for format reference join at step 3 once input is va
 .claude/skills/documenting/
   SKILL.md                      this file
   scripts/filename.mjs          deterministic filename-stem derivation (Node)
+  scripts/plan-status.mjs       plan phase-status bookkeeping: `check` verifies anchors/stamps and
+                                prints the next unmarked phase; `stamp` inserts **Status: Complete**
+                                idempotently (the developer's only legal stamping mechanism)
   scripts/export.mjs            Markdown → styled .docx via pandoc (cross-OS, Node)
   scripts/docx-postprocess.mjs  in-place .docx fixes: tables/headings/spacing, direct-format flattening, font embedding (pure Node)
   scripts/reference.docx        pandoc reference doc (Word styling template)

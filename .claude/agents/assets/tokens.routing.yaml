@@ -43,11 +43,17 @@ routing_tokens:
     consumed_by: "(none — informational; signals the cross-check was waived under the carve-out)"
     meaning: "Architect performed the five-check self-verification and the plan met the trivial/low-risk carve-out, so no reviewer cross-check is required."
 
+  - token: "SELF_CHECKED (delta)"
+    produced_by: architect
+    written_into: "Amendment output — final line, ONLY when all four M5a carve-out conditions hold (USER_DIRECTED trigger, ≤2 revised decisions, semantics-preserving, no security path)"
+    consumed_by: "(none — informational; signals the post-amendment delta re-check was waived)"
+    meaning: "A user-directed, semantics-preserving supersession skips the reviewer's delta cross-check. Reviewer-driven drift never qualifies."
+
   - token: "CROSS_CHECK_REQUESTED:"
     produced_by: architect
-    written_into: "architect output — the DEFAULT final summary line in Design mode (MAST R10: never self-certify a fresh pair into implementation). Carries plan path and one-line reason. Replaced by SELF_CHECKED only under the A13 carve-out."
+    written_into: "architect output — the DEFAULT final summary line in Design mode (MAST R10: never self-certify a fresh pair into implementation) AND the default Amendment-mode final line for ADR_AMENDED / PLAN_UPDATED (delta re-check). Carries plan path and one-line reason."
     consumed_by: reviewer
-    meaning: "Architect requests an external cross-check pass before the developer is invited. Default for every non-trivial ADR/plan pair."
+    meaning: "Architect requests an external cross-check pass. Fresh pairs get a full pass; supersessions after a prior ALIGNED get a delta-scoped pass (reviewer CC-2)."
 
   - token: "RECONCILE WITH ADR:"
     produced_by: architect

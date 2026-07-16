@@ -14,7 +14,8 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 6. Identify the phase(s) under review.
    - **Per-phase:** read the `## Phase N Complete` summary. Commit range = `HEAD~1..HEAD`.
-   - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one, and step 11a (cross-flow impact) runs.
+   - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one, and steps 11a (cross-flow impact) runs.
+   - **Nested-repo rule:** resolve the range in the repository that actually contains the changed files — a worktree or nested sub-repo has its own history and branch, so running `git` from the umbrella root produces false "branch mismatch" flags and empty diffs. When the developer summary names a worktree path, run all git commands `-C` that path.
 
 7. Resolve the governing ADR.
    - Prefer the plan's `**Governing ADR:**` pointer.
@@ -40,6 +41,8 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
     - For each candidate, classify the ripple **documented** (named in an acceptance criterion, plan scope, or ADR consequence) or **undocumented**. Undocumented behaviour-shifting ripples are findings — severity per `SKILL.md`: an undocumented change that fires duplicate side effects (e.g. a dropped `.Distinct()` that sends multiple SMS), corrupts a sibling flow, or changes who receives a side effect is **Critical**. Cite both the change `file:line` **and** the impacted consumer `file:line`.
     - Cross-flow analysis is **not** diff-size gated — it always runs in the cumulative pass. Nothing found → record `cross-flow impact: none identified`.
 
+11b. **Removed-guard check** — *runs in BOTH branches, per-phase and cumulative; not diff-size gated.* For every conditional, guard clause, filter, validation, early-return, or de-duplication the diff **deletes or weakens**, find the acceptance criterion (or ADR decision) that explicitly mandates its removal. A removal that reads as "redundant cleanup" is not exempt — locally-redundant guards are often the only enforcement on another entry path. No mandate found → finding: **Critical** if the guard gated a side effect, security check, or validation; **Major** otherwise. Cite the deleted guard's pre-image `file:line` (via `git show <range>`). Nothing removed → record `removed guards: none`.
+
 12. **Diff-size gate** — compute per `SKILL.md` `## Diff-size template gating` using the resolved commit range. Apply security/`[IRREVERSIBLE]` carve-outs. Record `gate: small | medium | large [+ carve-out]`.
 
 13. **Template load** — apply framework and concern detection rules from `SKILL.md`. Load every matching framework template (all gates). Load concern templates only on medium/large. `patterns.md`: full on large, skip SOLID/DRY on medium, skip entirely on small (security carve-out forces full).
@@ -51,7 +54,9 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
 
-16. Write the memory entry: lookup key `<plan-short-title>#phase-<N>`, ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create file with `# Reviewer Memory` heading if missing.
+16. Write memory. Lookup key `<plan-short-title>#phase-<N>`, ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create `MEMORY.md` with `# Reviewer Memory` heading if missing.
+   - **Clean pass** (`APPROVED`, zero Critical/Major, no amendment flag) → one index line in `MEMORY.md` only; write NO per-review file.
+   - **Findings-bearing pass** (any Critical/Major, `CHANGES REQUIRED`, or an amendment flag) → per-review file named `review-<plan-stem>-<phaseN|cumulative>-<YYYY-MM-DD>.md` (plan-stem = plan filename without `.md`) plus the index line pointing at it. No hand-rolled name variants — this pattern is the only legal one.
 
 ## Mode-specific closing self-check
 
@@ -107,6 +112,7 @@ Produce this exactly. Empty severity lists use `(none)`. Omit the `ARCHITECT AME
 **Gate:** small | medium | large [+ carve-out]
 **Read scope:** <one line per file or `all files: full-file`>
 **Re-review:** yes — prior key `<key>`, date <YYYY-MM-DD> | no
+**Removed guards:** none | N removed, all mandated | N removed, M unmandated (findings below)
 
 Findings: `- [<tag>N] file:line — <check>: <one-sentence>`. Tags: `C` Critical, `M` Major, `m` Minor, `P` Pre-existing (suffix `[PRE-EXISTING]`).
 

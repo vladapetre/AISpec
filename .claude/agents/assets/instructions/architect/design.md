@@ -34,6 +34,11 @@ A8. Identify strategic questions this request raises but cannot tactically resol
 
 A9. List unknowns that block implementation (an unknown blocks if the plan cannot specify acceptance criteria for at least one phase). Any blocking unknowns → surface to user and stop.
 
+A9b. **Load-bearing assumption gate.** List every decision or acceptance criterion in the first two phases that rests on an `[INFERRED]` or `[ASSUMED]` finding about *existing* schema, data, or legacy behaviour (table/column identities, live PKs and constraints, encodings, sentinel values, which code path actually runs). For each such assumption, exactly one of:
+   - **Verify first** — surface a targeted verification request for routing to the analyst: the specific claim(s) to confirm against the live source, nothing broader. Design proceeds only on the verified answer.
+   - **Downgrade to `[UNKNOWN]`** — record it in the plan with a named fallback the phase can safely proceed on, and keep the dependent criterion out of Phases 1–2.
+   **No acceptance criterion may silently rest on an `[ASSUMED]` finding.** A design built on a wrong legacy premise costs multiple amendment rounds; a targeted verification costs one cheap analyst pass. No load-bearing assumptions → note "assumption gate: none" and continue.
+
 A10. Write the ADR to `artifacts/adr/NNNNN-<short-title>.md` per `templates/adr.md`. Include non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8. Describe interfaces, data shapes, patterns. No function bodies or full class definitions.
 
 A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.

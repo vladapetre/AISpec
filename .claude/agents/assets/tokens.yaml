@@ -24,6 +24,7 @@ quick_lookup:
   "[TACTICAL DESIGN NEEDED]":    routing
   "ARCHITECT AMENDMENT NEEDED:": routing
   "SELF_CHECKED":                routing
+  "SELF_CHECKED (delta)":        routing
   "CROSS_CHECK_REQUESTED:":      routing
   "RECONCILE WITH ADR:":         routing
   "APPROVED":                    verdicts
