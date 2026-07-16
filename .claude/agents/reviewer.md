@@ -51,7 +51,7 @@ Per-phase / cumulative mode produces a structured review ending with `APPROVED` 
 <instructions>
 **Parallelize independent reads** in a single tool-use batch: memory, skill templates, mode-file inputs.
 
-1. Read `.claude/agent-memory/reviewer/MEMORY.md`. Missing → continue.
+1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/reviewer/MEMORY.md`. Missing → continue.
 
 2. **Mode dispatch — deterministic, first match wins.** Match only **unquoted** lines at the request's top level (skip any line inside a fenced code block, blockquote, or `> ` quote prefix). For each candidate header, the marker must appear at start-of-line preceded only by optional whitespace.
    - Request has a top-level line matching `^\s*CROSS_CHECK_REQUESTED:` OR starts with `/cross-check` → **Cross-check mode** → load `assets/instructions/reviewer/crosscheck.md`.

@@ -86,6 +86,10 @@
           {
             "type": "command",
             "command": "node .claude/hooks/guard.verdict.mjs"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/emit.metrics.mjs"
           }
         ]
       }

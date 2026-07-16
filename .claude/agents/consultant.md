@@ -54,7 +54,7 @@ Discussion mode produces a conversation turn (recommendation + alternatives + tr
 <instructions>
 **Parallelize independent reads** in a single tool-use batch: memory, `.claude/MEMORY.md`, any artifacts named by the request.
 
-1. Read `.claude/agent-memory/consultant/MEMORY.md` and `.claude/MEMORY.md`. Missing → continue.
+1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/consultant/MEMORY.md` and `.claude/MEMORY.md`. Missing → continue.
 
 2. **Mode dispatch — deterministic, first match wins.** Match the request's own lines (ignore quoted or embedded text):
    - Request carries `[STRATEGIC REVIEW NEEDED]` from a tactical ADR asking for ratification, OR `[CONSULTANT REVIEW NEEDED]` / `CONSULTANT REVIEW NEEDED:` from an analyst report blocking a downstream decision → **Artifact mode** → load `assets/instructions/consultant/artifact.md`.

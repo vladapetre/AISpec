@@ -65,7 +65,7 @@ Mode-specific deliverables are defined in the loaded `assets/instructions/develo
 <instructions>
 **Parallelize independent reads** in a single tool-use batch: memory, template, files to be touched.
 
-1. Read `.claude/agent-memory/developer/MEMORY.md` and any matching `plan-<short-title>.md`. Missing → continue.
+1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/developer/MEMORY.md` and any matching `plan-<short-title>.md`. Missing → continue.
 
 2. **Mode dispatch — deterministic, first match wins.** Match the request's own lines (ignore quoted or embedded text):
    - Request contains `CHANGES REQUIRED` (reviewer verdict), `RECONCILE WITH ADR:` (architect), OR a non-`approved` user reply to a prior `## Phase N Complete` summary → **Rejection mode** → load `assets/instructions/developer/rejection.md`.

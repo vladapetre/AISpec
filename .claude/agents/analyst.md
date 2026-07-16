@@ -50,7 +50,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 
 **Ticketing tasks.** When the request is to pull, create, or update a ticket, load the `ticketing` skill and follow its steps, item templates, and output rules — it owns provider routing and the Jira MCP wiring. Pulled tickets are valid ingestion sources (treat like any other source from step 5). Drafting and creating/updating a ticket from analysis findings is in scope. Surface every mutating call for user confirmation before executing (see `<decision_authority>`).
 
-1. Read `.claude/agent-memory/analyst/MEMORY.md`. Missing → continue.
+1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/analyst/MEMORY.md`. Missing → continue.
 
 2. Pre-flight per CLAUDE.md `## Pre-flight protocol`. Per-check semantics: `assets/preflight.yaml#analyst`.
 

@@ -6,6 +6,20 @@ Before spawning any named teammate, check whether a team exists for this session
 
 **Skill loading.** A `skills:` frontmatter declaration loads the skill's *name and description only* into the agent's prompt — not its body. The agent reads the SKILL.md body (and any templates) on demand at the first step that needs it. The team lead never pre-reads skill bodies.
 
+## Agent lifecycle — continue, don't respawn
+
+An idle teammate is not a dead teammate: a named agent that ended its turn resumes by name with its context intact. Entry-turn reads (memory, plan, ADR, templates, source familiarity) are paid **once per task** — every respawn pays them again for nothing. Default lifecycle per agent:
+
+- **developer** — ONE instance per plan. Every phase, approval relay, rejection, and reviewer verdict is a continuation turn of that instance. Respawn only on context loss (session died) or a new plan.
+- **reviewer** — ONE instance per plan. The cross-check, any checkpoint, re-reviews, and the cumulative pass are continuation turns: the ADR/plan are read once, and a re-review after `CHANGES REQUIRED` has its own prior findings in context. Independence is not compromised — the reviewer verifies the developer's code and the artifacts, never its own prior verdicts.
+- **architect** — Design mode spawns fresh per request (clean framing). Amendments to a plan whose architect instance is still resumable continue that instance (the ADR is in context); otherwise spawn fresh — Amendment mode's surgical-context rule bounds the reads either way.
+- **analyst** — fresh per source set; delta reports against a source set it already ingested continue the existing instance.
+- **consultant** — a discussion thread is one instance; ratification of a direction it discussed continues that instance into Artifact mode.
+
+**Continuation turns never re-read unchanged material** — memory, templates, the plan, the ADR, or previously read source files are already in context. Re-read exactly what changed: the amended plan section after an amendment, `plan-status.mjs check` output after a stamp, the new diff for a re-review. **Exception — files about to be edited:** the developer's per-phase rule "read every file you will touch" is NOT waived by continuation. In-context memory of a file is a belief, not the file; anything may have changed it between phases. Re-reading the touch set is cheap and is the only defense against out-of-band edits.
+
+**Fresh eyes on stall.** Continuation trades a respawn's re-ingestion cost for the author's context — usually the right trade, but the author's context includes the author's *anchoring*. When a phase hits the 3-rejection stall bound (`## Phase N Stalled`), the team lead SHOULD offer respawning a fresh developer instance for the retry alongside the user decision — an instance that hasn't spent three attempts defending one reading is the cheapest way to break the pattern. The per-plan progress file carries the durable state a fresh instance needs.
+
 ## Agent registry
 
 The harness has five named teammates. The team lead spawns by role — each agent's own step-2 mode dispatch loads the matching mode file from `.claude/agents/assets/instructions/<agent>/<mode>.md`.
@@ -176,12 +190,13 @@ The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically en
 | `guard.bash.mjs` | PreToolUse (Bash) | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (rm, sudo, git push/reset/…) denied; meta-commands (xargs, eval, sh -c), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal prompt. `npm run` scripts are resolved via package.json and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent) |
 | `lint.write.mjs` | PostToolUse (Write\|Edit) | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs`. Also runs standalone: `node .claude/hooks/lint.write.mjs --all` |
 | `guard.verdict.mjs` | Stop | Review/amendment/phase blocks must close with their exact contract lines (verdict tokens, Classification, routing/approval lines) before the turn may end |
+| `emit.metrics.mjs` | Stop | Telemetry: appends per-turn session usage + emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored). Analyse with `node .claude/telemetry/report.mjs` — gate hit rates, amendment mix, token spend; tune carve-outs and cadences from its numbers, not from feel |
 
 The matching `selfcheck.yaml` boxes remain — the hook is the backstop, the self-check is the habit.
 
 ## Pre-flight protocol
 
-Every named agent runs the 5-check pre-flight **only on entry turns**: (a) first turn in a session; (b) first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, skip the pre-flight block.
+Every named agent runs the 5-check pre-flight **only on entry turns**: (a) first turn in a session; (b) first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, skip the pre-flight block — and skip the entry-turn reads with it (`## Agent lifecycle`): memory, templates, and unchanged artifacts are already in context.
 
 Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (autonomous, not out-of-scope) · **Terms current** · **Target identified**. Each agent's step 2 declares its per-check semantics.
 

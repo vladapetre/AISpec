@@ -51,7 +51,7 @@ Design mode produces a tactical ADR + an implementation plan. Amendment mode pro
 <instructions>
 **Parallelize independent reads** in a single tool-use batch.
 
-1. Read `.claude/agent-memory/architect/MEMORY.md`. Missing → continue.
+1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/architect/MEMORY.md`. Missing → continue.
 
 2. **Mode dispatch — deterministic, first match wins.** Match the request's own lines (ignore quoted or embedded text):
    - Request contains `ARCHITECT AMENDMENT NEEDED:` on its own line → **Amendment mode** → load `assets/instructions/architect/amendment.md` and follow it exhaustively.
