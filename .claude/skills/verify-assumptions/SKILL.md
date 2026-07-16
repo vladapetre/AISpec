@@ -25,4 +25,5 @@ $ARGUMENTS
 1. Parse the input into **claims** — one per line, or semicolon-separated on a single line; an optional `--context "<framing>"` flag names the ADR/design the claims serve. When the input is an architect A9b pause message, extract its listed load-bearing assumptions verbatim. No claims → ask "Which claims should I verify?" and stop.
 2. Call the workflow — claims as a real JSON array:
    `Workflow { name: "analyst.verify-assumptions", args: { assumptions: [...], context: "<framing or omit>", date: "<today YYYY-MM-DD>" } }`
+   Name not found (registry is captured at session start) → invoke by path instead: `Workflow { scriptPath: ".claude/workflows/analyst.verify-assumptions.mjs", args: … }`.
 3. When the result lands, relay the verdict block. REFUTED claims invalidate the decisions resting on them — route back to the architect (A9b resume path). UNRESOLVED claims must become plan `[UNKNOWN]`s with named fallbacks, never silent criteria.

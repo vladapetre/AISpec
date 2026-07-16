@@ -25,4 +25,5 @@ $ARGUMENTS
 2. No `--subject` given → derive a subject phrase from the sources (e.g. the dominant directory or ticket cluster) and confirm it in one line before running.
 3. Call the workflow — sources as a real JSON array, never a stringified one:
    `Workflow { name: "analyst.deep-ingest", args: { sources: [...], subject: "<phrase>", date: "<today YYYY-MM-DD>" } }`
+   Name not found (registry is captured at session start) → invoke by path instead: `Workflow { scriptPath: ".claude/workflows/analyst.deep-ingest.mjs", args: … }`.
 4. It runs in the background; when the result lands, relay: report path, confidence counts, hand-off flags (route `ARCHITECT REVIEW NEEDED` / `STRATEGIC REVIEW NEEDED` per CLAUDE.md), and any clusters left unread.

@@ -210,6 +210,8 @@ Saved multi-agent workflows live in `.claude/workflows/`, named **`<owner-role>.
 
 Named teammates never call Workflow themselves (no such tool); the team lead runs it — e.g. on an architect A9b pause, offer `/verify-assumptions` with the listed claims.
 
+**Stale-snapshot rule.** Any agent spawned mid-session (workflow agents, teammates) inherits a CLAUDE.md snapshot captured at the *session's* start — after in-session edits to CLAUDE.md, that snapshot is stale. Agents verifying contract claims MUST grade against the on-disk file, never the injected snapshot; a "CLAUDE.md lacks X" finding is invalid without a fresh disk read. (Discovered live: a deep-ingest run reported two critical contract conflicts that existed only in its stale snapshot.)
+
 ## Pre-flight protocol
 
 Every named agent runs the 5-check pre-flight **only on entry turns**: (a) first turn in a session; (b) first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, skip the pre-flight block — and skip the entry-turn reads with it (`## Agent lifecycle`): memory, templates, and unchanged artifacts are already in context.

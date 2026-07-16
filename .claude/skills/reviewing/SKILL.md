@@ -73,6 +73,8 @@ Computed from the step-8 changed-file set: total changed files and total changed
 
 **Boundary rule.** Small is conjunctive — fail either half → Medium. File-count ≥10 alone or LOC ≥300 alone → Large.
 
+**Security floor — Se1–Se3 always run, every gate.** The three security checks in `patterns.md` (hardcoded secrets, injection, insecure defaults) are never diff-size gated: a Small or Medium load that skips the rest of `patterns.md` still executes its Security section against every changed file. A 2-file, 40-LOC change can hardcode a secret as easily as a large one.
+
 **Security carve-out** (overrides Small/Medium): any changed file under `src/auth/`, `src/crypto/`, `src/security/`, `Authentication/`, `Authorization/`, or a path in CLAUDE.md `**Security paths:**` → load `patterns.md` in full (Se1–Se3 must always run). Framework/concern gating still applies.
 
 **[IRREVERSIBLE] carve-out:** developer's `**[IRREVERSIBLE] steps executed:**` is non-empty → treat as Large.

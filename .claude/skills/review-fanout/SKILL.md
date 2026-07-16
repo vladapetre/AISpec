@@ -26,4 +26,5 @@ $ARGUMENTS
 1. Resolve the **plan**: explicit path in the input wins; else the plan of the active `## All Phases Complete` summary in this conversation; else lex-sort `artifacts/plans/` and ask if multiple. Carry the developer summary text and commit range when available.
 2. Call the workflow:
    `Workflow { name: "reviewer.cumulative-review", args: { plan: "<path>", summary: "<All Phases Complete text or omit>", range: "<first..last or omit>", date: "<today YYYY-MM-DD>" } }`
+   Name not found (registry is captured at session start) → invoke by path instead: `Workflow { scriptPath: ".claude/workflows/reviewer.cumulative-review.mjs", args: … }`.
 3. When the result lands, relay the review block and route the verdict exactly as a teammate review would be routed (CLAUDE.md `## Implementation Review`): `CHANGES REQUIRED` → developer; `ARCHITECT AMENDMENT NEEDED:` → architect first; `APPROVED` → done. The workflow already wrote the reviewer memory line.

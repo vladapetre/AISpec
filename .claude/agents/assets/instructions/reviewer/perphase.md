@@ -45,7 +45,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 12. **Diff-size gate** — compute per `SKILL.md` `## Diff-size template gating` using the resolved commit range. Apply security/`[IRREVERSIBLE]` carve-outs. Record `gate: small | medium | large [+ carve-out]`.
 
-13. **Template load** — apply framework and concern detection rules from `SKILL.md`. Load every matching framework template (all gates). Load concern templates only on medium/large. `patterns.md`: full on large, skip SOLID/DRY on medium, skip entirely on small (security carve-out forces full).
+13. **Template load** — apply framework and concern detection rules from `SKILL.md`. Load every matching framework template (all gates). Load concern templates only on medium/large. `patterns.md`: full on large, skip SOLID/DRY on medium; on small load ONLY its Security section — **Se1–Se3 run at every gate** (SKILL.md security floor); the security-path carve-out still forces the full file.
 
 13a. **Re-review detection** — check memory for an entry whose lookup key is exactly `<plan-short-title>#phase-<N>` (plan filename without `.md`; integer N). Match present → this is a re-review: scope step 14 to files in the current step-8 diff only. Alignment, ADR-alignment, and `patterns.md` Security (Se1–Se3) still run in full. Record `re-review: yes — prior key <key>, date <date>`. No match → fresh review; skip.
 

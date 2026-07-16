@@ -11,10 +11,14 @@ export const meta = {
 
 // args: { assumptions: [{id?, claim, source?}] | [string] (required),
 //         context?: '<one-line framing, e.g. the ADR being designed>', date?: 'YYYY-MM-DD' }
-const A = args ?? {}
+// Defensive: some invocation paths deliver args as a JSON string.
+const A = typeof args === 'string' ? JSON.parse(args) : (args ?? {})
 if (!Array.isArray(A.assumptions) || !A.assumptions.length) throw new Error('args.assumptions (array of claims) is required')
 const claims = A.assumptions.map((a, i) => (typeof a === 'string' ? { id: `A-${i + 1}`, claim: a } : { id: a.id ?? `A-${i + 1}`, ...a }))
-const DATE = A.date ?? '<fill: today>'
+// No Date.now() in workflow scripts (breaks resume) — when the caller omits
+// date, downstream agents resolve "today" themselves instead of a sentinel
+// leaking into filenames/index lines.
+const DATE = A.date ?? 'TODAY (resolve the current ISO date yourself before writing)'
 
 const V_SCHEMA = {
   type: 'object',
@@ -49,7 +53,10 @@ Confirmed with evidence: ${v.evidence}
 Open the cited evidence yourself. Is the citation real, current, and does it actually entail the claim (not merely relate to it)? Look for the classic trap: a similarly-named table/column/flag that is NOT the one the claim is about. Return ONLY the JSON: {holds: bool, reason}.`,
       { label: `xexam:${c.id}`, phase: 'Cross-examine', effort: 'medium', schema: { type: 'object', required: ['holds', 'reason'], properties: { holds: { type: 'boolean' }, reason: { type: 'string' } } } }
     )
-    if (x && !x.holds) return { ...c, verdict: 'UNRESOLVED', evidence: v.evidence, note: `confirmation challenged: ${x.reason}` }
+    // Fail-closed on the expensive side: a dead cross-examiner must not let a
+    // CONFIRMED stand unexamined — designs build on CONFIRMED.
+    if (!x) return { ...c, verdict: 'UNRESOLVED', evidence: v.evidence, note: 'cross-examiner failed — confirmation unexamined' }
+    if (!x.holds) return { ...c, verdict: 'UNRESOLVED', evidence: v.evidence, note: `confirmation challenged: ${x.reason}` }
     return { ...c, ...v }
   }
 )

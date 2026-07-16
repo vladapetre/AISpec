@@ -12,7 +12,8 @@ export const meta = {
 
 // args: { sources: [paths/dirs/URLs/ticket keys] (required), subject: '<report subject>' (required),
 //         audience?: 'developer'|'stakeholder'|'collaborator', date?: 'YYYY-MM-DD' }
-const A = args ?? {}
+// Defensive: some invocation paths deliver args as a JSON string.
+const A = typeof args === 'string' ? JSON.parse(args) : (args ?? {})
 if (!Array.isArray(A.sources) || !A.sources.length) throw new Error('args.sources (array of paths/dirs/URLs/ticket keys) is required')
 if (!A.subject) throw new Error('args.subject (report subject phrase) is required')
 

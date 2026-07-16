@@ -12,9 +12,13 @@ export const meta = {
 
 // args: { plan: 'artifacts/plans/<x>.md' (required), summary?: '<All Phases Complete text>',
 //         range?: '<first..last>', date?: 'YYYY-MM-DD' }
-const A = args ?? {}
+// Defensive: some invocation paths deliver args as a JSON string.
+const A = typeof args === 'string' ? JSON.parse(args) : (args ?? {})
 if (!A.plan) throw new Error('args.plan (plan path) is required')
-const DATE = A.date ?? '<fill: today>'
+// No Date.now() in workflow scripts (breaks resume) — when the caller omits
+// date, the memory agent resolves "today" itself instead of a sentinel leaking
+// into the review filename.
+const DATE = A.date ?? 'TODAY (resolve the current ISO date yourself before writing)'
 
 // ---------------------------------------------------------------- Scope
 phase('Scope')
@@ -128,22 +132,27 @@ const reviewed = await pipeline(
 
 // ---------------------------------------------------------------- Assemble (deterministic)
 phase('Assemble')
+// Sentinel matching is normalized, never exact-cased: an agent returning
+// 'Fail', 'drift', or documented:'NO' must not silently drop a blocking
+// condition (blocking rules fire on the NORMALIZED value).
+const norm = (v) => String(v ?? '').trim().toUpperCase()
+const isUndocumented = (r) => r.documented === false || ['NO', 'FALSE', 'UNDOCUMENTED'].includes(norm(r.documented))
 const dims = Object.fromEntries(reviewed.filter(Boolean).map((r) => [r.key, r]))
 const failedDims = reviewed.filter((r) => r?.failed).map((r) => r.key)
 const all = reviewed.filter(Boolean).flatMap((r) => (r.findings ?? []).map((f) => ({ ...f, dim: r.key })))
-const sev = (s) => all.filter((f) => f.severity === s)
+const sev = (s) => all.filter((f) => norm(f.severity) === norm(s))
 const alignRows = dims['alignment']?.rows ?? []
-const alignFails = alignRows.filter((r) => r.result === 'FAIL')
-const alignUnclear = alignRows.filter((r) => r.result === 'UNCLEAR')
-const driftRows = (dims['adr-drift']?.rows ?? []).filter((r) => r.honoured === 'DRIFT')
+const alignFails = alignRows.filter((r) => norm(r.result) === 'FAIL')
+const alignUnclear = alignRows.filter((r) => norm(r.result) === 'UNCLEAR')
+const driftRows = (dims['adr-drift']?.rows ?? []).filter((r) => norm(r.honoured) === 'DRIFT')
 const crossRows = dims['cross-flow']?.rows ?? []
-const undocCritical = crossRows.filter((r) => r.documented === false && r.severity === 'Critical')
+const undocCritical = crossRows.filter((r) => isUndocumented(r) && norm(r.severity) === 'CRITICAL')
 
 const changesRequired = alignFails.length > 0 || sev('Critical').length > 0 || undocCritical.length > 0 || failedDims.length > 0
 const verdict = changesRequired ? 'CHANGES REQUIRED' : 'APPROVED'
 const amendment = driftRows.length ? `ARCHITECT AMENDMENT NEEDED: ${driftRows.map((r) => r.decision).join('; ')} — see ADR Alignment` : null
 
-const fLine = (f, i) => `- [${f.severity === 'Critical' ? 'C' : f.severity === 'Major' ? 'M' : f.severity === 'Minor' ? 'm' : 'P'}${i + 1}] ${f.file}${f.line ? ':' + f.line : ''} — ${f.check}: ${f.summary}${f.severity === 'Pre-existing' ? ' [PRE-EXISTING]' : ''}`
+const fLine = (f, i) => `- [${norm(f.severity) === 'CRITICAL' ? 'C' : norm(f.severity) === 'MAJOR' ? 'M' : norm(f.severity) === 'MINOR' ? 'm' : 'P'}${i + 1}] ${f.file}${f.line ? ':' + f.line : ''} — ${f.check}: ${f.summary}${norm(f.severity) === 'PRE-EXISTING' ? ' [PRE-EXISTING]' : ''}`
 const list = (s) => (sev(s).length ? sev(s).map(fLine).join('\n') : '(none)')
 const planStem = SCOPE.plan.split('/').pop().replace(/\.md$/, '')
 
@@ -170,9 +179,9 @@ ${(dims['adr-drift']?.rows ?? []).map((r) => `| ${r.decision} | ${r.honoured} | 
 ### 2b. Cross-Flow Impact
 | Changed element | Impacted consumer | Documented? | Behaviour shift | Severity |
 |---|---|---|---|---|
-${crossRows.map((r) => `| ${r.changed} | ${r.consumer} | ${r.documented ? 'YES' : 'NO'} | ${r.shift ?? ''} | ${r.severity ?? ''} |`).join('\n') || '| (none identified) | | | | |'}
+${crossRows.map((r) => `| ${r.changed} | ${r.consumer} | ${isUndocumented(r) ? 'NO' : 'YES'} | ${r.shift ?? ''} | ${r.severity ?? ''} |`).join('\n') || '| (none identified) | | | | |'}
 
-**Cross-flow impact verdict:** ${crossRows.filter((r) => !r.documented).length ? `${crossRows.filter((r) => !r.documented).length} undocumented ripples (${undocCritical.length} critical)` : 'NONE IDENTIFIED'}
+**Cross-flow impact verdict:** ${crossRows.filter(isUndocumented).length ? `${crossRows.filter(isUndocumented).length} undocumented ripples (${undocCritical.length} critical)` : 'NONE IDENTIFIED'}
 
 ### 3. Code Review
 **Gate:** ${SCOPE.gate}${SCOPE.carveOuts?.length ? ` + ${SCOPE.carveOuts.join(', ')}` : ''}

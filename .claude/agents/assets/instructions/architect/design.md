@@ -52,7 +52,7 @@ A13. **Self-check, then route.** Verify the ADR/plan pair against the five check
    - No binding-constraint tie fired at A5 (no two constraints tied at score before the position-1 tiebreaker).
    - The ADR cites ≥2 driver findings from inputs (analyst report `R-###` or SDR `D-###`).
    - No phase touches files under CLAUDE.md `## Security paths`.
-   Any one fails → `CROSS_CHECK_REQUESTED:` with a one-line reason naming the failed condition. On a relayed `DRIFT DETECTED`, re-enter this mode treating the drift report as new input.
+   Any one fails → `CROSS_CHECK_REQUESTED:` with a one-line reason naming the failed condition. On a relayed `DRIFT DETECTED`, the request comes back carrying `ARCHITECT AMENDMENT NEEDED:` and **Amendment mode dispatches** (M2a classifies it REVIEWER_DRIFT) — never re-run Design from scratch; the supersession path is the contract (CLAUDE.md `## Cross-Check`).
 
 ## Mode-specific closing self-check
 
