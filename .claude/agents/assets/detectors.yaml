@@ -29,3 +29,22 @@ lint_detectors:
 failure_handling:
   test: "For each failing test, check against base via the stash dance: `git stash --include-untracked && <test> && git stash pop`. Also fails on base → tag [PRE-EXISTING], not blocking. Otherwise fix in this phase."
   linter: "Linter failures introduced this phase must be fixed. Pre-existing may be tagged [PRE-EXISTING]."
+
+# How to boot/drive the changed flow for the verification loop (implement.md
+# step 7a). First match wins. Starting an app, worker, or container and hitting
+# an endpoint are MUTATING actions — surface the exact command(s) for
+# confirmation once per phase, or rely on the project's settings allowlist.
+# Projects SHOULD allowlist their standard run/drive commands so verification
+# needs no prompt.
+run_detectors:
+  - { signal: "changed project has launchSettings.json OR a Program.cs entry point", drive_via: "dotnet run --project <csproj> (or the project's documented run task); hit the endpoint with curl/httpie" }
+  - { signal: "package.json with a `dev` or `start` script",                          drive_via: "npm run dev | npm start; hit the endpoint or exercise the CLI" }
+  - { signal: "docker-compose*.yml defining the touched service",                     drive_via: "docker compose up <service>; observe logs + endpoint" }
+  - { signal: "worker / background service (hosted service, cron, consumer)",         drive_via: "run the host process; observe its log output for one cycle (or trigger one message)" }
+  - { signal: "CLI tool or script",                                                   drive_via: "invoke the command with representative args; observe stdout/exit code" }
+  - { signal: "no match",                                                             drive_via: "record 'no drivable surface' — allowed ONLY under the step-7a exemption rules" }
+
+verification_rules:
+  evidence: "Verified means OBSERVED at runtime — a command you ran and output you saw. Reading the code again is not verification. Cite the command and the observed result (trimmed) in the phase summary."
+  data_safety: "Driving a mutating endpoint or flow runs against dev/local data only; if only shared data is reachable, surface before driving."
+  blocked: "If the flow cannot boot in this environment (missing DB, secrets, license), record 'not drivable in this environment — <blocker>' in the summary and surface it. Never fake or infer verification."

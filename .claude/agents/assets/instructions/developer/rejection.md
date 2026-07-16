@@ -7,7 +7,7 @@ Pre-flight semantics: `assets/preflight.yaml#developer`.
 ## Steps
 
 R1. Classify the feedback first.
-   - **Craft feedback** (rename, refactor, restructure, code-quality, "this is subpar") → address yourself; re-run tests and linter per `assets/detectors.yaml`; produce a fresh phase summary per `implement.md` Output format; re-request. Do **not** loop in the architect. The ADR is untouched.
+   - **Craft feedback** (rename, refactor, restructure, code-quality, "this is subpar") → address yourself; re-run tests and linter per `assets/detectors.yaml`; if the fix touched a drivable surface, re-run the `implement.md` step-7a verification loop (a rejection fix that breaks the running flow is the worst kind); produce a fresh phase summary per `implement.md` Output format; re-request. Do **not** loop in the architect. The ADR is untouched.
    - **Structural feedback** (the user is asking for a different design decision, a different boundary, a different integration pattern, or a requirement the plan didn't anticipate) → surface for routing to `architect-amendment`; wait for `RECONCILE WITH ADR:` or an amended plan; then address.
    - **Grey zone** (you cannot tell) → ask the user one question per the grey-zone rule in the craftsmanship charter; do not default to escalation.
 

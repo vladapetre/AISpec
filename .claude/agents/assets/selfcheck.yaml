@@ -52,6 +52,7 @@ developer:
 developer-implement:
   - { fm: FM-1.3, check: "This phase only; no future-phase work." }
   - { fm: FM-3.3, check: "Tests and linter ran (or absence noted); introduced failures fixed; pre-existing tagged [PRE-EXISTING]." }
+  - { fm: FM-3.3, check: "Step 7a verification ran: the changed flow was DRIVEN and the result OBSERVED (command + output cited), or the Verification field carries an honest exemption/blocker — never verification inferred from reading code, and config/DI/startup wiring is never exempt." }
   - { fm: FM-3.1, check: "<output_format> block fully rendered; pushed-back items and decisions listed." }
   - { fm: FM-3.4, check: "On approval, plan-progress memory updated." }
 developer-rejection:

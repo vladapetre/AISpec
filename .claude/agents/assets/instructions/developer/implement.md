@@ -23,6 +23,13 @@ When the gate holds, before step 5:
 
 7. Run tests and linter. Load `assets/detectors.yaml` for the test/lint cascade and failure-handling rules (first match wins per category).
 
+7a. **Verification loop — drive the changed flow before summarising.** A green suite is not verification: config wiring, DI registration, HTTP client base paths, and payload-shape mismatches all fail only at runtime. Loop: **drive → observe → fix → re-drive** until observed behaviour matches the phase's acceptance criteria.
+   - **Applies when** the phase touches a runtime surface: an HTTP endpoint, worker/consumer, CLI, startup/DI/config wiring, or an external-client seam. **Config/DI/startup wiring is never exempt** — booting the app IS the drive for it.
+   - **Exempt when** the phase is test-only, docs-only, or a pure refactor with unchanged behaviour under existing tests → record `no drivable surface — <reason>`.
+   - **How:** resolve the drive command per `assets/detectors.yaml#run_detectors`; drive the phase's primary AC path once and its most likely failure path once (bad input, missing entity). Scope stays cheap — this is one lap through the real entry point, not a QA pass.
+   - **Rules:** `assets/detectors.yaml#verification_rules` — evidence is observed runtime output, never re-read code; dev/local data only; blocked environment → record and surface, never fake.
+   - Starting the app / hitting endpoints are mutating actions: surface the exact command(s) once per phase for confirmation unless the project's settings already allowlist them.
+
 8. Produce the phase summary per the Output format below.
 
 9. Stop and request review. **Required approver every phase: user.** The reviewer runs cumulatively at end-of-plan unless the user explicitly requests an ad-hoc per-phase review (then also name the reviewer).
@@ -54,6 +61,7 @@ Emit before requesting review. Always render every block; use `_None_` for empty
 
 **Tests:** passed | failed (list) | no test suite detected
 **Linter:** passed | failed (list) | no linter detected
+**Verification:** <command driven> → <observed result, trimmed> (covers T-N.x, T-N.y) | no drivable surface — <reason> | not drivable in this environment — <blocker, surfaced>
 
 **[IRREVERSIBLE] steps executed:**
 - list | _None_

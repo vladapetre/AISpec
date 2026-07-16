@@ -96,7 +96,7 @@ The cross-check is a read-only artifact↔artifact pass per ADR/plan pair, befor
 
 ## Implementation Review
 
-**Between phases: user approval, plus checkpoints on long plans.** After each phase the developer emits its `## Phase N Complete` summary and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases — only at the checkpoints defined next.
+**Between phases: user approval, plus checkpoints on long plans.** Before emitting a phase summary, the developer runs the verification loop (`implement.md` step 7a): drive the changed flow through its real entry point and observe the result — tests alone don't gate a phase. After each phase the developer emits its `## Phase N Complete` summary (with the `**Verification:**` evidence field) and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases — only at the checkpoints defined next.
 
 **Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, the developer routes an automatic per-phase reviewer pass (reviewer Per-phase mode — diff-size gated, so small phases stay cheap) *after* the user approves a phase and *before* advancing, whenever any of these hold:
 - (a) the plan has ≥6 phases AND this is the ⌈N/2⌉-th approved phase (once per plan, at the midpoint);

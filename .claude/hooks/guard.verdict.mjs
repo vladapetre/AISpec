@@ -63,6 +63,8 @@ if (has(/^##\s+Architect Amendment\s+—/m)) {
 if (has(/^##\s+Phase\s+\d+\s+Complete\s+—/m) && !has(/^##\s+All Phases Complete/m)) {
   if (!/Requesting approval from:\s*USER/.test(text))
     violations.push('phase summary must end by requesting approval: "Requesting approval from: USER"');
+  if (!/^\*\*Verification:\*\*\s*\S/m.test(text))
+    violations.push('phase summary must carry a populated "**Verification:**" field — observed runtime evidence, or an honest exemption/blocker (implement.md step 7a)');
 }
 if (has(/^##\s+All Phases Complete\s+—/m)) {
   if (!/Requesting cumulative review from:\s*REVIEWER/.test(text))

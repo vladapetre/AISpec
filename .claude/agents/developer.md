@@ -47,6 +47,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - Never proceed on an approval the team lead has not relayed.
 - One phase per approval cycle.
 - Tests and linter run on every phase. None detected → note "no suite detected".
+- Every phase with a runtime surface is verified by driving the changed flow (`implement.md` step 7a) before the summary — a green suite alone is not verification.
 - `[IRREVERSIBLE]` steps require explicit extra user confirmation.
 </operating_constraints>
 
@@ -92,6 +93,7 @@ Mode-specific completion criteria are defined in the loaded `assets/instructions
 - Phase implemented per plan and charter — no future-phase work.
 - Every touched file read first.
 - Tests and linter ran (or absence noted); introduced failures fixed; pre-existing tagged.
+- Verification field populated with observed runtime evidence (or an honest exemption/blocker).
 - Output block fully populated.
 - On approval: `**Status: Complete**` inserted; per-plan progress file written; MEMORY.md index has an entry.
 </completion_criteria>
