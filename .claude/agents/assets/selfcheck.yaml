@@ -70,5 +70,7 @@ reviewer-perphase:
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }
 reviewer-crosscheck:
-  - { fm: FM-3.1, check: "Final line is exactly ALIGNED or DRIFT DETECTED; cross-check table rows ≤30." }
+  - { fm: FM-3.1, check: "Final line is exactly ALIGNED or DRIFT DETECTED; cross-check table rows ≤30 (delta: ≤10)." }
   - { fm: FM-3.3, check: "Every row cites the artifact location it checks." }
+  - { fm: FM-1.1, check: "Scope line matches the CC-2 resolution (delta only when supersession ADR + prior ALIGNED for the same plan); delta pass read only the revised/edited sections." }
+  - { fm: FM-3.4, check: "Memory write followed CC-6: clean pass → index line only; findings-bearing pass → review-<plan-stem>-crosscheck[-rN]-<date>.md plus index line." }

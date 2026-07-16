@@ -54,6 +54,12 @@ routing_tokens:
     written_into: "architect output — the DEFAULT final summary line in Design mode (MAST R10: never self-certify a fresh pair into implementation) AND the default Amendment-mode final line for ADR_AMENDED / PLAN_UPDATED (delta re-check). Carries plan path and one-line reason."
     consumed_by: reviewer
     meaning: "Architect requests an external cross-check pass. Fresh pairs get a full pass; supersessions after a prior ALIGNED get a delta-scoped pass (reviewer CC-2)."
+    note: >-
+      Named exception to "one token = one meaning": this token carries one request
+      (run a cross-check); the SCOPE (full vs delta) is deliberately NOT a token
+      variant — it is resolved deterministically by the reviewer at CC-2 from the
+      ADR filename + its own memory, so a mis-labelled request cannot shrink the
+      pass. The reason text after the colon states the emitter's intent only.
 
   - token: "RECONCILE WITH ADR:"
     produced_by: architect

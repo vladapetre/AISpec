@@ -24,7 +24,7 @@ Central registry for code-review checklists and detection rules. The reviewer ag
 | Template | File | Trigger |
 |----------|------|---------|
 | Alignment check | `templates/alignment.md` | Always — every per-phase review |
-| Cross-artifact check | `templates/cross-check.md` | Cross-check mode — `CROSS_CHECK_REQUESTED:` or `/cross-check`, once per ADR/plan pair before Phase 1 |
+| Cross-artifact check | `templates/cross-check.md` | Cross-check mode — `CROSS_CHECK_REQUESTED:` or `/cross-check`; full pass before Phase 1, delta pass after amendments (mode file CC-2) |
 | .NET / C# | `templates/dotnet.md` | Framework: dotnet |
 | TypeScript / JS | `templates/typescript.md` | Framework: typescript |
 | Clean Architecture | `templates/clean-architecture.md` | Concern: clean-architecture |

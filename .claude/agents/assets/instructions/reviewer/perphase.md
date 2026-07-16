@@ -10,7 +10,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 4. Use the `reviewing` skill body for detection rules, registry, severity.
 
-5. Locate the plan: explicit reference → use it. Else lex-sort `artifacts/plans/` — one file → use it; multiple → ask. None → stop.
+5. Locate the plan: explicit reference → use it. Else lex-sort `artifacts/plans/` — one file → use it; multiple → ask. None → stop. Then run `node .claude/skills/documenting/scripts/plan-status.mjs check <plan-path>` — its output is the authoritative phase-completion state (never eyeball stamps by hand); any `problem:` line (missing/duplicate anchor, orphan stamp) is itself a Major finding.
 
 6. Identify the phase(s) under review.
    - **Per-phase:** read the `## Phase N Complete` summary. Commit range = `HEAD~1..HEAD`.

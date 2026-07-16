@@ -10,8 +10,8 @@ CC-1. Pre-flight per CLAUDE.md `## Pre-flight protocol` (shell has already done 
 
 CC-2. **Scope resolution — full vs delta.** The pass is **delta-scoped** when BOTH hold:
    - the ADR under check is a supersession (`-r<N>` filename), AND
-   - reviewer memory holds a prior cross-check entry for the same ADR/plan pair whose verdict was `ALIGNED`.
-   Otherwise (first check of a pair, or the prior verdict was `DRIFT DETECTED`) the pass is **full**. Record `scope: full` or `scope: delta (prior ALIGNED <date>)`.
+   - reviewer memory holds a prior cross-check entry **for the same plan** whose verdict was `ALIGNED` — matched on the plan path, which is stable across ADR revisions (the prior entry will cite an earlier ADR in the same short-title chain; that is the expected shape, not a mismatch).
+   Otherwise (first check of a plan, or the most recent prior verdict for it was `DRIFT DETECTED`) the pass is **full**. Record `scope: full` or `scope: delta (prior ALIGNED <date>, vs <prior-adr-id>)`.
 
 CC-2a. Read in one batch, per the resolved scope:
    - **Full:** `templates/cross-check.md`, the plan, the ADR, every report/SDR/charter the ADR `## Context` cites by path.

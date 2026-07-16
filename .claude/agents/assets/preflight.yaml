@@ -42,14 +42,14 @@ consultant-artifact:
 
 developer:
   inputs: "plan file, governing ADR, project config for test/lint detection. Plan header carries **Spec: ON HOLD** → ⚠ and ask; never implement against a held plan"
-  prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED / SELF_CHECKED (delta)). Phase N>1: prior phase carries **Status: Complete** (verify via plan-status.mjs check)"
+  prior: "phase 1: cross-check ALIGNED (or N/A if architect emitted SELF_CHECKED; SELF_CHECKED (delta) satisfies this only in the pre-Phase-1 amendment case — e.g. a plan amended under a spec hold before implementation started). Phase N>1: prior phase carries **Status: Complete** (verify via plan-status.mjs check)"
   scope: "implementing exactly one phase"
   terms: "every term in the phase's acceptance criteria appears in the plan, ADR, or .claude/MEMORY.md"
   target: "exactly one phase number; plan filename explicit"
 
 reviewer-perphase:
   inputs: "developer summary in request; plan at its path; governing ADR locatable per step 7"
-  prior: "phase 1: N/A. Phase N>1: prior phase carries **Status: Complete**"
+  prior: "phase 1: N/A. Phase N>1: prior phase carries **Status: Complete** (verify via plan-status.mjs check, not by eye)"
   scope: "review only; no feature suggestions"
   terms: "acceptance criteria use terms found in plan, ADR, or .claude/MEMORY.md"
   target: "explicit phase number and resolvable commit range. Never 'the latest change'"

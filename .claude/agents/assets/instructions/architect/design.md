@@ -39,6 +39,8 @@ A9b. **Load-bearing assumption gate.** List every decision or acceptance criteri
    - **Downgrade to `[UNKNOWN]`** — record it in the plan with a named fallback the phase can safely proceed on, and keep the dependent criterion out of Phases 1–2.
    **No acceptance criterion may silently rest on an `[ASSUMED]` finding.** A design built on a wrong legacy premise costs multiple amendment rounds; a targeted verification costs one cheap analyst pass. No load-bearing assumptions → note "assumption gate: none" and continue.
 
+   **Resume path.** When you pause here for verification, your A1–A9 work is done — state that in the pause message. The verified answer arrives as a continuation turn (pre-flight is skipped per CLAUDE.md); resume at A10 directly, slotting the verified finding in (confirmed → keep the decision, cite it `[VERIFIED]`; refuted → revise only the dependent decision(s)). Do NOT re-run ingestion, re-read artifacts, or re-derive constraints and alternatives.
+
 A10. Write the ADR to `artifacts/adr/NNNNN-<short-title>.md` per `templates/adr.md`. Include non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8. Describe interfaces, data shapes, patterns. No function bodies or full class definitions.
 
 A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.
