@@ -15,15 +15,19 @@
  * no decision). It only actively ALLOWS things it recognizes as safe,
  * and only actively DENIES things it recognizes as destructive.
  *
- * Wire it up in settings.json:
+ * Wire it up in settings.json (exec form + ${CLAUDE_PROJECT_DIR} so the
+ * script resolves regardless of the hook's spawn cwd):
  *   "hooks": {
  *     "PreToolUse": [
  *       { "matcher": "Bash",
- *         "hooks": [{ "type": "command", "command": "node .claude/hooks/guard.bash.mjs" }] }
+ *         "hooks": [{ "type": "command", "command": "node",
+ *                     "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.bash.mjs"] }] }
  *     ]
  *   }
  *
- * Requires the "shell-quote" npm package (npm install shell-quote).
+ * No runtime dependencies: the shell tokenizer is vendored in
+ * hooks/vendor/shell-quote-parse.mjs (host projects deploying this .claude
+ * directory have no node_modules).
  *
  * NOTE: the exact PreToolUse hook I/O contract (field names like
  * hookSpecificOutput / permissionDecision) has been iterated on by
@@ -31,17 +35,47 @@
  * on it in a real workflow: https://docs.claude.com/en/docs/claude-code/hooks
  */
 
-import { readFileSync } from "fs";
-import { join, resolve } from "path";
+import { appendFileSync, mkdirSync, readFileSync } from "fs";
+import { dirname, join, resolve } from "path";
+import { fileURLToPath } from "url";
 
-// shell-quote is loaded dynamically so a missing node_modules (fresh clone)
-// degrades to fall-through — the normal permission prompt — instead of the
-// hook erroring on every Bash call. Fail open, never brick the session.
+// Every invocation appends one line to .claude/telemetry/guard-bash.log
+// (anchored to this script's location, NOT the spawn cwd, so it also proves
+// the hook ran when spawned from an unexpected directory). This is the
+// evidence trail for "why did command X prompt/allow/deny": no log entry at
+// the time of a prompt means the hook never fired for that call.
+let RAW_FOR_TRACE = "";
+function trace(outcome) {
+  try {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "telemetry");
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(
+      join(dir, "guard-bash.log"),
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        outcome,
+        cwd: process.cwd(),
+        command: RAW_FOR_TRACE.slice(0, 300),
+      }) + "\n"
+    );
+  } catch {}
+}
+
+// The tokenizer is vendored (hooks/vendor/) because this .claude directory
+// is deployed into host projects that have no node_modules — a bare package
+// import would fail there and silently disable the guard on every command.
+// Load order: vendored copy, then the shell-quote package (dev convenience),
+// then fail open with a trace line so the outage is at least visible.
 let parse;
 try {
-  ({ parse } = await import("shell-quote"));
+  ({ parse } = await import("./vendor/shell-quote-parse.mjs"));
 } catch {
-  process.exit(0);
+  try {
+    ({ parse } = await import("shell-quote"));
+  } catch {
+    trace("fallthrough:no-tokenizer");
+    process.exit(0);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -115,6 +149,7 @@ function readStdin() {
 }
 
 function decide(decision, reason) {
+  trace(decision);
   console.log(
     JSON.stringify({
       hookSpecificOutput: {
@@ -127,9 +162,10 @@ function decide(decision, reason) {
   process.exit(0);
 }
 
-function fallThrough() {
+function fallThrough(reason = "unspecified") {
   // No decision emitted -> Claude Code applies its normal permission
   // rules / prompts the user as usual.
+  trace(`fallthrough:${reason}`);
   process.exit(0);
 }
 
@@ -464,13 +500,14 @@ async function main() {
   try {
     input = JSON.parse(await readStdin());
   } catch {
-    return fallThrough();
+    return fallThrough("bad-input-json");
   }
 
   const rawCommand = input?.tool_input?.command;
   if (typeof rawCommand !== "string" || !rawCommand.trim()) {
-    return fallThrough();
+    return fallThrough("no-command");
   }
+  RAW_FOR_TRACE = rawCommand;
 
   // Claude Code's hook payload typically includes the session's working
   // directory - use it so package.json resolution looks in the right
@@ -487,12 +524,12 @@ async function main() {
     tokens = parse(rawCommand);
   } catch {
     // Unparsable -> don't guess, let the normal prompt handle it.
-    return fallThrough();
+    return fallThrough("unparsable");
   }
 
   const { segments, sawWriteRedirect, sawBackground } = splitIntoSegments(tokens);
 
-  if (!segments.length) return fallThrough();
+  if (!segments.length) return fallThrough("no-segments");
 
   const classifications = [];
   let effCwd = cwd;
@@ -509,15 +546,15 @@ async function main() {
   }
 
   if (hiddenExecution) {
-    return fallThrough(); // let the human see it - could be hiding anything
+    return fallThrough("hidden-execution"); // could be hiding anything
   }
 
   if (sawWriteRedirect) {
-    return fallThrough(); // writing to disk - worth a human glance
+    return fallThrough("write-redirect"); // writing to disk
   }
 
   if (sawBackground) {
-    return fallThrough(); // backgrounded process - worth a human glance
+    return fallThrough("background"); // backgrounded process
   }
 
   if (classifications.every((c) => c === "safe")) {
@@ -529,7 +566,7 @@ async function main() {
 
   // Mixed / unknown segments (including any META_ROOTS like xargs, sh -c,
   // eval, python -c, etc.) - don't guess, fall through to normal prompt.
-  return fallThrough();
+  return fallThrough(`unknown-segments:[${classifications.join(",")}]`);
 }
 
 main();
