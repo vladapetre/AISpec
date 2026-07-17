@@ -32,7 +32,7 @@
  */
 
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 
 // shell-quote is loaded dynamically so a missing node_modules (fresh clone)
 // degrades to fall-through — the normal permission prompt — instead of the
@@ -149,6 +149,21 @@ function hasHiddenExecution(rawCommand) {
 }
 
 /**
+ * Dispatch on the executable's basename so path-invoked tools classify the
+ * same as bare names: `"/c/Program Files/dotnet/dotnet.exe" test` is
+ * `dotnet test`, `C:\...\git.exe push` is `git push`. Trade-off: a
+ * look-alike binary planted at another path inherits the real tool's
+ * classification — acceptable because this hook guards against accidental
+ * damage by the agent's own commands, not deliberately staged binaries
+ * (planting one is gated by guard.write / the normal prompt first).
+ */
+function normalizeRoot(token) {
+  if (typeof token !== "string") return token;
+  const base = token.split(/[\\/]/).pop();
+  return base.replace(/\.exe$/i, "");
+}
+
+/**
  * Split a shell-quote token stream into segments at chaining/piping
  * operators. Subshell grouping parens are dropped (treated as
  * transparent) rather than fully modeled - good enough to stop
@@ -162,10 +177,22 @@ function splitIntoSegments(tokens) {
   let sawWriteRedirect = false;
   let sawBackground = false;
 
-  for (const tok of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
     if (typeof tok === "object" && tok.op) {
       if (tok.op === "(" || tok.op === ")") {
         continue; // transparent grouping
+      }
+      if (tok.op === ">&") {
+        // "2>&1" (fd duplication) is harmless stream plumbing; ">& file"
+        // writes both streams to disk and must not be silently allowed.
+        const next = tokens[i + 1];
+        if (typeof next === "string" && /^\d+$/.test(next)) {
+          i++; // swallow the fd number so it doesn't pollute segment args
+        } else {
+          sawWriteRedirect = true;
+        }
+        continue;
       }
       if (tok.op === "&") {
         // backgrounding a process - deserves a human look, not silent allow
@@ -285,6 +312,7 @@ function checkDotnet(tokens) {
  */
 function readPackageScript(scriptName, cwd) {
   try {
+    if (!cwd) return null; // effective cwd not statically known
     const raw = readFileSync(join(cwd, "package.json"), "utf8");
     const pkg = JSON.parse(raw);
     return pkg?.scripts?.[scriptName] ?? null;
@@ -380,13 +408,30 @@ function checkNpmFamily(tokens, cwd) {
 }
 
 /**
+ * Track the effective working directory across segments so that
+ * "cd <path> && npm run x" resolves package.json from <path>, not the
+ * session cwd. Returns the new cwd, or null when the target can't be
+ * determined statically (bare "cd", "cd -", multiple args) — a null cwd
+ * makes package-script resolution fail closed to "unknown".
+ */
+function applyCd(seg, currentCwd) {
+  if (seg.length !== 2 || typeof seg[1] !== "string") return null;
+  let target = seg[1];
+  if (target === "-") return null;
+  // Git-Bash / MSYS drive paths: /c/foo -> c:/foo so Node can resolve them.
+  const msys = /^\/([A-Za-z])(\/|$)/.exec(target);
+  if (msys) target = `${msys[1]}:${target.slice(2) || "/"}`;
+  return currentCwd ? resolve(currentCwd, target) : null;
+}
+
+/**
  * Classify a single command segment (array of plain string tokens,
  * operators already stripped out by splitIntoSegments).
  * Returns one of: "safe" | "deny" | "unknown"
  */
 function classifySegment(tokens, cwd = process.cwd(), depth = 0) {
   if (!tokens.length) return "unknown";
-  const root = tokens[0];
+  const root = normalizeRoot(tokens[0]);
 
   if (root === "git") return checkGit(tokens);
   if (root === "dotnet") return checkDotnet(tokens);
@@ -449,7 +494,12 @@ async function main() {
 
   if (!segments.length) return fallThrough();
 
-  const classifications = segments.map((seg) => classifySegment(seg, cwd));
+  const classifications = [];
+  let effCwd = cwd;
+  for (const seg of segments) {
+    classifications.push(classifySegment(seg, effCwd));
+    if (normalizeRoot(seg[0]) === "cd") effCwd = applyCd(seg, effCwd);
+  }
 
   if (classifications.includes("deny")) {
     return decide(
