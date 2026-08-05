@@ -8,6 +8,7 @@
 // Rules are agent-agnostic by design — no fragile agent-identity detection.
 import { readFileSync } from "node:fs";
 import { repoRelative } from "./lib/project-root.mjs";
+import { checkArtifactPath, checkMemoryPath } from "./lib/ownership.mjs";
 
 let data;
 try {
@@ -36,28 +37,11 @@ function deny(reason) {
   process.exit(2);
 }
 
-// Rule 1 — registered artifact directories only (CLAUDE.md ## Artifact Ownership).
-if (rel.startsWith("artifacts/")) {
-  const REGISTERED = ["reports", "api", "inbound", "strategy", "adr", "plans", "sql"];
-  const m = /^artifacts\/([^/]+)\//.exec(rel);
-  if (!m) deny("files directly under artifacts/ are unregistered; write into a registered subdirectory");
-  if (!REGISTERED.includes(m[1]))
-    deny(`artifacts/${m[1]}/ is not in the CLAUDE.md ownership table — a new artifact kind gets a row there first`);
-}
-
-// Rule 2 — registered agent-memory file kinds only (CLAUDE.md ## Agent memory layout).
-const am = /^\.claude\/agent-memory\/[^/]+\/(.+)$/.exec(rel);
-if (am) {
-  const name = am[1];
-  const ok =
-    name === "MEMORY.md" ||
-    name === "lessons.md" ||
-    /^(plan|adr|report|review|sdr|charter|context-map)-[^/]+\.md$/.test(name);
-  if (!ok)
-    deny(
-      "unregistered agent-memory file kind (allowed: MEMORY.md, lessons.md, " +
-        "plan-*/adr-*/report-*/review-*/sdr-*/charter-*/context-map-*.md; no subdirectories)"
-    );
-}
+// Rules live in lib/ownership.mjs, shared with lint.write.mjs --all so the
+// write-time block and the bulk sweep cannot disagree about what is registered.
+// Rule 1 — registered artifact directories (CLAUDE.md ## Artifact Ownership).
+// Rule 2 — registered agent-memory file kinds (CLAUDE.md ## Agent memory layout).
+const reason = checkArtifactPath(rel) ?? checkMemoryPath(rel);
+if (reason) deny(reason);
 
 process.exit(0);
