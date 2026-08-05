@@ -20,6 +20,7 @@ CC-2a. Read in one batch, per the resolved scope:
    - **Delta:** `templates/cross-check.md`, the specific plan phase(s) the amendment edited (per its `Plan edit` field), the plan's `**Governing ADR:**` pointer line, and the changed decisions — for a supersession, its `## Revised decision` and `## Delta consequences` sections; for a consolidation, only the decisions named in the request's `scope:` clause (a consolidated ADR has no delta sections — it reads as a whole ADR). Do NOT re-read the root ADR, untouched or folded decisions, untouched phases, or cited reports — the prior `ALIGNED` already covered them.
 
 CC-3. Run the five checks from `templates/cross-check.md` in order: terminology, decision-coverage, reverse-coverage, driver-finding, reference-integrity — against the resolved scope only. One row per finding; cap 30 rows (delta: cap 10).
+   - **Evidence bar E2–E3 apply** (`reviewing` SKILL.md `## Evidence bar`): never infer an artifact's content from its name or heading — read the section — and actively try to disprove a row before writing it (the criterion may be satisfied in a phase you have not read, or by wording elsewhere in the ADR). A row that does not survive is dropped silently. E1 and E4–E5 are code-review rules and do not apply here.
 
 CC-4. Verdict: `ALIGNED` if no critical or major rows; `DRIFT DETECTED` otherwise. `minor`/`pre-existing` never block.
 

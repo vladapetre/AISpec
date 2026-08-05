@@ -49,7 +49,10 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 13a. **Re-review detection** — check memory for an entry whose lookup key is exactly `<plan-short-title>#phase-<N>` (plan filename without `.md`; integer N). Match present → this is a re-review: scope step 14 to files in the current step-8 diff only. Alignment, ADR-alignment, and `patterns.md` Security (Se1–Se3) still run in full. Record `re-review: yes — prior key <key>, date <date>`. No match → fresh review; skip.
 
-14. **Adversarial review** — for each loaded template, run every checklist item on the changed files (scoped per 13a if re-review). PASS → skip silently. FAIL → finding: severity + check name + `file:line` + ≤3-line snippet if Critical. Not applicable → skip silently.
+13b. **Resolve the machine-enforced set** — per `reviewing` SKILL.md `## Machine-enforced exclusions`, from this project's config (analyzer severities, banned-API list, architecture tests, lint config, pre-commit hooks, unconditional CI steps, DB constraints, the resolved test/lint command). Findings in those classes are noise and are not reported. Record `Machines: <detected gates | none detected>`. Nothing is excluded until detected; a **guard's own code stays in scope** and a rule configured as `warning` is not enforced.
+
+14. **Adversarial review** — for each loaded template, run every checklist item on the changed files (scoped per 13a if re-review). PASS → skip silently. FAIL → finding: severity + check name + `file:line` + ≤3-line snippet if Critical. Not applicable → skip silently. Findings in the 13b machine-enforced set → skip silently.
+   - **Evidence bar (SKILL.md `## Evidence bar`) applies to every finding before it is written**: `file:line` from source read this pass (E1); no behaviour inferred from a name and no library semantics from memory (E2); **actively try to disprove it — read the callers, tests, and config — and drop it silently if it does not survive** (E3); Critical/Major carry a concrete failure scenario, inputs/state → wrong result, or they are demoted (E4); Minor capped at 5 with the remainder as a count by category (E5).
    - **Pre-existing classification**: tag `[PRE-EXISTING]` if either holds — (a) file not in step-8 set; (b) `git blame -L <line>,<line>` shows the line's SHA is not in `git rev-list <range>`. Pre-existing findings are listed but excluded from the verdict.
 
 15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an **UNCLEAR alignment row** (plan ambiguity — fail closed; the verdict reason names the ambiguity so the team lead routes to the architect, not the developer), an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
@@ -72,6 +75,7 @@ Produce this exactly. Empty severity lists use `(none)`. Omit the `ARCHITECT AME
 
 **Plan:** artifacts/plans/<short-title>.md
 **Governing ADR:** artifacts/adr/NNNNN-<short-title>.md
+**Machines:** <detected gates whose finding classes were excluded | none detected>
 
 ### 1. Acceptance-Criteria Alignment
 
@@ -124,6 +128,7 @@ Findings: `- [<tag>N] file:line — <check>: <one-sentence>`. Tags: `C` Critical
 
 #### Minor — advisory
 (none)
+<!-- E5: at most 5 rows; render the remainder as one line, e.g. `+7 more (naming 4, magic numbers 3)`. -->
 
 #### Pre-existing — not introduced by this phase
 (none)

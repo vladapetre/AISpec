@@ -98,6 +98,46 @@ First match wins:
 
 ---
 
+## Machine-enforced exclusions — review only what survives the machines
+
+A finding the project's own gates already fail on is **noise**: it costs the reader attention, and it was going to be caught anyway. Resolve this project's enforced set once per review (cheap — these are config reads), then do not report findings in those classes.
+
+| Signal | Already enforced — do not flag |
+|---|---|
+| `TreatWarningsAsErrors` / `WarningsAsErrors` in `Directory.Build.props`, `*.csproj`; analyzer `severity = error` in `.editorconfig` | the analyzer/compiler rules so configured |
+| A banned-API list (`BannedSymbols.txt`, `BannedApiAnalyzers`) | use of the listed APIs |
+| An architecture-test project (`*ArchitectureTests*`, NetArchTest / ArchUnit / ts-arch reference) | the structural rules it asserts — layer purity, feature isolation, handler/naming conventions |
+| `eslint.config.*` / `.eslintrc*` rules at `"error"` | those lint rules |
+| `tsconfig.json` `strict`, `noImplicitAny`, `noUnusedLocals` | the type errors they produce |
+| Pre-commit hooks (`.husky/`, `lint-staged`, `.pre-commit-config.yaml`) | formatting, and whatever they run on staged files |
+| Unconditional CI steps (`.github/workflows/*`, `azure-pipelines*.yml`, `.gitlab-ci.yml`) | the gates they always run |
+| DB constraints / triggers / check constraints in migrations | the invariant enforced at write time |
+| The resolved test/lint command (`assets/detectors.yaml#run_detectors`) | test failures and lint violations that command reports |
+
+Record `Machines: <detected gates, or none detected>` in the output. **Nothing is excluded until it is detected** — no signal found means report everything, because an exclusion nobody can audit is indistinguishable from a blind spot.
+
+Three limits, each of which reverses the exclusion:
+
+1. **A guard's own code is fully in scope — and defects in it outrank most findings.** The trigger SQL, the analyzer rule, the architecture test, the validator, the auth filter: the *fact* that an invariant is machine-enforced is out of scope, but the machine doing the enforcing is code like any other, and everything downstream trusts it. A wrong guard is worse than no guard, because it silently converts "checked" into "assumed". Enumerate its bypass surface: every input it does not cover, every state it reads, and who can change that state.
+2. **Configured-as-warning is not enforced.** If the rule exists but its severity is `warning`/`info`, or the changed path sits outside the analyzer's or linter's include glob, the machine does not catch it — in scope.
+3. **Exclusion is per finding *class*, never per diff.** It licenses "the build would reject this, so I need not say it", not "the gates presumably passed". Never assume a gate ran on this code.
+
+---
+
+## Evidence bar
+
+A false Critical is far more expensive than a missed Minor: it sends the developer to fix nothing, and it teaches the reader to discount the next report. So the bar is on the finding, not on the reviewer's thoroughness.
+
+- **E1 — cite `file:line` from source read in this pass.** Not from the diff header, not from memory of an earlier phase.
+- **E2 — never infer behaviour from a name**, and never assert language, framework, or library semantics from memory. Read the real code path, the actual overload, the actual config value.
+- **E3 — try to disprove it before reporting.** Read the callers, the tests, the configuration, the surrounding phase. If the finding does not survive its own counter-argument, drop it silently — it never reaches the output.
+- **E4 — Critical and Major require a concrete failure scenario**: specific inputs or state → the wrong output, exception, or data effect. If no such scenario can be written, the finding is not Critical or Major; demote it or drop it. "This looks fragile" is not a scenario.
+- **E5 — cap Minor findings at 5.** Report the five highest-value ones, then a count of the remainder by category (`+7 more (naming 4, magic numbers 3)`). An unbounded advisory list buries the findings that block, and trains the reader to skim the whole report.
+
+E1–E4 apply to every mode. E5 applies wherever Minor findings are rendered.
+
+---
+
 ## Modes
 
 - **per-phase / cumulative** (default) — fires on a developer phase summary or `## All Phases Complete`. Runs alignment + framework + concern templates + `patterns.md` against the changed files, plus the **removed-guard check** (step 11b, both branches, never gated): every deleted or weakened guard/filter/validation must map to a criterion mandating its removal. The cumulative (full-scope) pass additionally runs a **cross-flow impact analysis** (step 11a): it traces consumers of changed shared logic and flags undocumented behaviour-shifting ripples into flows the plan never named — e.g. a dropped `.Distinct()` that fires duplicate SMS. Emits `APPROVED` or `CHANGES REQUIRED` plus optional `ARCHITECT AMENDMENT NEEDED:`.

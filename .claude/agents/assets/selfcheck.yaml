@@ -72,6 +72,8 @@ reviewer-perphase:
   - { fm: FM-1.3, check: "Cumulative only — step 11a cross-flow impact analysis run; consumers of changed shared logic traced; undocumented behaviour-shifting ripples flagged with both change and consumer file:line, and section 2b rendered. (Per-phase: N/A.)" }
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }
+  - { fm: FM-3.3, check: "Evidence bar held (SKILL.md ## Evidence bar): each finding survived an active attempt to disprove it; every Critical/Major carries a concrete failure scenario or was demoted; Minor capped at 5 with the remainder as a count." }
+  - { fm: FM-1.2, check: "Machine-enforced set resolved and recorded on the Machines: line; no finding reported that this project's own gates already fail on — but a guard's OWN code was still reviewed." }
 reviewer-crosscheck:
   - { fm: FM-3.1, check: "Final line is exactly ALIGNED or DRIFT DETECTED; cross-check table rows ≤30 (delta: ≤10)." }
   - { fm: FM-3.3, check: "Every row cites the artifact location it checks." }
