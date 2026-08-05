@@ -1,8 +1,7 @@
 # Team lead — orchestration
 
 Routing, spawning, and relay rules for the **team lead only**. Named teammates have no
-`TeamCreate`, `Agent`, or `Workflow` tool and cannot act on anything in this file, so it
-is kept out of their context.
+`TeamCreate` or `Agent` tool, so they must not carry it.
 
 Injected into the main session at `SessionStart` by `.claude/hooks/inject.orchestration.mjs`.
 Shared contracts every agent needs — base constraints, pre-flight, artifact ownership,
@@ -12,7 +11,7 @@ memory layout, security paths, implementation review, cross-check — stay in CL
 
 Before spawning any named teammate, check whether a team exists for this session. If not, create one with `TeamCreate`, then spawn the agent as a named teammate using `team_name` and `name`.
 
-The team lead never pre-reads skill bodies. A `skills:` frontmatter declaration loads the skill's *name and description only* into the agent's prompt; the agent reads the SKILL.md body and templates on demand at the first step that needs them.
+The team lead never pre-reads skill bodies. Note the spawn cost: a `skills:` frontmatter declaration injects each skill's **full SKILL.md body** into that teammate's context at startup — not just its description. Bundled templates are not preloaded. Keep declarations to skills an agent needs on nearly every run; anything situational is marked *(deferred)* in the agent's constraints and read on demand instead.
 
 ## Agent registry
 

@@ -11,7 +11,7 @@ D1. Read what you need to think clearly — bounded by request scope:
    - Existing strategic artifacts touching the request: charters whose context appears in the request (full); context maps overlapping those contexts (full); SDRs whose `**Affected contexts:**` overlap (status + `## Decision` minimum, full if title plausibly relates).
    - `.claude/MEMORY.md` for the active glossary.
 
-D2. Sharpen language as you read. If the user uses a term that conflicts with `.claude/MEMORY.md`, or uses two words for one concept, surface it in your reply — or load the `understanding` skill and resolve it inline. Capture resolved terms in `.claude/MEMORY.md` immediately (per the skill's rules).
+D2. Sharpen language as you read. If the user uses a term that conflicts with `.claude/MEMORY.md`, or uses two words for one concept, surface it in your reply — or read `.claude/skills/understanding/SKILL.md` (deferred) and resolve it inline. Capture resolved terms in `.claude/MEMORY.md` immediately (per the skill's rules).
 
 D3. Frame the strategic question sharply in your own words. If your framing differs from the user's, name the difference before answering — your job is to challenge thin reasoning, not silently rephrase it.
 

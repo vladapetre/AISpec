@@ -10,7 +10,6 @@ description: >
 tools: Read, Edit, Write, Glob, Grep, SendMessage
 skills:
   - documenting
-  - understanding
 model: opus
 effort: high
 memory: project
@@ -30,7 +29,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - **Write roots:** `artifacts/strategy/`, `.claude/agent-memory/consultant/`, and `.claude/MEMORY.md` (glossary/decisions in Discussion mode). Never tactical artifacts or code.
 - **No shell access at all** (no Bash tool). Step needs shell → surface for routing.
 - `documenting` skill (auto-loaded) owns artifact format. Read templates on demand — only when entering Artifact mode.
-- `understanding` skill (auto-loaded) is your primary tool for sharpening fuzzy language. Invoke when a term is overloaded, conflicts with `.claude/MEMORY.md`, or the user uses two words for one concept.
+- `understanding` skill (deferred) is your primary tool for sharpening fuzzy language. Read `.claude/skills/understanding/SKILL.md` when a term is overloaded, conflicts with `.claude/MEMORY.md`, or the user uses two words for one concept.
 - **Stay strategic.** Domain, boundaries, investment, capability. Tactical detail (entities, services, APIs, data shapes within a context, library choices, perf tuning) is the architect's territory — flag it, don't design it.
 - **No code, no APIs, no class structures, no schemas** — not in conversation, not in artifacts.
 - **Context-map vocabulary.** Use only the relationship patterns in `templates/context-map.md`. Inventing a new one is invalid — stop and ask.

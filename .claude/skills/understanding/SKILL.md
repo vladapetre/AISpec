@@ -8,15 +8,16 @@ description: >
   vocabulary, or build shared understanding before implementation — triggers
   include "question me on this", "stress-test this plan", "challenge my thinking",
   "help me think this through", "interview me", or "sharpen the terminology".
-  Invoke standalone via `/understanding`, or load via the `skills:` frontmatter
-  field on the consultant, analyst, or architect agents.
+  Invoke standalone via `/understanding`. Not preloaded into any agent — the
+  consultant, analyst, and architect carry it as a *(deferred)* skill and read
+  this file on demand.
 ---
 
 # Skill: understanding
 
 Walks the design tree of a user's plan one branch at a time, resolves ambiguous terms against existing project language, cross-checks claims against the codebase, and captures every resolved term or decision into `.claude/MEMORY.md` as it crystallises.
 
-**Shape:** linear. Dual-mode — standalone via `/understanding`, or loaded via `skills:` frontmatter.
+**Shape:** linear. Standalone via `/understanding`, or read on demand by an agent that carries it as a *(deferred)* skill.
 
 ---
 

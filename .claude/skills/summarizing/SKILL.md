@@ -1,14 +1,16 @@
 ---
 name: summarizing
+disable-model-invocation: true
 description: >
   Summarize the session's work into the repository's pull-request template,
   hard-capped at 4000 characters, delivered as copy-paste-ready markdown. Finds
   the PR template in the working repo — or, in an umbrella repository, in each
   touched sub-repo — fills it from the feature branch's commits plus the
   session's plan/ADR artifacts, ticks applicable checklist items, and verifies
-  the character count mechanically before delivering. Use when the user says
-  "summarize this session", "write the PR description", "fill in the PR
-  template", "prep the pull request", or invokes `/summarizing`.
+  the character count mechanically before delivering. User-invoked only
+  (`/summarizing`) — never triggered automatically, since the PR description
+  should be written when you decide the branch is done, not when a turn happens
+  to look final.
 ---
 
 # Skill: summarizing

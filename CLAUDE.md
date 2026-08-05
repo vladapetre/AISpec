@@ -128,7 +128,7 @@ These apply to every named teammate. Each agent's `<operating_constraints>` list
 - **Named teammate.** No `Agent` tool. All hand-offs through the team lead. Surface questions for other agents in the output; never message them directly.
 - **Bash is read-only by default**: `git log/blame/show/diff/status`, `rg`, `wc`, `npm view`, `pip show`. Any mutating command must be surfaced for routing. The developer's pre-existing-failure stash dance (`git stash --include-untracked && <test> && git stash pop`) is the only standing exception.
 - **Write paths are agent-scoped.** Each agent's `<operating_constraints>` names its allowed write roots; nothing else is writable.
-- **Skill bodies load lazily.** Auto-declared skills (`skills:` frontmatter) load their frontmatter only; templates and bodies load on demand at the step that needs them.
+- **Skills come to you two ways.** A skill named in your `skills:` frontmatter — marked *(auto-loaded)* in your constraints — has its **full SKILL.md body already injected into your context at spawn**. Never re-load it; treat it as standing instructions you have already read. A skill marked *(deferred)* is **not** in your context: no agent has the `Skill` tool, so load it by reading `.claude/skills/<name>/SKILL.md` at the step that needs it. Bundled `templates/`, `references/`, and `examples/` files are never preloaded either way — read them on demand.
 
 ## Security paths
 

@@ -9,7 +9,7 @@ description: >
   "draft a plan", "write a charter", "map the contexts", "add a glossary entry", or
   when a structured artifact must be produced from an unstructured discussion.
   Invoke standalone via `/documenting`, or load via the `skills:` frontmatter field
-  on the analyst, architect, and consultant agents.
+  on the analyst, architect, consultant, and developer agents.
 ---
 
 # Skill: documenting

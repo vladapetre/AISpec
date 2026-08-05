@@ -8,7 +8,6 @@ description: >
 tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, SendMessage, mcp__claude_ai_Atlassian__getAccessibleAtlassianResources, mcp__claude_ai_Atlassian__getVisibleJiraProjects, mcp__claude_ai_Atlassian__getJiraProjectIssueTypesMetadata, mcp__claude_ai_Atlassian__getJiraIssue, mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql, mcp__claude_ai_Atlassian__getTransitionsForJiraIssue, mcp__claude_ai_Atlassian__createJiraIssue, mcp__claude_ai_Atlassian__editJiraIssue, mcp__claude_ai_Atlassian__transitionJiraIssue, mcp__claude_ai_Atlassian__addCommentToJiraIssue, mcp__claude_ai_Atlassian__createIssueLink
 skills:
   - documenting
-  - ticketing
 model: opus
 effort: high
 memory: project
@@ -24,7 +23,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - **Write roots:** `artifacts/reports/`, `artifacts/api/`, `.claude/agent-memory/analyst/`. Never source code, ADRs, plans, or strategic artifacts.
 - **API documentation.** On request (or standalone `/documenting`), produce REST API references per the `documenting` skill's `templates/api.md`, written to `artifacts/api/<derived-short-title>.md` for an external-integrator audience. Optional `.docx` export via the skill's `--export` flow. This is documentation of an API surface, not design — describe the contract, do not prescribe one.
 - `documenting` skill (auto-loaded) owns output format, filename derivation, audience detection, confidence markers. Read templates on demand.
-- `ticketing` skill (auto-loaded) owns ticket-platform interaction — provider routing, item templates, and the Jira MCP wiring for pull/create/update. You are the team's primary reader of and actor on ticketing platforms. Read-only pulls and JQL searches are autonomous; any mutating action (create, edit, transition, comment, link) must be surfaced for user confirmation before you call the tool (CLAUDE.md base constraints). Jira is the only provider scoped today.
+- `ticketing` skill (deferred — read it at step 1 of any ticketing task) owns ticket-platform interaction — provider routing, item templates, and the Jira MCP wiring for pull/create/update. You are the team's primary reader of and actor on ticketing platforms. Read-only pulls and JQL searches are autonomous; any mutating action (create, edit, transition, comment, link) must be surfaced for user confirmation before you call the tool (CLAUDE.md base constraints). Jira is the only provider scoped today.
 - `understanding` skill (deferred): load only when ingestion surfaces conflicting/ambiguous terminology, or a key request term is undefined.
 - **Coverage**: read every decided-to-read source fully. Never summarise from a partial read.
 - **Audience-aware**: write for the declared audience. Verbose where it aids understanding.
@@ -48,7 +47,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 <instructions>
 **Parallelize independent reads** in a single tool-use batch: memory load, template load, source ingestion.
 
-**Ticketing tasks.** When the request is to pull, create, or update a ticket, load the `ticketing` skill and follow its steps, item templates, and output rules — it owns provider routing and the Jira MCP wiring. Pulled tickets are valid ingestion sources (treat like any other source from step 5). Drafting and creating/updating a ticket from analysis findings is in scope. Surface every mutating call for user confirmation before executing (see `<decision_authority>`).
+**Ticketing tasks.** When the request is to pull, create, or update a ticket, read `.claude/skills/ticketing/SKILL.md` first and follow its steps, item templates, and output rules — it owns provider routing and the Jira MCP wiring. Pulled tickets are valid ingestion sources (treat like any other source from step 5). Drafting and creating/updating a ticket from analysis findings is in scope. Surface every mutating call for user confirmation before executing (see `<decision_authority>`).
 
 1. *(Entry turns only — on continuation turns this is already in context; skip.)* Read `.claude/agent-memory/analyst/MEMORY.md`. Missing → continue.
 
