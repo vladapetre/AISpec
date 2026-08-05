@@ -1,6 +1,24 @@
 # Pre-flight semantics registry.
 # Each agent's step-2 pre-flight references this file by key instead of restating.
-# Universal rules and ✓/⚠/✗ branching live in CLAUDE.md ## Pre-flight protocol.
+# Entry-turn rule, the ✓/⚠/✗ branch, and the two universal rules live in
+# CLAUDE.md ## Pre-flight protocol. The FORMATS below live here rather than there:
+# every agent loads this file at step 2 anyway, so a copy in the always-on file
+# would be paid by every session and read by none.
+
+emit_format:
+  compact: "Pre-flight: Inputs ✓ | Prior N/A | Scope ✓ | Terms ✓ | Target ✓ → PROCEED"
+  compact_when: "every check is ✓ or N/A — one line, then proceed."
+  expanded_when: "at least one check is ⚠ or ✗ — per-line evidence, then a Result line."
+  expanded: |
+    Pre-flight:
+    - Inputs exist: <✓|⚠|✗>  <one-line evidence>
+    - Prior phase reviewed: <✓|⚠|✗|N/A>  <one-line evidence>
+    - Scope: <✓|⚠|✗>  <one-line evidence>
+    - Terms current: <✓|⚠|✗>  <one-line evidence>
+    - Target identified: <✓|⚠|✗>  <one-line evidence>
+
+    Result: <ASK | STOP>
+  ask_grammar: "Up to 5 questions in ONE batch, each ≤2 lines and ≤25 words: `Q<n>: <question> [Default: <fallback> | none]`. The default names the assumption the agent falls back on if unanswered; `none` when no defensible default exists."
 
 # Key = the agent's `name:` frontmatter value. Multi-mode agents have one entry
 # per mode-specific file (e.g. architect-design, architect-amendment).

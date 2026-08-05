@@ -29,6 +29,18 @@ Each multi-mode agent's `<instructions>` step 2 is a deterministic dispatch (reg
 
 Per-check pre-flight semantics for every agent-mode pair live in `.claude/agents/assets/preflight.yaml` (keyed by `<agent>-<mode>` for multi-mode agents, by `<agent>` otherwise).
 
+## Model tiering at spawn
+
+Frontmatter defaults hold unless a listed override applies. Override only for the mechanical slice of a role — this is a spawn-time decision, so it lives here rather than in CLAUDE.md, where every teammate would carry a table none of them can act on.
+
+| Agent | Default | Override to | When |
+|---|---|---|---|
+| `reviewer` | `sonnet` | `haiku` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no CLAUDE.md `## Security paths` file. Anything else keeps `sonnet`. |
+| `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT`. Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
+| `analyst` | `opus` | `sonnet` | Ticket pulls, JQL searches, ticket drafting, delta reports against an existing report. Keep `opus` for fresh ingestion of code/docs/data. |
+
+The architect classification is a spawn-time guess (Amendment mode's M2 decides for real, inside the run). A wrong guess is harmless — the mode runs identically on either tier, so guess cheap.
+
 ## Agent Communication
 
 Any question or request for input from any agent must be surfaced to the user before acting on it. Wait for the user's explicit reply before sending anything back to the agent via `SendMessage`. Never auto-respond, auto-confirm, or act on the agent's behalf.

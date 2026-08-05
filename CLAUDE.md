@@ -2,7 +2,14 @@
 
 This file is the **shared contract surface**: every rule here is one that named teammates act on, and agent files, mode files, asset YAMLs, skills, and hooks resolve pointers into its `## Section` anchors by exact name. Never rename or delete a section without re-pointing its references.
 
-Team-lead-only rules — Team Setup, the Agent registry / spawn table, and Agent Communication / relay discipline — live in `.claude/agents/assets/instructions/lead/orchestration.md`, injected into the main session at `SessionStart`. Teammates have no `TeamCreate` or `Agent` tool, so they must not carry it.
+**Admission test — what may live here.** This file is loaded into every session and every teammate spawn, whether or not the rule applies. A rule earns its place only if **both** hold:
+
+1. **Not derivable** — it cannot be read off the repo, and it is not already stated in an asset file, mode file, skill, or hook that its actor loads anyway. A rule restated here *and* in `preflight.yaml`/`selfcheck.yaml`/a mode file is one copy too many, and the two copies will drift.
+2. **Load-bearing for more than one actor** — a rule only the architect acts on belongs in the architect's mode file; a rule only the team lead acts on belongs in `instructions/lead/orchestration.md`; a rule the hooks enforce mechanically needs at most a pointer here, not its own restatement.
+
+Everything else goes to the actor that uses it and is *referenced* from here by anchor. Sections carry the decision tables and shared vocabulary; procedure lives with its owner. Adding a section is the last resort, not the default — the honest cost of a rule here is paid on every turn of every session by every agent, including the ones it does not apply to.
+
+Team-lead-only rules — Team Setup, the Agent registry / spawn table, model tiering at spawn, and Agent Communication / relay discipline — live in `.claude/agents/assets/instructions/lead/orchestration.md`, injected into the main session at `SessionStart`. Teammates have no `TeamCreate` or `Agent` tool, so they must not carry it.
 
 ## Agent lifecycle — continue, don't respawn
 
@@ -95,15 +102,7 @@ On `CHANGES REQUIRED`, route findings to the developer and clear them before the
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-**Model tiering.** Frontmatter defaults hold unless a listed override applies. The team lead overrides at spawn time only for the mechanical slice of a role:
-
-| Agent | Default | Override to | When |
-|---|---|---|---|
-| `reviewer` | `sonnet` | `haiku` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no `## Security paths` file. Anything else keeps `sonnet`. |
-| `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT`. Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
-| `analyst` | `opus` | `sonnet` | Ticket pulls, JQL searches, ticket drafting, delta reports against an existing report. Keep `opus` for fresh ingestion of code/docs/data. |
-
-The architect classification is a spawn-time guess (M2 decides for real, inside the run). A wrong guess is harmless — the mode runs identically on either tier, so guess cheap.
+Model tiering at spawn is the team lead's alone (`instructions/lead/orchestration.md` — teammates cannot spawn and never act on it).
 
 The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
 
@@ -155,14 +154,6 @@ Paths whose changes always load `patterns.md` in full (Se1–Se3), bypass small-
 
 Projects extend this list by appending paths below — the architect (Amendment mode), the reviewer (Per-phase mode), and `reviewing/SKILL.md` all read this block.
 
-## Compliance signal
-
-The architect (step A5, Design mode) and consultant (step A6, Artifact mode) score the `compliance` binding constraint as **Medium** when any of the following is present:
-
-- GDPR, HIPAA, SOC2, or PCI named in the request, CLAUDE.md, or a referenced artifact.
-- An environment variable matching `COMPLIANCE_*` set in the project's deployment manifests (`.env*`, `docker-compose*.yml`, helm/values, CI workflows).
-- A regulatory directive appended to this block by the project.
-
 ## Project facts
 
 Operational facts about the host project that every agent needs and none should rediscover — nested-repo layout ("`src/Rent` is its own git repo; run git `-C` there"), test conventions ("pipeline-only tests", fixed ports, shared dev DB), tool quirks, build entry points. Projects append facts below as one-liners.
@@ -189,30 +180,11 @@ Corollary for the team lead: after editing CLAUDE.md or an injected document mid
 
 Every named agent runs the 5-check pre-flight **only on entry turns**: (a) first turn in a session; (b) first turn after an amendment, rejection, or scope change; (c) any turn where the input set has visibly changed (new artifact paths, new phase number, new commit range). On continuation turns within the same task, skip the pre-flight block — and skip the entry-turn reads with it (`## Agent lifecycle`): memory, templates, and unchanged artifacts are already in context.
 
-Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (autonomous, not out-of-scope) · **Terms current** · **Target identified**. Each agent's step 2 declares its per-check semantics.
+Checks: **Inputs exist** · **Prior phase reviewed** (`N/A` for pipeline-entry stages) · **Scope** (autonomous, not out-of-scope) · **Terms current** · **Target identified**.
 
-On entry turns, emit pre-flight in **compact form** when all checks pass:
+**Branch:** all `✓`/`N/A` → compact one-liner, proceed. Any `⚠` → expanded form + `Result: ASK:` (batch the questions, wait for the user). Any `✗` → expanded form + `Result: STOP: <reason>`.
 
-```
-Pre-flight: Inputs ✓ | Prior N/A | Scope ✓ | Terms ✓ | Target ✓ → PROCEED
-```
-
-Expand to per-line evidence only when at least one check is `⚠` or `✗`:
-
-```
-Pre-flight:
-- Inputs exist: <✓|⚠|✗>  <one-line evidence>
-- Prior phase reviewed: <✓|⚠|✗|N/A>  <one-line evidence>
-- Scope: <✓|⚠|✗>  <one-line evidence>
-- Terms current: <✓|⚠|✗>  <one-line evidence>
-- Target identified: <✓|⚠|✗>  <one-line evidence>
-
-Result: <ASK | STOP>
-```
-
-**Branch:** all `✓`/`N/A` → compact one-liner, proceed. Any `⚠` → expanded form + `Result: ASK: <up to 5 clarifying questions in one batch>`; wait for user. Any `✗` → expanded form + `Result: STOP: <reason>`.
-
-Clarifying questions on the `ASK` branch: each ≤2 lines and ≤25 words, in the form `Q<n>: <question> [Default: <fallback> | none]`. The default names the assumption the agent will fall back on if the user does not answer — `none` if no defensible default exists.
+The exact compact/expanded line formats, the `ASK` question grammar, and each agent's per-check semantics all live in `assets/preflight.yaml` — which every agent already loads at step 2, so restating the formats here would be a second copy of a thing nobody reads twice.
 
 **Universal rules** (apply to every agent — do not restate in agent files):
 1. Never start work before naming inputs. List every input artifact, path, or URL under `Inputs exist`.

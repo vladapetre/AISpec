@@ -10,6 +10,15 @@
 #   4. Take the first 2. Position-1 constraint wins ties — by design.
 #   5. No signal fits any rule → ask the user; do not infer.
 
+# Moved here from CLAUDE.md: only these two steps score `compliance`, and both
+# load this file at the moment they do it, so the always-on copy was paid by every
+# session and read by neither agent until scoring time.
+# PROJECTS EXTEND THIS LIST — append regulatory directives as further entries.
+compliance_signals:
+  - "GDPR, HIPAA, SOC2, or PCI named in the request, CLAUDE.md, or a referenced artifact"
+  - "an environment variable matching COMPLIANCE_* set in the project's deployment manifests (.env*, docker-compose*.yml, helm/values, CI workflows)"
+  - "a regulatory directive appended to this list by the project"
+
 architect:
   constraints: [maintainability, latency, consistency, scalability, operability, security, reversibility, cost, compliance, "team size"]
   high_signals:
@@ -18,7 +27,7 @@ architect:
   medium_signals:
     latency: "public HTTP endpoint"
     scalability: "multi-replica or load-balanced deploy manifest"
-    compliance: "any signal in CLAUDE.md ## Compliance signal"
+    compliance: "any signal in compliance_signals below"
     consistency: "batch/ETL entry point (consistency wins over latency)"
     operability: "<3 named owning engineers"
     reversibility: "Core subdomain"
@@ -31,7 +40,7 @@ consultant:
     - "stated in request, CLAUDE.md, a ratified charter/SDR, or surfaced as [STRATEGIC REVIEW NEEDED]"
   medium_signals:
     differentiation: "Core subdomain"
-    compliance: "any signal in CLAUDE.md ## Compliance signal"
+    compliance: "any signal in compliance_signals below"
     "time-to-market": "named launch date, quarter, or competitor in the request"
     "team capacity": "<3 named engineers"
     "vendor lock-in": "named vendor / SaaS in the request"
