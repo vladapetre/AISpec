@@ -2,7 +2,7 @@
 
 This file is the **shared contract surface**: every rule here is one that named teammates act on, and agent files, mode files, asset YAMLs, skills, and hooks resolve pointers into its `## Section` anchors by exact name. Never rename or delete a section without re-pointing its references.
 
-Team-lead-only rules — Team Setup, the Agent registry / spawn table, Agent Communication and relay discipline, and Workflow launchers — live in `.claude/agents/assets/instructions/lead/orchestration.md`, injected into the main session at `SessionStart`. Teammates have no `TeamCreate`, `Agent`, or `Workflow` tool, so they must not carry it.
+Team-lead-only rules — Team Setup, the Agent registry / spawn table, and Agent Communication / relay discipline — live in `.claude/agents/assets/instructions/lead/orchestration.md`, injected into the main session at `SessionStart`. Teammates have no `TeamCreate` or `Agent` tool, so they must not carry it.
 
 ## Agent lifecycle — continue, don't respawn
 
@@ -95,8 +95,6 @@ On `CHANGES REQUIRED`, route findings to the developer and clear them before the
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-**Accelerated cumulative review (opt-in workflow).** On explicit opt-in — `/review-fanout`, or "use the review workflow" / "fan out the review" in the user's own words — the team lead runs `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` instead of the reviewer teammate (launchers: `instructions/lead/orchestration.md` `## Workflows`). It emits the same review-block format and verdicts, feeding the same gates, and writes the reviewer memory line itself. Default remains the reviewer teammate; the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
-
 **Model tiering.** Frontmatter defaults hold unless a listed override applies. The team lead overrides at spawn time only for the mechanical slice of a role:
 
 | Agent | Default | Override to | When |
@@ -168,9 +166,9 @@ Per-hook registry, events, and standalone invocations: `.claude/hooks/README.md`
 
 ## Stale-snapshot rule
 
-Any agent spawned mid-session (workflow agents, teammates) inherits a CLAUDE.md snapshot captured at the *session's* start — after in-session edits to CLAUDE.md, that snapshot is stale. The same applies to every hook-injected document (`.claude/MEMORY.md`, `instructions/lead/orchestration.md`), which is read once at `SessionStart` and never refreshed.
+Any agent spawned mid-session inherits a CLAUDE.md snapshot captured at the *session's* start — after in-session edits to CLAUDE.md, that snapshot is stale. The same applies to every hook-injected document (`.claude/MEMORY.md`, `instructions/lead/orchestration.md`), which is read once at `SessionStart` and never refreshed.
 
-Agents verifying contract claims MUST grade against the on-disk file, never the injected snapshot; a "CLAUDE.md lacks X" finding is invalid without a fresh disk read. (Discovered live: a deep-ingest run reported two critical contract conflicts that existed only in its stale snapshot.)
+Agents verifying contract claims MUST grade against the on-disk file, never the injected snapshot; a "CLAUDE.md lacks X" finding is invalid without a fresh disk read. (Discovered live: a multi-agent analysis run reported two critical contract conflicts that existed only in its stale snapshot.)
 
 Corollary for the team lead: after editing CLAUDE.md or an injected document mid-session, either re-read the changed section before relying on it or note the edit when spawning, since your own copy is equally stale.
 

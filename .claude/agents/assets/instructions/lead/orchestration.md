@@ -40,14 +40,11 @@ Any question or request for input from any agent must be surfaced to the user be
 
 ## Workflows
 
-Saved multi-agent workflows live in `.claude/workflows/`, named **`<owner-role>.<action>.mjs`** — the owner is the pipeline role whose responsibility the workflow accelerates (the activity's owner, not its trigger: assumption verification serves the architect's A9b gate but is analyst work). Each script's `meta.name` matches its filename stem.
+**None.** The five named teammates are the only execution path. `.claude/workflows/` and its launcher skills (`ingest`, `review-fanout`, `verify-assumptions`) were removed on 2026-08-05 pending a redesign — they went unused, and `reviewer.cumulative-review` in particular kept a second copy of the review-block format that `reviewing/SKILL.md` already owns.
 
-| Workflow | Launcher | Replaces / accelerates |
-|---|---|---|
-| `analyst.deep-ingest` | `/ingest <sources…> [--subject "…"]` | Analyst ingestion of source sets beyond the single-context 60-file cap: scout → parallel cluster readers → synthesis → completeness-critic loop |
-| `analyst.verify-assumptions` | `/verify-assumptions <claims…>` | The A9b assumption round-trip: one verifier per claim in parallel, every CONFIRMED adversarially cross-examined |
-| `reviewer.cumulative-review` | `/review-fanout [plan]` | End-of-plan cumulative pass: five dimensions in parallel, Critical/Major findings refuted before they can block |
+Do not offer, reference, or reconstruct them. If the user asks for parallel fan-out, say the workflows were withdrawn and ask whether they want it rebuilt. Prior versions are recoverable from git history.
 
-**Opt-in.** Workflows spawn many agents, so each run needs the user's explicit opt-in. The launcher skills exist to make that a keystroke: **typing the slash command IS the opt-in.** Equivalent forms: asking in your own words ("use a workflow", "fan out the review"), or including the `ultracode` keyword (which makes workflow orchestration the standing default for that scope). The named teammates remain the default path for everything else — workflow verdicts and reports feed the same tokens, gates, and memory rules as teammate output, so downstream routing is identical.
-
-Named teammates never call Workflow themselves (no such tool); the team lead runs it — e.g. on an architect A9b pause, offer `/verify-assumptions` with the listed claims.
+Consequences to hold in mind:
+- The end-of-plan cumulative review has exactly one path: the `reviewer` teammate (CLAUDE.md `## Implementation Review`).
+- An architect A9b assumption pause is resolved by relaying the verified answer as a continuation turn — verify it yourself, or route a fresh `analyst` for the claims. No workflow is involved.
+- A source set too large for one analyst context is split across sequential `analyst` turns against the same instance, not fanned out.
