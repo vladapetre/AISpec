@@ -1,10 +1,8 @@
 # Agent Workflow
 
-## Team Setup
+This file is the **shared contract surface**: every rule here is one that named teammates act on, and agent files, mode files, asset YAMLs, skills, and hooks resolve pointers into its `## Section` anchors by exact name. Never rename or delete a section without re-pointing its references.
 
-Before spawning any named teammate, check whether a team exists for this session. If not, create one with `TeamCreate`, then spawn the agent as a named teammate using `team_name` and `name`.
-
-**Skill loading.** A `skills:` frontmatter declaration loads the skill's *name and description only* into the agent's prompt — not its body. The agent reads the SKILL.md body (and any templates) on demand at the first step that needs it. The team lead never pre-reads skill bodies.
+Team-lead-only rules — Team Setup, the Agent registry / spawn table, Agent Communication and relay discipline, and Workflow launchers — live in `.claude/agents/assets/instructions/lead/orchestration.md`, injected into the main session at `SessionStart`. Teammates have no `TeamCreate`, `Agent`, or `Workflow` tool, so they must not carry it.
 
 ## Agent lifecycle — continue, don't respawn
 
@@ -20,30 +18,6 @@ An idle teammate is not a dead teammate: a named agent that ended its turn resum
 
 **Fresh eyes on stall.** Continuation trades a respawn's re-ingestion cost for the author's context — usually the right trade, but the author's context includes the author's *anchoring*. When a phase hits the 3-rejection stall bound (`## Phase N Stalled`), the team lead SHOULD offer respawning a fresh developer instance for the retry alongside the user decision — an instance that hasn't spent three attempts defending one reading is the cheapest way to break the pattern. The per-plan progress file carries the durable state a fresh instance needs.
 
-## Agent registry
-
-The harness has five named teammates. The team lead spawns by role — each agent's own step-2 mode dispatch loads the matching mode file from `.claude/agents/assets/instructions/<agent>/<mode>.md`.
-
-| Agent | Spawn when | Modes |
-|---|---|---|
-| `analyst` | A source needs ingestion before design (code, docs, URLs, data), OR a ticket must be pulled / created / updated on a ticketing platform (Jira). Pipeline entry; owns ticketing-platform interaction. | single mode |
-| `architect` | Tactical design needed, OR request carries `ARCHITECT AMENDMENT NEEDED:` (reviewer drift flag, or team-lead-attached for a user/PO ruling changing an existing ADR). | `design` (default), `amendment` |
-| `consultant` | Strategic question, write request, or inbound `[STRATEGIC REVIEW NEEDED]` / `[CONSULTANT REVIEW NEEDED]`. | `discussion` (default), `artifact` (explicit write / ratification) |
-| `developer` | An approved plan and an unmarked phase exist. | `implement` (default), `rejection` (feedback path) |
-| `reviewer` | Request contains `## Phase N Complete`, `## All Phases Complete`, `CROSS_CHECK_REQUESTED:`, or starts with `/cross-check`. | `perphase` (incl. cumulative), `crosscheck` |
-
-Each multi-mode agent's `<instructions>` step 2 is a deterministic dispatch (regex on trigger tokens) that loads exactly one file under `assets/instructions/<agent>/`. The shell never carries mode-specific steps or output formats.
-
-Per-check pre-flight semantics for every agent-mode pair live in `.claude/agents/assets/preflight.yaml` (keyed by `<agent>-<mode>` for multi-mode agents, by `<agent>` otherwise).
-
-## Agent Communication
-
-Any question or request for input from any agent must be surfaced to the user before acting on it. Wait for the user's explicit reply before sending anything back to the agent via `SendMessage`. Never auto-respond, auto-confirm, or act on the agent's behalf.
-
-- **Never re-quote teammate output.** Any `@agent` block is already rendered natively in the UI. Reference it by name and add at most one framing sentence or a clarifying question — never paste the agent's text into your own response.
-- If a developer agent self-confirms ("The user confirmed the plan") without an explicit user reply relayed by the team lead, treat the confirmation as invalid. Stop and ask the user.
-- **Idle handling.** Teammates end every turn with one `SendMessage`. If a teammate goes idle without sending, call `TaskOutput` *once* to retrieve the stranded block, then reference it. Repeated idle pings for the same teammate within a turn are noise — ignore them after the first `TaskOutput` fetch.
-
 ## Turn discipline
 
 Every named agent ends each turn with exactly one `SendMessage` to the team lead containing its `<output_format>` block verbatim. If an agent must pause mid-turn, it sends a one-line `PAUSED — <reason>` plus the question(s) instead.
@@ -52,7 +26,7 @@ Every named agent ends each turn with exactly one `SendMessage` to the team lead
 
 - `.claude/agents/assets/tokens.yaml` — index + quick-lookup for token vocabulary. Concrete entries live in three sibling files loaded on demand: `tokens.routing.yaml` (handoff), `tokens.verdicts.yaml` (gate decisions), `tokens.markers.yaml` (in-artifact + identifier prefixes). Agents reference token semantics there rather than restating them.
 - `.claude/agents/assets/preflight.yaml` — per-agent pre-flight semantics registry. Agents reference their entry by `#<agent>` or `#<agent>-<mode>` instead of restating per-check semantics.
-- `.claude/agents/assets/instructions/<agent>/<mode>.md` — mode-specific instructions, output formats, and per-mode token contracts for multi-mode agents (architect, consultant, reviewer). The shell agent file loads exactly one of these at step 2.
+- `.claude/agents/assets/instructions/<agent>/<mode>.md` — mode-specific instructions, output formats, and per-mode token contracts for multi-mode agents (architect, consultant, reviewer). The shell agent file loads exactly one of these at step 2. **Exception:** `instructions/lead/orchestration.md` has no shell and no dispatch — the team lead has no agent file, so `inject.orchestration.mjs` injects it at `SessionStart` instead. It is the one file in this tree that is always-on rather than loaded on demand.
 - `.claude/agents/assets/scoring.yaml` — binding-constraint scoring rubrics for `architect` Design mode (A5) and `consultant` Artifact mode (A6). Loaded on demand at the scoring step.
 - `.claude/agents/assets/detectors.yaml` — test/lint detection cascade for the developer. Loaded on demand at step 7.
 - `.claude/agents/assets/selfcheck.yaml` — closing self-check registry. Each agent's `<instructions>` ends with one line referencing its keys (`#_universal` + `#<agent>` + `#<agent>-<mode>` where applicable). Loaded at the closing self-check step.
@@ -121,7 +95,7 @@ On `CHANGES REQUIRED`, route findings to the developer and clear them before the
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-**Accelerated cumulative review (opt-in workflow).** On explicit opt-in — `/review-fanout`, or "use the review workflow" / "fan out the review" in the user's own words — the team lead runs `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` instead of the reviewer teammate (see `## Workflows`). It emits the same review-block format and verdicts, feeding the same gates, and writes the reviewer memory line itself. Default remains the reviewer teammate; the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
+**Accelerated cumulative review (opt-in workflow).** On explicit opt-in — `/review-fanout`, or "use the review workflow" / "fan out the review" in the user's own words — the team lead runs `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` instead of the reviewer teammate (launchers: `instructions/lead/orchestration.md` `## Workflows`). It emits the same review-block format and verdicts, feeding the same gates, and writes the reviewer memory line itself. Default remains the reviewer teammate; the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
 
 **Model tiering.** Frontmatter defaults hold unless a listed override applies. The team lead overrides at spawn time only for the mechanical slice of a role:
 
@@ -151,7 +125,7 @@ The signal to hold is the *second* change request against the same plan while a 
 
 ## Agent base constraints
 
-These apply to every named teammate (see Agent registry above). Each agent's `<operating_constraints>` lists only its agent-specific deltas — do not restate the rules below.
+These apply to every named teammate. Each agent's `<operating_constraints>` lists only its agent-specific deltas — do not restate the rules below.
 
 - **Named teammate.** No `Agent` tool. All hand-offs through the team lead. Surface questions for other agents in the output; never message them directly.
 - **Bash is read-only by default**: `git log/blame/show/diff/status`, `rg`, `wc`, `npm view`, `pip show`. Any mutating command must be surfaced for routing. The developer's pre-existing-failure stash dance (`git stash --include-untracked && <test> && git stash pop`) is the only standing exception.
@@ -192,21 +166,13 @@ The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically en
 
 Per-hook registry, events, and standalone invocations: `.claude/hooks/README.md` (maintainer's reference, not loaded at runtime).
 
-## Workflows
+## Stale-snapshot rule
 
-Saved multi-agent workflows live in `.claude/workflows/`, named **`<owner-role>.<action>.mjs`** — the owner is the pipeline role whose responsibility the workflow accelerates (the activity's owner, not its trigger: assumption verification serves the architect's A9b gate but is analyst work). Each script's `meta.name` matches its filename stem.
+Any agent spawned mid-session (workflow agents, teammates) inherits a CLAUDE.md snapshot captured at the *session's* start — after in-session edits to CLAUDE.md, that snapshot is stale. The same applies to every hook-injected document (`.claude/MEMORY.md`, `instructions/lead/orchestration.md`), which is read once at `SessionStart` and never refreshed.
 
-| Workflow | Launcher | Replaces / accelerates |
-|---|---|---|
-| `analyst.deep-ingest` | `/ingest <sources…> [--subject "…"]` | Analyst ingestion of source sets beyond the single-context 60-file cap: scout → parallel cluster readers → synthesis → completeness-critic loop |
-| `analyst.verify-assumptions` | `/verify-assumptions <claims…>` | The A9b assumption round-trip: one verifier per claim in parallel, every CONFIRMED adversarially cross-examined |
-| `reviewer.cumulative-review` | `/review-fanout [plan]` | End-of-plan cumulative pass: five dimensions in parallel, Critical/Major findings refuted before they can block |
+Agents verifying contract claims MUST grade against the on-disk file, never the injected snapshot; a "CLAUDE.md lacks X" finding is invalid without a fresh disk read. (Discovered live: a deep-ingest run reported two critical contract conflicts that existed only in its stale snapshot.)
 
-**Opt-in.** Workflows spawn many agents, so each run needs the user's explicit opt-in. The launcher skills exist to make that a keystroke: **typing the slash command IS the opt-in.** Equivalent forms: asking in your own words ("use a workflow", "fan out the review"), or including the `ultracode` keyword (which makes workflow orchestration the standing default for that scope). The named teammates remain the default path for everything else — workflow verdicts and reports feed the same tokens, gates, and memory rules as teammate output, so downstream routing is identical.
-
-Named teammates never call Workflow themselves (no such tool); the team lead runs it — e.g. on an architect A9b pause, offer `/verify-assumptions` with the listed claims.
-
-**Stale-snapshot rule.** Any agent spawned mid-session (workflow agents, teammates) inherits a CLAUDE.md snapshot captured at the *session's* start — after in-session edits to CLAUDE.md, that snapshot is stale. Agents verifying contract claims MUST grade against the on-disk file, never the injected snapshot; a "CLAUDE.md lacks X" finding is invalid without a fresh disk read. (Discovered live: a deep-ingest run reported two critical contract conflicts that existed only in its stale snapshot.)
+Corollary for the team lead: after editing CLAUDE.md or an injected document mid-session, either re-read the changed section before relying on it or note the edit when spawning, since your own copy is equally stale.
 
 ## Pre-flight protocol
 

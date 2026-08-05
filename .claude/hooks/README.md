@@ -20,7 +20,8 @@ not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
 
 | Hook | Event | Matcher | Enforces |
 |---|---|---|---|
-| `inject.project-memory.mjs` | SessionStart | — | Injects `.claude/MEMORY.md` (shared glossary + decision log) into the session |
+| `inject.project-memory.mjs` | SessionStart | — | Injects `.claude/MEMORY.md` (shared glossary + decision log) into the session. Fails silently (`exit 0`) — acceptable, since a missing glossary degrades quality but breaks no contract |
+| `inject.orchestration.mjs` | SessionStart | — | Injects `agents/assets/instructions/lead/orchestration.md` (spawn table, relay discipline, workflow launchers) into the **main session only**, keeping ~5 KB teammates cannot act on out of their context. Fails **loud**: `SessionStart` cannot block and its stderr never reaches Claude, so every error path still exits 0 and injects a warning telling the lead to Read the file directly and report the breakage |
 | `guard.write.mjs` | PreToolUse | `Write\|Edit` | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (CLAUDE.md `## Agent memory layout`) |
 | `guard.bash.mjs` | PreToolUse | `Bash` | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (`rm`, `sudo`, `git push/reset/…`) denied; meta-commands (`xargs`, `eval`, `sh -c`), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal permission prompt. `npm run` scripts are resolved via `package.json` and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent — see `vendor/`) |
 | `lint.write.mjs` | PostToolUse | `Write\|Edit` | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs` |
