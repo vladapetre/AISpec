@@ -48,3 +48,6 @@ quick_lookup:
   "<!-- status:phase-N -->":     markers
   "**Status: Complete**":        markers
   "**Spec: ON HOLD**":           markers
+  "**Supersedes:**":             markers
+  "**Superseded by:**":          markers
+  "**Consolidates:**":           markers

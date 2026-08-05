@@ -29,8 +29,10 @@ architect-design:
   - { fm: FM-2.4, check: "Every blocking [STRATEGIC REVIEW NEEDED] emitted where step rules require it." }
   - { fm: FM-3.1, check: "Exactly 2 binding constraints; exactly 2 alternatives (or _None identified_); single recommended design." }
 architect-amendment:
-  - { fm: FM-1.1, check: "Surgical context only — no full-ADR, full-plan, or full-file re-reads (Security paths excepted)." }
+  - { fm: FM-1.1, check: "Surgical context only — no full-ADR, full-plan, or full-file re-reads (Security paths excepted; a M3b consolidation reads its whole chain by design)." }
   - { fm: FM-2.4, check: "RECONCILE WITH ADR: emitted (CODE_DRIFT) or supersession ADR written (ADR_AMENDED / PLAN_UPDATED)." }
+  - { fm: FM-2.4, check: "Revision budget checked (M2b): existing -r* siblings counted; r1/r2 append a delta, the third amendment onward consolidates (M3b) and stamps every file in the chain." }
+  - { fm: FM-1.2, check: "A batched user-ruling flush produced ONE supersession ADR covering every queued ruling — not one per ruling." }
   - { fm: FM-2.4, check: "M5a routing line present: CROSS_CHECK_REQUESTED (default) or SELF_CHECKED (delta) with all four carve-out conditions genuinely held; trigger source classified." }
   - { fm: FM-3.1, check: "Classification line is exactly one of CODE_DRIFT / ADR_AMENDED / PLAN_UPDATED." }
 

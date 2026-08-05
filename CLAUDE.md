@@ -109,17 +109,30 @@ The cumulative review includes the ADR-alignment check and may emit `ARCHITECT A
 
 **Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences; the original is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. The mode's surgical-context rule bounds its reads (see `amendment.md`).
 
+**Revision budget — deltas stop at r2.** The third amendment against the same ADR does not append `-r3`; it **consolidates** (amendment.md M2b/M3b): one re-issued full ADR at the next free top-level number, folding the chain, `**Consolidates:**` stamped, every superseded file stamped, the plan's `**Governing ADR:**` repointed, `D-###` numbers preserved. Deltas are cheap to write and expensive to read, and the cost lands on every later reader: one chain reached **r10**, so knowing the design meant folding eleven files by hand. Consolidation pays that fold once. `CODE_DRIFT` never counts toward the budget.
+
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
 
 ## Spec volatility (hold-and-batch)
 
-When a plan's governing ticket or spec is being actively renegotiated (Jira ticket amended mid-plan, PO rulings pending, the user announces the requirements are moving), do NOT absorb the changes one ruling at a time — each ruling would otherwise cost a full amendment + re-check round.
+Two things go volatile mid-plan, and **neither is absorbed one ruling at a time** — each ruling would otherwise cost a full amendment (+ often a re-check) round, and one supersession ADR per ruling is how a design ends up spread across eleven files. The signal for both is the same: the *second* change request against the same plan while a first is still being absorbed.
+
+**Source A — the spec is renegotiated externally** (Jira ticket amended mid-plan, PO rulings pending, the user announces the requirements are moving). Phases must not proceed, because the target itself is moving:
 
 1. The team lead inserts one line beneath the plan's title: `**Spec: ON HOLD — <reason>, <YYYY-MM-DD>**` (this stamp is the team lead's only legal plan edit — see Artifact Ownership).
 2. While the stamp is present, the developer's pre-flight marks `Inputs ⚠` and asks — no phase is implemented against a held plan. Completed phases stay completed.
 3. Deltas accumulate; when the spec settles, route **one** analyst delta report (what changed vs the framing report/ADR) and **one** architect amendment absorbing all of it, then remove the stamp.
 
-The signal to hold is the *second* change request against the same plan while a first is still being absorbed.
+**Source B — the user rules on design shape against a live plan** ("merge those two ports", "make it injectable", "that static class is fluff", "the caller owns the transaction", "move the folder"). These are semantics-preserving structural directives, they arrive at phase gates and after close, and they **cluster** — so unlike Source A they do not stop the plan, and they get a queue rather than a stamp:
+
+1. The team lead **acknowledges and records** the ruling. It does **not** route `ARCHITECT AMENDMENT NEEDED:` on the spot.
+2. Work continues, with one exception: if the ruling changes the shape of the phase about to start, that phase waits for the batch to flush.
+3. Flush the queue — routing **one** amendment carrying every queued ruling as a numbered list — at the first of: the user says to proceed / asks for the amendment; the next phase cannot start without a queued ruling absorbed; the developer needs a queued decision to implement; or the plan reaches `## All Phases Complete`.
+4. One flush is **one** supersession ADR covering the whole batch, not one per ruling.
+
+A ruling that is *not* semantics-preserving (it changes behaviour, a contract surface, or an acceptance criterion) is Source A, not Source B: stamp and hold.
+
+Measured motivation: of 35 supersession revisions across the six longest chains, ~50% were user structural rulings, and they arrived in same-day clusters (one chain took three separate supersession ADRs in a single afternoon, the third explicitly a "follow-up" on the second).
 
 ## Agent base constraints
 
