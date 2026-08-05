@@ -110,7 +110,7 @@ The cross-check is a read-only artifact↔artifact pass per ADR/plan pair, befor
 
 ## Implementation Review
 
-**Between phases: user approval, plus checkpoints on long plans.** Before emitting a phase summary, the developer runs the verification loop (`implement.md` step 7a): drive the changed flow through its real entry point and observe the result — tests alone don't gate a phase. After each phase the developer emits its `## Phase N Complete` summary (with the `**Verification:**` evidence field) and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases — only at the checkpoints defined next.
+**Between phases: user approval, plus checkpoints on long plans.** After each phase the developer emits its `## Phase N Complete` summary — carrying the `**Verification:**` evidence field from the `implement.md` step 7a verification loop, since tests alone don't gate a phase — and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases, only at the checkpoints defined next.
 
 **Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, the developer routes an automatic per-phase reviewer pass (reviewer Per-phase mode — diff-size gated, so small phases stay cheap) *after* the user approves a phase and *before* advancing, whenever any of these hold:
 - (a) the plan has ≥6 phases AND this is the ⌈N/2⌉-th approved phase (once per plan, at the midpoint);
@@ -121,17 +121,21 @@ On `CHANGES REQUIRED`, route findings to the developer and clear them before the
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
-**Accelerated cumulative review (opt-in workflow).** When the user explicitly opts in — `/review-fanout`, or "use the review workflow" / "fan out the review" in their own words — the team lead runs the saved workflow instead of the reviewer teammate: `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` (see `## Workflows`). It fans the dimensions out in parallel (alignment, ADR drift, cross-flow, removed guards, code checklists), adversarially verifies every Critical/Major finding before it can block, assembles the same review-block format deterministically, and writes the reviewer memory line. Its `APPROVED` / `CHANGES REQUIRED` and `ARCHITECT AMENDMENT NEEDED:` feed the same gates as the teammate path. Default remains the reviewer teammate — the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
+**Accelerated cumulative review (opt-in workflow).** On explicit opt-in — `/review-fanout`, or "use the review workflow" / "fan out the review" in the user's own words — the team lead runs `Workflow {name: "reviewer.cumulative-review", args: {plan, summary, range, date}}` instead of the reviewer teammate (see `## Workflows`). It emits the same review-block format and verdicts, feeding the same gates, and writes the reviewer memory line itself. Default remains the reviewer teammate; the workflow is for large plans where wall-clock matters or the user asked for extra rigor.
 
-**Reviewer model tiering.** The reviewer's frontmatter default is `sonnet` — the adversarial gate, drift detection, and severity classification are judgment-heavy, and variance there is the most expensive kind. Reviewer passes are infrequent (≈ one cross-check + one cumulative review per plan), so the cost is bounded. The team lead MAY spawn the reviewer with a `haiku` model override only for a trivially small, low-risk change — the developer summary lists ≤3 changed files, no `[IRREVERSIBLE] steps executed`, and no file under `## Security paths`. Anything else uses the `sonnet` default.
+**Model tiering.** Frontmatter defaults hold unless a listed override applies. The team lead overrides at spawn time only for the mechanical slice of a role:
 
-**Architect and analyst tiering.** Frontmatter defaults stay `opus` (full designs and full ingestion reports earn it). The team lead spawns with a `sonnet` override for the mechanical slices of each role:
-- `architect` Amendment mode when the trigger is user-directed or the expected classification is `CODE_DRIFT` — the surgical-context rule already bounds the work; keep `opus` when the amendment must produce new design content against a reviewer drift flag. (The classification is a spawn-time guess — it is only determined at M2, inside the run. A wrong guess is harmless: the mode runs identically on either tier, so guess cheap and accept occasional sonnet-quality supersessions rather than paying opus for every one-line reconcile.)
-- `analyst` for ticket pulls, JQL searches, ticket drafting, and delta reports against an existing report — keep `opus` for fresh ingestion of code/docs/data.
+| Agent | Default | Override to | When |
+|---|---|---|---|
+| `reviewer` | `sonnet` | `haiku` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no `## Security paths` file. Anything else keeps `sonnet`. |
+| `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT`. Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
+| `analyst` | `opus` | `sonnet` | Ticket pulls, JQL searches, ticket drafting, delta reports against an existing report. Keep `opus` for fresh ingestion of code/docs/data. |
+
+The architect classification is a spawn-time guess (M2 decides for real, inside the run). A wrong guess is harmless — the mode runs identically on either tier, so guess cheap.
 
 The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
 
-**Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences. The original ADR is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. Amendment mode loads only the specific ADR section named in the reviewer's reason and the cited diff hunks (±10 lines) — never the full ADR, plan, or source files.
+**Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences; the original is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. The mode's surgical-context rule bounds its reads (see `amendment.md`).
 
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
 
@@ -184,17 +188,9 @@ Operational facts about the host project that every agent needs and none should 
 
 ## Hook enforcement layer
 
-The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically enforce contracts that used to be prompt-discipline. Naming: `guard.*` blocks, `lint.*` feeds violations back, `inject.*` adds context. A blocked call or a bounced stop is the harness working, not an error to route around — fix the violation, don't retry variants.
+The hooks in `.claude/hooks/` (wired in `.claude/settings.json`) mechanically enforce contracts that used to be prompt-discipline: `guard.*` blocks, `lint.*` feeds violations back, `inject.*` adds context. **A blocked call or a bounced stop is the harness working, not an error to route around — fix the violation, don't retry variants.** The matching `selfcheck.yaml` boxes remain: the hook is the backstop, the self-check is the habit.
 
-| Hook | Event | Enforces |
-|---|---|---|
-| `guard.write.mjs` | PreToolUse (Write\|Edit) | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (`## Agent memory layout`) |
-| `guard.bash.mjs` | PreToolUse (Bash) | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (rm, sudo, git push/reset/…) denied; meta-commands (xargs, eval, sh -c), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal prompt. `npm run` scripts are resolved via package.json and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent) |
-| `lint.write.mjs` | PostToolUse (Write\|Edit) | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs`. Also runs standalone: `node .claude/hooks/lint.write.mjs --all` |
-| `guard.verdict.mjs` | Stop | Review/amendment/phase blocks must close with their exact contract lines (verdict tokens, Classification, routing/approval lines) before the turn may end |
-| `emit.metrics.mjs` | Stop | Telemetry: appends per-turn session usage + emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored). Analyse with `node .claude/telemetry/report.mjs` — gate hit rates, amendment mix, token spend; tune carve-outs and cadences from its numbers, not from feel |
-
-The matching `selfcheck.yaml` boxes remain — the hook is the backstop, the self-check is the habit.
+Per-hook registry, events, and standalone invocations: `.claude/hooks/README.md` (maintainer's reference, not loaded at runtime).
 
 ## Workflows
 
