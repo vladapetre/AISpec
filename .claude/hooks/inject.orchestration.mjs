@@ -13,6 +13,7 @@
 // vanishing.
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { projectRoot } from "./lib/project-root.mjs";
 
 const REL = ".claude/agents/assets/instructions/lead/orchestration.md";
 
@@ -42,15 +43,17 @@ function fail(reason, path) {
   process.exit(0);
 }
 
-let cwd = process.cwd();
+let data = null;
 try {
-  const data = JSON.parse(readFileSync(0, "utf8"));
-  if (data.cwd) cwd = data.cwd;
+  data = JSON.parse(readFileSync(0, "utf8"));
 } catch {
-  // Malformed or absent hook payload — cwd fallback is fine, keep going.
+  // Malformed or absent hook payload — the root walk-up below still works.
 }
 
-const path = join(cwd, REL);
+// Root-anchored: cwd-anchoring made a session started in a subdirectory fail
+// this injection outright, so the lead lost its spawn table and got the
+// warning path instead.
+const path = join(projectRoot(data), REL);
 
 if (!existsSync(path)) fail("file not found", path);
 

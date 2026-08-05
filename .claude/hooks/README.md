@@ -28,6 +28,11 @@ not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
 | `guard.verdict.mjs` | Stop + **SubagentStop** | — | Review / amendment / phase blocks must close with their exact contract lines (verdict tokens, `Classification:`, routing/approval lines) before the turn may end |
 | `emit.metrics.mjs` | Stop + **SubagentStop** | — | Telemetry: appends the emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored), plus per-session token usage on lead turns |
 | `lib/turn-block.mjs` | — (library) | — | Not a hook. Shared by the two above: locates the turn's contract block and classifies it. One copy, so the two cannot drift apart |
+| `lib/project-root.mjs` | — (library) | — | Not a hook. Resolves the project root and repo-relative paths for every hook that policies or reads one. `CLAUDE_PROJECT_DIR`, else walk up for `.claude/`, else cwd |
+
+**Paths are anchored to the project root, never the session cwd.** This repo is an umbrella with nested git repos and a populated `.worktrees/`, so sessions routinely start in a subdirectory — and cwd-anchoring broke every path rule there. `guard.write.mjs` computed `../../artifacts/scope-changes/x.md`, read the leading `..` as "outside the project", and **failed open for exactly the writes it exists to stop**; `lint.write.mjs` silently skipped the memory caps and plan-anchor check; both `inject.*` hooks looked for `.claude/…` under the subdirectory and found nothing. Anchoring at the root makes a path resolve identically wherever the session started.
+
+`guard.bash.mjs` is the deliberate exception: it stays cwd-relative, because a shell command genuinely executes in the session cwd.
 
 **Why the two Stop hooks are wired to both events.** A named teammate ends its turn with one `SendMessage` carrying its `<output_format>` block verbatim, and the lead is forbidden from re-quoting teammate output — so the block only ever exists inside the *subagent's* transcript, in a tool input. Wired to `Stop` alone, both hooks read the lead's final text and saw no teammate block at all: the verdict contract was effectively unenforced, and the ledger recorded **1 gate event in 633 lines** against 131 ADRs on disk. `SubagentStop` is where teammate contracts actually live.
 

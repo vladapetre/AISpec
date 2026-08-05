@@ -7,7 +7,7 @@
 // Exit 0 = allow. Exit 2 = block the tool call; stderr is shown to the agent.
 // Rules are agent-agnostic by design — no fragile agent-identity detection.
 import { readFileSync } from "node:fs";
-import { relative, isAbsolute } from "node:path";
+import { repoRelative } from "./lib/project-root.mjs";
 
 let data;
 try {
@@ -16,13 +16,20 @@ try {
   process.exit(0); // malformed input — fail open, never brick the session
 }
 
-const cwd = data.cwd ?? process.cwd();
 const filePath = data.tool_input?.file_path;
 if (!filePath) process.exit(0);
 
-let rel = isAbsolute(filePath) ? relative(cwd, filePath) : filePath;
-rel = rel.replaceAll("\\", "/").replace(/^\.\//, "");
-if (rel.startsWith("..")) process.exit(0); // outside the project — not ours to police
+// Anchored to the project root, not the session cwd. Anchoring to cwd meant a
+// session started in a subdirectory produced a "../.."-prefixed path, which the
+// outside-the-project check then waved through — the guard failed open for
+// exactly the writes it exists to stop (see lib/project-root.mjs).
+let rel, outside;
+try {
+  ({ rel, outside } = repoRelative(data, filePath));
+} catch {
+  process.exit(0);
+}
+if (outside) process.exit(0); // genuinely outside the project — not ours to police
 
 function deny(reason) {
   process.stderr.write(`guard.write: BLOCKED ${rel} — ${reason}\n`);

@@ -5,11 +5,13 @@
 // in context.
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { projectRoot } from "./lib/project-root.mjs";
 
 const raw = readFileSync(0, "utf8");
 const data = JSON.parse(raw);
-const cwd = data.cwd ?? process.cwd();
-const memoryPath = join(cwd, ".claude", "MEMORY.md");
+// Root-anchored: a session started in a subdirectory used to look for
+// <subdir>/.claude/MEMORY.md, find nothing, and inject the glossary silently.
+const memoryPath = join(projectRoot(data), ".claude", "MEMORY.md");
 
 if (!existsSync(memoryPath)) process.exit(0);
 

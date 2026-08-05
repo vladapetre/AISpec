@@ -8,8 +8,9 @@
 // Also runnable standalone: `node lint.write.mjs --all` lints every
 // agent-memory MEMORY.md plus .claude/MEMORY.md (for periodic sweeps).
 import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { join, relative, isAbsolute } from "node:path";
+import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { projectRoot, repoRelative } from "./lib/project-root.mjs";
 
 const problems = [];
 
@@ -53,8 +54,8 @@ function lintProjectMemory(path, label) {
   flush(lines.length);
 }
 
-function lintPlan(path, cwd, label) {
-  const script = join(cwd, ".claude", "skills", "documenting", "scripts", "plan-status.mjs");
+function lintPlan(path, root, label) {
+  const script = join(root, ".claude", "skills", "documenting", "scripts", "plan-status.mjs");
   if (!existsSync(script)) return;
   try {
     execFileSync(process.execPath, [script, "check", path], { stdio: ["ignore", "ignore", "pipe"] });
@@ -65,14 +66,15 @@ function lintPlan(path, cwd, label) {
 }
 
 if (process.argv.includes("--all")) {
-  const cwd = process.cwd();
-  const amRoot = join(cwd, ".claude", "agent-memory");
+  // Root-anchored so a sweep run from a subdirectory still finds every file.
+  const root = projectRoot(null);
+  const amRoot = join(root, ".claude", "agent-memory");
   if (existsSync(amRoot))
     for (const agent of readdirSync(amRoot)) {
       const idx = join(amRoot, agent, "MEMORY.md");
       if (existsSync(idx)) lintAgentMemory(idx, `.claude/agent-memory/${agent}/MEMORY.md`);
     }
-  const pm = join(cwd, ".claude", "MEMORY.md");
+  const pm = join(root, ".claude", "MEMORY.md");
   if (existsSync(pm)) lintProjectMemory(pm, ".claude/MEMORY.md");
 } else {
   let data;
@@ -81,14 +83,21 @@ if (process.argv.includes("--all")) {
   } catch {
     process.exit(0);
   }
-  const cwd = data.cwd ?? process.cwd();
   const filePath = data.tool_input?.file_path;
   if (!filePath) process.exit(0);
-  let rel = (isAbsolute(filePath) ? relative(cwd, filePath) : filePath).replaceAll("\\", "/").replace(/^\.\//, "");
-  if (!existsSync(filePath)) process.exit(0);
-  if (/^\.claude\/agent-memory\/[^/]+\/MEMORY\.md$/.test(rel)) lintAgentMemory(filePath, rel);
-  else if (rel === ".claude/MEMORY.md") lintProjectMemory(filePath, rel);
-  else if (/^artifacts\/plans\/[^/]+\.md$/.test(rel)) lintPlan(filePath, cwd, rel);
+  // Root-anchored: cwd-anchoring meant a session started in a subdirectory
+  // produced a "../.."-prefixed path that matched none of the rules below, so
+  // the memory caps and plan-anchor check were silently skipped.
+  let root, rel, abs, outside;
+  try {
+    ({ root, rel, abs, outside } = repoRelative(data, filePath));
+  } catch {
+    process.exit(0);
+  }
+  if (outside || !existsSync(abs)) process.exit(0);
+  if (/^\.claude\/agent-memory\/[^/]+\/MEMORY\.md$/.test(rel)) lintAgentMemory(abs, rel);
+  else if (rel === ".claude/MEMORY.md") lintProjectMemory(abs, rel);
+  else if (/^artifacts\/plans\/[^/]+\.md$/.test(rel)) lintPlan(abs, root, rel);
   else process.exit(0);
 }
 
