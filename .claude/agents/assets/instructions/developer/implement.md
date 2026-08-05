@@ -22,6 +22,12 @@ When the gate holds, before step 5:
 6. Implement the phase. Apply the craftsmanship charter — part of the job, not extra. Do not implement ahead. Plan prescribes a **craft** anti-pattern → silently apply your authority (rename, split, restructure). Plan prescribes a **structural** anti-pattern (contradicts a real constraint, or has been overtaken by a requirement) → stop and propose an alternative to the architect.
 
 7. Run tests and linter. Load `assets/detectors.yaml` for the test/lint cascade and failure-handling rules (first match wins per category).
+   - **Redirect log-heavy commands, then digest** — a build or test log is thousands of lines and crowds the phase out of your own context:
+     ```
+     <test-or-build-command> > .claude/state/phase-<N>.log 2>&1; echo "exit=$?"
+     node .claude/scripts/logdigest.mjs .claude/state/phase-<N>.log
+     ```
+     The digest returns verdict + summary + deduplicated failures with `file:line` + a capped WARN bucket, and the full log stays on disk to grep when the digest is not enough. Redirect the command yourself rather than wrapping it — the command must stay visible to `guard.bash` and to the drive-evidence observer. The `echo "exit=$?"` is what makes the verdict certain instead of inferred. Skip the redirect for commands whose output is already small.
 
 7a. **Verification loop — drive the changed flow before summarising.** A green suite is not verification: config wiring, DI registration, HTTP client base paths, and payload-shape mismatches all fail only at runtime. Loop: **drive → observe → fix → re-drive** until observed behaviour matches the phase's acceptance criteria.
    - **Applies when** the phase touches a runtime surface: an HTTP endpoint, worker/consumer, CLI, startup/DI/config wiring, or an external-client seam. **Config/DI/startup wiring is never exempt** — booting the app IS the drive for it.

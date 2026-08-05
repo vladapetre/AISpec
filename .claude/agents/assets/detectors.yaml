@@ -2,6 +2,12 @@
 # Loaded on demand. First match wins per category.
 # Replaces the inline cascade in developer.md — keeps the agent prompt lean.
 
+log_digest:
+  why: "A build/test log is thousands of lines; pasted into a phase context it crowds out the work."
+  how: "<command> > .claude/state/phase-<N>.log 2>&1; echo \"exit=$?\"  then  node .claude/scripts/logdigest.mjs <log>"
+  returns: "verdict (certain when the exit= marker is present, else inferred), summary lines, deduplicated failures with file:line, WARN bucket capped at 5 with npm funding/peer-dep noise dropped, tail when clean. Full log stays on disk to grep."
+  rule: "Redirect the command yourself — never wrap it. A wrapper hides the real command from guard.bash's destructive-command classification and from observe.bash's drive/inspect classification; saving context is not worth blinding the security classifier."
+
 test_detectors:
   - { signal: "package.json with a `test` script",                command_via: "npm test" }
   - { signal: "Makefile with a `test` target",                    command_via: "make test" }
