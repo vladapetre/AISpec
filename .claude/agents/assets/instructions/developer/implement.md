@@ -28,6 +28,7 @@ When the gate holds, before step 5:
    - **Exempt when** the phase is test-only, docs-only, or a pure refactor with unchanged behaviour under existing tests → record `no drivable surface — <reason>`.
    - **How:** resolve the drive command per `assets/detectors.yaml#run_detectors`; drive the phase's primary AC path once and its most likely failure path once (bad input, missing entity). Scope stays cheap — this is one lap through the real entry point, not a QA pass.
    - **Rules:** `assets/detectors.yaml#verification_rules` — evidence is observed runtime output, never re-read code; dev/local data only; blocked environment → record and surface, never fake.
+   - **The claim is checked, not trusted.** A `PostToolUse` hook records every Bash command you run, and the Stop guard blocks a `## Phase N Complete` whose `**Verification:**` claims a driven command when no drive-class command was observed for the phase. Inspection (`git`, `rg`, `cat`, `ls`) does not count as a drive. The two exemption forms pass without evidence — so when a flow genuinely cannot be driven, state the exemption; do not describe a drive that did not happen.
    - Starting the app / hitting endpoints are mutating actions: surface the exact command(s) once per phase for confirmation unless the project's settings already allowlist them.
 
 8. Produce the phase summary per the Output format below.

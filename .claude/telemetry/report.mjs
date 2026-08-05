@@ -95,6 +95,21 @@ if (!verdictEvents.length && !subRows)
     "  (no gate events and no teammate turns recorded — if teammates have run, check that\n" +
       "   SubagentStop is wired in .claude/settings.json for emit.metrics.mjs)"
   );
+// --- Phase verification: what the summaries claimed, and whether the observed
+// drive still matched the tree. `drive_fresh:false` is the defect class staleness
+// enforcement would catch — check the count before flipping it to blocking.
+const vRows = rows.filter((r) => r.verification);
+if (vRows.length) {
+  const vBy = {};
+  for (const r of vRows) vBy[r.verification] = (vBy[r.verification] ?? 0) + 1;
+  const fresh = rows.filter((r) => r.drive_fresh === true).length;
+  const stale = rows.filter((r) => r.drive_fresh === false).length;
+  console.log("\n— Phase verification —");
+  console.log(`claims: ${Object.entries(vBy).map(([k, v]) => `${k}: ${v}`).join(" | ")}`);
+  if (fresh + stale)
+    console.log(`drive vs current tree: fresh ${fresh}, stale ${stale} (${pct(stale, fresh + stale)} stale)`);
+}
+
 console.log("\n— Tokens (cumulative across sessions) —");
 console.log(`turns: ${totals.turns} | in: ${totals.input.toLocaleString()} | out: ${totals.output.toLocaleString()} | cache-read: ${totals.cache_read.toLocaleString()} | cache-write: ${totals.cache_creation.toLocaleString()}`);
 console.log("\n— Output tokens by day —");
@@ -104,5 +119,7 @@ for (const [day, d] of [...byDay.entries()].sort())
 console.log(
   "\nTuning prompts: DRIFT rate < ~15% → widen the SELF_CHECKED carve-outs; " +
     "CHANGES REQUIRED rate < ~5% → relax checkpoint cadence further; " +
-    "high ADR_AMENDED share → assumption gate (A9b) needs tightening."
+    "high ADR_AMENDED share → assumption gate (A9b) needs tightening; " +
+    "stale-drive rate near 0 over ~20 phases → promote drive staleness from measured to blocking " +
+    "(hooks/README.md); any drive-claimed-unobserved → a phase summary described a drive that never ran."
 );

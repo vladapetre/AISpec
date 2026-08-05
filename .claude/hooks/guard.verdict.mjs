@@ -18,6 +18,8 @@
 // TEXT is judged, and deliberately does not relax WHAT is required.
 import { readFileSync } from "node:fs";
 import { readTurn, isSubagentTurn } from "./lib/turn-block.mjs";
+import { projectRoot } from "./lib/project-root.mjs";
+import { appendEvidence, classifyVerification, drivesForCurrentPhase } from "./lib/drive-evidence.mjs";
 
 let data;
 try {
@@ -60,11 +62,34 @@ if (has(/^##\s+Architect Amendment\s+—/m)) {
   if (!(last.startsWith("CROSS_CHECK_REQUESTED:") || last === "SELF_CHECKED (delta)" || last === "_N/A — CODE_DRIFT_"))
     violations.push('amendment block must end with the M5a routing line: "CROSS_CHECK_REQUESTED: …", "SELF_CHECKED (delta)", or "_N/A — CODE_DRIFT_"');
 }
-if (has(/^##\s+Phase\s+\d+\s+Complete\s+—/m) && !has(/^##\s+All Phases Complete/m)) {
+const isPhaseSummary = has(/^##\s+Phase\s+\d+\s+Complete\s+—/m) && !has(/^##\s+All Phases Complete/m);
+if (isPhaseSummary) {
   if (!/Requesting approval from:\s*USER/.test(text))
     violations.push('phase summary must end by requesting approval: "Requesting approval from: USER"');
   if (!/^\*\*Verification:\*\*\s*\S/m.test(text))
     violations.push('phase summary must carry a populated "**Verification:**" field — observed runtime evidence, or an honest exemption/blocker (implement.md step 7a)');
+
+  // A claimed drive must have actually happened. observe.bash.mjs records every
+  // Bash call, so "I drove the flow" is checkable rather than trusted. Only the
+  // unambiguous case blocks: the field claims a drive and the harness observed
+  // NO drive-class command at all for this phase. Both honest exemption forms
+  // pass untouched — making the exemption the only way past without evidence is
+  // the design, since the user then sees it stated.
+  const { claim } = classifyVerification(text);
+  if (claim === "drive") {
+    let observed = [];
+    try {
+      observed = drivesForCurrentPhase(projectRoot(data), data.session_id);
+    } catch {
+      observed = [{ unknown: true }]; // evidence unreadable — never block on our own failure
+    }
+    if (!observed.length)
+      violations.push(
+        '"**Verification:**" claims a command was driven, but no drive-class command was observed for this phase. ' +
+          "Drive the flow through its real entry point and quote the observed output, or state the honest exemption " +
+          '("no drivable surface — <reason>" / "not drivable in this environment — <blocker>"). Re-reading code is not verification.'
+      );
+  }
 }
 if (has(/^##\s+All Phases Complete\s+—/m)) {
   if (!/Requesting cumulative review from:\s*REVIEWER/.test(text))
@@ -81,5 +106,20 @@ if (violations.length) {
       "\nEmit the corrected block, then stop.\n"
   );
   process.exit(2);
+}
+
+// A phase summary that cleared closes the evidence window: drives recorded from
+// here on belong to the NEXT phase. Without this boundary one early drive would
+// vouch for every later phase in the same session.
+if (isPhaseSummary) {
+  try {
+    appendEvidence(projectRoot(data), {
+      ts: new Date().toISOString(),
+      session: data.session_id ?? null,
+      marker: "phase-cleared",
+    });
+  } catch {
+    // best-effort
+  }
 }
 process.exit(0);

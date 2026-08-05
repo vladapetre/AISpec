@@ -29,6 +29,8 @@ import {
   detectScope,
   isSubagentTurn,
 } from "./lib/turn-block.mjs";
+import { projectRoot } from "./lib/project-root.mjs";
+import { classifyVerification, drivesForCurrentPhase, treeHash } from "./lib/drive-evidence.mjs";
 
 function bail() {
   process.exit(0); // telemetry must never break a session
@@ -58,6 +60,32 @@ const block = detectBlock(turn.text);
 const verdict = detectVerdict(turn.text);
 const classification = detectClassification(turn.text);
 const scope = detectScope(turn.text);
+
+// Phase-verification signal. `verification` is what the summary claimed;
+// `drive_fresh` is whether the last observed drive ran against the CURRENT tree.
+// Staleness is recorded but NOT enforced: a drive followed by an unverified source
+// fix is exactly the defect worth catching, but excluding every legitimate
+// post-drive edit is guesswork until there are numbers. Measure first, then set
+// the threshold from the data (CLAUDE.md: tune from the numbers, not from feel).
+let verification = null;
+let driveFresh = null;
+if (block === "phase") {
+  try {
+    const root = projectRoot(data);
+    verification = classifyVerification(turn.text).claim;
+    if (verification === "drive") {
+      const drives = drivesForCurrentPhase(root, data.session_id);
+      if (!drives.length) verification = "drive-claimed-unobserved";
+      else {
+        const now = treeHash(root);
+        const last = drives[drives.length - 1]?.tree ?? null;
+        if (now && last) driveFresh = now === last;
+      }
+    }
+  } catch {
+    verification = null;
+  }
+}
 
 // Token usage: lead turns only. The full-transcript scan is inherent (the ledger
 // records cumulative per-session totals) but it is skipped entirely for
@@ -105,6 +133,8 @@ const record = {
   ...(verdict && { verdict }),
   ...(classification && { classification }),
   ...(scope && { scope }),
+  ...(verification && { verification }),
+  ...(driveFresh !== null && { drive_fresh: driveFresh }),
 };
 
 try {

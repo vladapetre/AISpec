@@ -48,3 +48,4 @@ verification_rules:
   evidence: "Verified means OBSERVED at runtime — a command you ran and output you saw. Reading the code again is not verification. Cite the command and the observed result (trimmed) in the phase summary."
   data_safety: "Driving a mutating endpoint or flow runs against dev/local data only; if only shared data is reachable, surface before driving."
   blocked: "If the flow cannot boot in this environment (missing DB, secrets, license), record 'not drivable in this environment — <blocker>' in the summary and surface it. Never fake or infer verification."
+  observed: "The claim is machine-checked. hooks/observe.bash.mjs records every Bash command; guard.verdict blocks a phase summary claiming a driven command when no drive-class command was observed for that phase (inspection — git/rg/cat/ls — does not count). Both exemption forms pass without evidence, so state the exemption rather than describing a drive that did not happen."

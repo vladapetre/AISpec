@@ -87,6 +87,16 @@
             "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/lint.write.mjs"]
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/observe.bash.mjs"]
+          }
+        ]
       }
     ],
     "Stop": [
