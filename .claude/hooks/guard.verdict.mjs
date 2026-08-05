@@ -1,11 +1,23 @@
 #!/usr/bin/env node
-// Stop guard — verifies output-format invariants on the turn's final assistant
-// message, keyed on the block headers it contains (agent-agnostic: whoever emits
-// a review block must close it legally). Exit 2 blocks the stop and shows stderr,
-// so the agent finishes its contract instead of ending the turn half-emitted.
-// This is the machine check behind tokens.yaml's "verdict tokens are matched as
-// exact strings; near-matches are rejections."
-import { readFileSync, existsSync } from "node:fs";
+// Stop / SubagentStop guard — verifies output-format invariants on the turn's
+// contract block, keyed on the block headers it contains (agent-agnostic:
+// whoever emits a review block must close it legally). Exit 2 blocks the stop and
+// shows stderr, so the agent finishes its contract instead of ending the turn
+// half-emitted. This is the machine check behind tokens.yaml's "verdict tokens
+// are matched as exact strings; near-matches are rejections."
+//
+// Wired to BOTH events on purpose. Named teammates end a turn with ONE
+// SendMessage carrying their block verbatim (CLAUDE.md ## Turn discipline), and
+// the lead is forbidden from re-quoting it (## Agent Communication) — so a
+// Stop-only guard never saw a single teammate block and this check was, in
+// practice, prompt-discipline. Extraction lives in lib/turn-block.mjs, shared
+// with emit.metrics.mjs; that module also confines SendMessage-payload reading to
+// teammate turns, so the lead's behaviour here is unchanged.
+//
+// The checks below are byte-for-byte the previous ones: this change fixes WHICH
+// TEXT is judged, and deliberately does not relax WHAT is required.
+import { readFileSync } from "node:fs";
+import { readTurn, isSubagentTurn } from "./lib/turn-block.mjs";
 
 let data;
 try {
@@ -15,23 +27,11 @@ try {
 }
 if (data.stop_hook_active) process.exit(0); // loop guard — never re-block a corrected stop
 
-const transcriptPath = data.transcript_path;
-if (!transcriptPath || !existsSync(transcriptPath)) process.exit(0);
-
 let text = "";
 try {
-  for (const line of readFileSync(transcriptPath, "utf8").split("\n")) {
-    if (!line.trim()) continue;
-    let entry;
-    try { entry = JSON.parse(line); } catch { continue; }
-    if (entry.type !== "assistant") continue;
-    const content = entry.message?.content;
-    if (!Array.isArray(content)) continue;
-    const t = content.filter((c) => c.type === "text").map((c) => c.text).join("\n");
-    if (t.trim()) text = t; // keep the LAST assistant text
-  }
+  text = readTurn(data).text;
 } catch {
-  process.exit(0);
+  process.exit(0); // unreadable transcript — fail open, never brick a turn
 }
 if (!text) process.exit(0);
 
@@ -72,8 +72,11 @@ if (has(/^##\s+All Phases Complete\s+—/m)) {
 }
 
 if (violations.length) {
+  const where = isSubagentTurn(data)
+    ? `the block you are sending to the team lead${data.agent_type ? ` (${data.agent_type})` : ""}`
+    : "the turn's output block";
   process.stderr.write(
-    "guard.verdict: the turn's output block violates its contract —\n" +
+    `guard.verdict: ${where} violates its contract —\n` +
       violations.map((v) => `  - ${v}`).join("\n") +
       "\nEmit the corrected block, then stop.\n"
   );

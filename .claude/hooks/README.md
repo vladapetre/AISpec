@@ -25,8 +25,16 @@ not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
 | `guard.write.mjs` | PreToolUse | `Write\|Edit` | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (CLAUDE.md `## Agent memory layout`) |
 | `guard.bash.mjs` | PreToolUse | `Bash` | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (`rm`, `sudo`, `git push/reset/…`) denied; meta-commands (`xargs`, `eval`, `sh -c`), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal permission prompt. `npm run` scripts are resolved via `package.json` and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent — see `vendor/`) |
 | `lint.write.mjs` | PostToolUse | `Write\|Edit` | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs` |
-| `guard.verdict.mjs` | Stop | — | Review / amendment / phase blocks must close with their exact contract lines (verdict tokens, `Classification:`, routing/approval lines) before the turn may end |
-| `emit.metrics.mjs` | Stop | — | Telemetry: appends per-turn session usage plus the emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored) |
+| `guard.verdict.mjs` | Stop + **SubagentStop** | — | Review / amendment / phase blocks must close with their exact contract lines (verdict tokens, `Classification:`, routing/approval lines) before the turn may end |
+| `emit.metrics.mjs` | Stop + **SubagentStop** | — | Telemetry: appends the emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored), plus per-session token usage on lead turns |
+| `lib/turn-block.mjs` | — (library) | — | Not a hook. Shared by the two above: locates the turn's contract block and classifies it. One copy, so the two cannot drift apart |
+
+**Why the two Stop hooks are wired to both events.** A named teammate ends its turn with one `SendMessage` carrying its `<output_format>` block verbatim, and the lead is forbidden from re-quoting teammate output — so the block only ever exists inside the *subagent's* transcript, in a tool input. Wired to `Stop` alone, both hooks read the lead's final text and saw no teammate block at all: the verdict contract was effectively unenforced, and the ledger recorded **1 gate event in 633 lines** against 131 ADRs on disk. `SubagentStop` is where teammate contracts actually live.
+
+Two properties worth preserving if these are edited:
+
+- **`SendMessage` payloads are read on teammate turns only** (`lib/turn-block.mjs`, `includeToolPayloads`). The lead relays requests through `SendMessage` too, and a forwarded amendment request can carry a block header — judging the lead against someone else's contract would invent violations and inflate gate counts.
+- **Teammate telemetry rows carry no `usage`/`turns`.** `report.mjs` treats the last line per session as that session's cumulative total, and teammates share the session id; recording usage on those rows would overwrite it. It also keeps the added per-teammate cost to a single bounded tail read.
 
 ## Standalone invocations
 

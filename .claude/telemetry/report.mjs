@@ -28,8 +28,12 @@ if (!rows.length) {
 }
 
 // --- Session totals: last line per session carries cumulative usage.
+// Lead turns only. Teammate rows (event "subagent_stop") share the session id
+// and carry no usage by design, so including them here would overwrite a
+// session's cumulative totals with nothing. Rows predating the `event` field are
+// lead rows and still count.
 const bySession = new Map();
-for (const r of rows) if (r.session) bySession.set(r.session, r);
+for (const r of rows) if (r.session && r.event !== "subagent_stop") bySession.set(r.session, r);
 
 const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, turns: 0 };
 const byDay = new Map();
@@ -41,11 +45,14 @@ for (const r of bySession.values()) {
   byDay.set(day, d);
 }
 
-// --- Verdict events: dedupe by (session, turns) so re-emits don't double-count.
+// --- Verdict events: dedupe so re-emits don't double-count. The key includes
+// the agent, because teammate rows share their session id and two teammates can
+// legitimately land the same `turns` count in one session — keying on
+// (session, turns) alone would silently drop one of their verdicts.
 const seen = new Set();
 const verdictEvents = rows.filter((r) => {
   if (!r.verdict) return false;
-  const key = `${r.session}#${r.turns}`;
+  const key = `${r.session}#${r.agent_id ?? "main"}#${r.turns ?? r.ts}`;
   if (seen.has(key)) return false;
   seen.add(key);
   return true;
@@ -68,6 +75,26 @@ console.log("— Gates —");
 console.log(`cross-checks: ${ccAll} (${ccDelta} delta-scoped) | DRIFT rate: ${ccDrift}/${ccAll} (${pct(ccDrift, ccAll)})`);
 console.log(`reviews:      ${revAll} | CHANGES REQUIRED rate: ${revChanges}/${revAll} (${pct(revChanges, revAll)})`);
 console.log(`amendments:   ${amendments.length}${Object.keys(amendBy).length ? " — " + Object.entries(amendBy).map(([k, v]) => `${k}: ${v}`).join(", ") : ""}`);
+
+// Per-agent attribution — only possible since the SubagentStop wiring; tells you
+// which teammate is producing the drift, not just that drift happened.
+const byAgent = new Map();
+for (const r of verdictEvents) {
+  const who = r.agent_type ?? "lead";
+  const m = byAgent.get(who) ?? new Map();
+  m.set(r.verdict, (m.get(r.verdict) ?? 0) + 1);
+  byAgent.set(who, m);
+}
+if (byAgent.size)
+  for (const [who, m] of [...byAgent.entries()].sort())
+    console.log(`  ${who}: ${[...m.entries()].map(([v, n]) => `${v} ${n}`).join(", ")}`);
+
+const subRows = rows.filter((r) => r.event === "subagent_stop").length;
+if (!verdictEvents.length && !subRows)
+  console.log(
+    "  (no gate events and no teammate turns recorded — if teammates have run, check that\n" +
+      "   SubagentStop is wired in .claude/settings.json for emit.metrics.mjs)"
+  );
 console.log("\n— Tokens (cumulative across sessions) —");
 console.log(`turns: ${totals.turns} | in: ${totals.input.toLocaleString()} | out: ${totals.output.toLocaleString()} | cache-read: ${totals.cache_read.toLocaleString()} | cache-write: ${totals.cache_creation.toLocaleString()}`);
 console.log("\n— Output tokens by day —");
