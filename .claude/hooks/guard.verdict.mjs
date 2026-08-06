@@ -75,7 +75,17 @@ if (isPhaseSummary) {
   // NO drive-class command at all for this phase. Both honest exemption forms
   // pass untouched — making the exemption the only way past without evidence is
   // the design, since the user then sees it stated.
-  const { claim } = classifyVerification(text);
+  const { claim, shaped } = classifyVerification(text);
+  // Shape first: the output format mandates `<command driven> → <observed
+  // result>`, so a drive claim with no arrow names no command and quotes no
+  // output. This is decidable from the text alone — no evidence log needed —
+  // and it is the case the gate was written for.
+  if (claim === "drive" && !shaped)
+    violations.push(
+      '"**Verification:**" claims a drive but does not follow the required form ' +
+        "`<command driven> → <observed result>` (implement.md Output format). Name the command you ran and quote " +
+        "what you saw, or state the honest exemption."
+    );
   if (claim === "drive") {
     let observed = [];
     try {

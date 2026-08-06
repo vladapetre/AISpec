@@ -54,7 +54,7 @@ developer:
 developer-implement:
   - { fm: FM-1.3, check: "This phase only; no future-phase work." }
   - { fm: FM-3.3, check: "Tests and linter ran (or absence noted); introduced failures fixed; pre-existing tagged [PRE-EXISTING]." }
-  - { fm: FM-3.3, check: "Step 7a verification ran: the changed flow was DRIVEN and the result OBSERVED (command + output cited), or the Verification field carries an honest exemption/blocker — never verification inferred from reading code, and config/DI/startup wiring is never exempt." }
+  - { fm: FM-3.3, check: "Step 7a verification ran: the changed flow was DRIVEN and the result OBSERVED, written as `<command driven> → <observed result>`, or the Verification field carries an honest exemption/blocker. Never inferred from reading code; the test suite and the phase commit are not drives; config/DI/startup wiring is never exempt." }
   - { fm: FM-3.1, check: "<output_format> block fully rendered; pushed-back items and decisions listed." }
   - { fm: FM-3.4, check: "On approval, plan-progress memory updated." }
 developer-rejection:
@@ -71,6 +71,7 @@ reviewer-perphase:
   - { fm: FM-1.3, check: "Step 11b removed-guard check ran: every deleted/weakened guard, filter, or validation maps to a criterion mandating its removal, or is a finding." }
   - { fm: FM-1.3, check: "Cumulative only — step 11a cross-flow impact analysis run; consumers of changed shared logic traced; undocumented behaviour-shifting ripples flagged with both change and consumer file:line, and section 2b rendered. (Per-phase: N/A.)" }
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
+  - { fm: FM-2.1, check: "Cumulative only — step 15a cycle bound checked against the plan's #cumulative memory key; CYCLE BOUND REACHED: emitted at the 3rd CHANGES REQUIRED. (Per-phase: N/A.)" }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }
   - { fm: FM-3.3, check: "Evidence bar held (SKILL.md ## Evidence bar): each finding survived an active attempt to disprove it; every Critical/Major carries a concrete failure scenario or was demoted; Minor capped at 5 with the remainder as a count." }
   - { fm: FM-1.2, check: "Machine-enforced set resolved and recorded on the Machines: line; no finding reported that this project's own gates already fail on — but a guard's OWN code was still reviewed." }
@@ -78,4 +79,5 @@ reviewer-crosscheck:
   - { fm: FM-3.1, check: "Final line is exactly ALIGNED or DRIFT DETECTED; cross-check table rows ≤30 (delta: ≤10)." }
   - { fm: FM-3.3, check: "Every row cites the artifact location it checks." }
   - { fm: FM-1.1, check: "Scope line matches the CC-2 resolution (delta only when supersession ADR + prior ALIGNED for the same plan); delta pass read only the revised/edited sections." }
-  - { fm: FM-3.4, check: "Memory write followed CC-6: clean pass → index line only; findings-bearing pass → review-<plan-stem>-crosscheck[-rN]-<date>.md plus index line." }
+  - { fm: FM-3.4, check: "Memory write followed CC-6: clean pass → index line only; findings-bearing pass → review-<plan-stem>-crosscheck[-rN]-<date>.md plus index line; index entry filed under the <plan-short-title>#crosscheck key." }
+  - { fm: FM-2.1, check: "CC-4a cycle bound checked against that key; CYCLE BOUND REACHED: emitted at the 3rd DRIFT DETECTED for this plan." }

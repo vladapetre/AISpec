@@ -32,6 +32,8 @@ quick_lookup:
   "SELF_CHECKED (delta)":        routing
   "CROSS_CHECK_REQUESTED:":      routing
   "RECONCILE WITH ADR:":         routing
+  "CYCLE BOUND REACHED:":        routing
+  "PAUSED":                      routing
   "APPROVED":                    verdicts
   "CHANGES REQUIRED":            verdicts
   "approved":                    verdicts
@@ -47,6 +49,7 @@ quick_lookup:
   "[withdrawn]":                 markers
   "<!-- status:phase-N -->":     markers
   "**Status: Complete**":        markers
+  "**Governing ADR:**":          markers
   "**Spec: ON HOLD**":           markers
   "**Supersedes:**":             markers
   "**Superseded by:**":          markers

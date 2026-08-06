@@ -75,7 +75,7 @@ Computed from the step-8 changed-file set: total changed files and total changed
 
 **Security floor — Se1–Se3 always run, every gate.** The three security checks in `patterns.md` (hardcoded secrets, injection, insecure defaults) are never diff-size gated: a Small or Medium load that skips the rest of `patterns.md` still executes its Security section against every changed file. A 2-file, 40-LOC change can hardcode a secret as easily as a large one.
 
-**Security carve-out** (overrides Small/Medium): any changed file under `src/auth/`, `src/crypto/`, `src/security/`, `Authentication/`, `Authorization/`, or a path in CLAUDE.md `**Security paths:**` → load `patterns.md` in full (Se1–Se3 must always run). Framework/concern gating still applies.
+**Security carve-out** (overrides Small/Medium): any changed file under a path listed in CLAUDE.md `## Security paths` → load `patterns.md` in full (Se1–Se3 must always run). That section is the single copy of the list; a project extends it there and this carve-out picks the extension up with no edit here. Framework/concern gating still applies.
 
 **[IRREVERSIBLE] carve-out:** developer's `**[IRREVERSIBLE] steps executed:**` is non-empty → treat as Large.
 

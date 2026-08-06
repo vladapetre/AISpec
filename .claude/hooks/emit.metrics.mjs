@@ -30,7 +30,12 @@ import {
   isSubagentTurn,
 } from "./lib/turn-block.mjs";
 import { projectRoot } from "./lib/project-root.mjs";
-import { classifyVerification, drivesForCurrentPhase, treeHash } from "./lib/drive-evidence.mjs";
+import {
+  classifyVerification,
+  claimMatchesObserved,
+  drivesForCurrentPhase,
+  treeHash,
+} from "./lib/drive-evidence.mjs";
 
 function bail() {
   process.exit(0); // telemetry must never break a session
@@ -69,10 +74,12 @@ const scope = detectScope(turn.text);
 // the threshold from the data (CLAUDE.md: tune from the numbers, not from feel).
 let verification = null;
 let driveFresh = null;
+let claimMatched = null;
 if (block === "phase") {
   try {
     const root = projectRoot(data);
-    verification = classifyVerification(turn.text).claim;
+    const { claim, detail } = classifyVerification(turn.text);
+    verification = claim;
     if (verification === "drive") {
       const drives = drivesForCurrentPhase(root, data.session_id);
       if (!drives.length) verification = "drive-claimed-unobserved";
@@ -80,6 +87,10 @@ if (block === "phase") {
         const now = treeHash(root);
         const last = drives[drives.length - 1]?.tree ?? null;
         if (now && last) driveFresh = now === last;
+        // Does the claimed command resemble one actually observed? Measured on
+        // the same terms as drive_fresh: a paraphrased claim is not misconduct,
+        // so this is a number to set a threshold from, not a gate.
+        claimMatched = claimMatchesObserved(detail, drives);
       }
     }
   } catch {
@@ -135,14 +146,19 @@ const record = {
   ...(scope && { scope }),
   ...(verification && { verification }),
   ...(driveFresh !== null && { drive_fresh: driveFresh }),
+  ...(claimMatched !== null && { claim_matched: claimMatched }),
 };
 
 try {
   // Anchor to the project root, never the session cwd: a session started in a
   // subdirectory forked the ledger (found live at
   // artifacts/.claude/telemetry/ledger.jsonl, 2 orphaned lines).
-  const root = process.env.CLAUDE_PROJECT_DIR ?? data.cwd ?? process.cwd();
-  const ledger = join(root, ".claude", "telemetry", "ledger.jsonl");
+  //
+  // Use projectRoot(), not `env ?? cwd`: without CLAUDE_PROJECT_DIR the inline
+  // form fell straight back to the session cwd and reproduced the exact fork
+  // this comment describes. projectRoot() walks up for the `.claude/` marker,
+  // which is the only derivation that holds from a subdirectory or worktree.
+  const ledger = join(projectRoot(data), ".claude", "telemetry", "ledger.jsonl");
   mkdirSync(dirname(ledger), { recursive: true });
   appendFileSync(ledger, JSON.stringify(record) + "\n");
 } catch {

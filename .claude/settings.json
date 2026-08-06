@@ -25,8 +25,9 @@
       "Bash(git stash list*)",
       "Bash(node .claude/scripts/logdigest.mjs*)",
       "Bash(node .claude/telemetry/report.mjs*)",
-      "Bash(mkdir -p /home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing/templates)",
-      "Edit(/.claude/skills/documenting/**)",
+      "Bash(node .claude/hooks/lint.contract.mjs*)",
+      "Bash(node .claude/hooks/lint.write.mjs*)",
+      "Edit(.claude/skills/documenting/**)",
       "Edit(.claude/agents/*.md)"
     ],
     "ask": [
@@ -36,9 +37,7 @@
       "Bash(find * -exec rm*)",
       "Bash(git branch*)"
     ],
-    "additionalDirectories": [
-      "/home/vlad/Workspace/ai/AISpec/.claude/skills/reviewing"
-    ]
+    "additionalDirectories": []
   },
   "hooks": {
     "SessionStart": [

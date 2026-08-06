@@ -25,6 +25,7 @@ not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
 | `guard.write.mjs` | PreToolUse | `Write\|Edit` | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (CLAUDE.md `## Agent memory layout`) |
 | `guard.bash.mjs` | PreToolUse | `Bash` | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (`rm`, `sudo`, `git push/reset/…`) denied; meta-commands (`xargs`, `eval`, `sh -c`), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal permission prompt. `npm run` scripts are resolved via `package.json` and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent — see `vendor/`) |
 | `lint.write.mjs` | PostToolUse | `Write\|Edit` | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs` |
+| `lint.contract.mjs` | — (standalone) | — | Cross-layer contract invariants: asset `#key` refs resolve, section anchors cited in CLAUDE.md resolve (and the deprecated bold-pointer form is rejected), token registry parity in all three directions, dispatch/mode/pre-flight/self-check parity, referenced templates and `.claude/` paths exist, hooks are wired, and no permission entry is machine-absolute. Not a hook — a repo-wide sweep like `lint.write.mjs --all` |
 | `guard.verdict.mjs` | Stop + **SubagentStop** | — | Review / amendment / phase blocks must close with their exact contract lines (verdict tokens, `Classification:`, routing/approval lines) before the turn may end |
 | `emit.metrics.mjs` | Stop + **SubagentStop** | — | Telemetry: appends the emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored), plus per-session token usage on lead turns |
 | `lib/turn-block.mjs` | — (library) | — | Not a hook. Shared by the two above: locates the turn's contract block and classifies it. One copy, so the two cannot drift apart |
@@ -34,10 +35,11 @@ not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
 
 **Verification is observed, not trusted.** `implement.md` step 7a already required runtime evidence ("a command you ran and output you saw"), but `guard.verdict` only checked the `**Verification:**` field was non-empty — so `**Verification:** ran the flow, looked fine` passed. It was the one place the harness accepted a claim for a fact that opens a gate. `observe.bash.mjs` now records what actually ran, and the agent cannot write that log.
 
-Two properties, both deliberate:
+Three properties, all deliberate:
 
-- **Only the unambiguous case blocks**: the field claims a driven command *and* no drive-class command was observed for that phase. The classifier is biased **broad** (anything not a recognised inspection command counts as a drive) because a false block halts real work while a false pass merely preserves the old behaviour. The two honest exemption forms pass with no evidence — making the exemption the only way past without a drive is the point, since the user then sees it stated.
-- **Staleness is measured, not enforced (yet).** `emit.metrics` records `drive_fresh` — whether the last observed drive ran against the *current* tree. A drive followed by an unverified source fix is exactly the defect worth catching, but excluding every legitimate post-drive edit is guesswork until there are numbers. Markdown, `artifacts/`, `agent-memory/`, `state/` and `telemetry/` are already excluded from the tree hash, since a phase legitimately ends by stamping a plan and writing memory. Flip it to blocking once the ledger says the false-positive rate is acceptable.
+- **The classifier is three-way, and that is a correction.** The first version had only INSPECT and DRIVE, with everything unrecognised counting as a drive. But the developer runs the test suite *and* commits every phase by mandate — and neither `npm test` nor `git commit` matched an inspection pattern, so both logged as drives, `drivesForCurrentPhase()` was never empty, and the gate could not fire. The rule it enforces is `implement.md` step 7a's opening line, "a green suite is not verification"; the machine was accepting a green suite as the evidence for it. NEUTRAL (build/test/lint/format plus version-control bookkeeping) is now neither evidence nor error. Everything still unrecognised remains a DRIVE — the broad bias is intact for genuinely unknown commands, because a false block halts real work while a false pass only preserves the old behaviour.
+- **Only unambiguous cases block**: the field claims a drive but omits the mandated `<command driven> → <observed result>` form, or it claims a drive and no drive-class command was observed for that phase. The first is decidable from the text alone and catches `**Verification:** ran the flow, looked fine` without consulting the log. The two honest exemption forms pass with no evidence — making the exemption the only way past without a drive is the point, since the user then sees it stated.
+- **Two signals are measured, not enforced (yet).** `emit.metrics` records `drive_fresh` — whether the last observed drive ran against the *current* tree — and `claim_matched`, whether the command named in the field resembles one actually observed. `claim_matched` stays advisory on purpose: a developer may legitimately paraphrase ("booted the API and hit /orders"), and blocking on a fuzzy string match would halt real work to punish wording. Both become candidates for blocking once the ledger gives a false-positive rate. A drive followed by an unverified source fix is exactly the defect worth catching, but excluding every legitimate post-drive edit is guesswork until there are numbers. Markdown, `artifacts/`, `agent-memory/`, `state/` and `telemetry/` are already excluded from the tree hash, since a phase legitimately ends by stamping a plan and writing memory. Flip it to blocking once the ledger says the false-positive rate is acceptable.
 
 **Paths are anchored to the project root, never the session cwd.** This repo is an umbrella with nested git repos and a populated `.worktrees/`, so sessions routinely start in a subdirectory — and cwd-anchoring broke every path rule there. `guard.write.mjs` computed `../../artifacts/scope-changes/x.md`, read the leading `..` as "outside the project", and **failed open for exactly the writes it exists to stop**; `lint.write.mjs` silently skipped the memory caps and plan-anchor check; both `inject.*` hooks looked for `.claude/…` under the subdirectory and found nothing. Anchoring at the root makes a path resolve identically wherever the session started.
 
@@ -53,11 +55,21 @@ Two properties worth preserving if these are edited:
 ## Standalone invocations
 
 ```sh
+node .claude/hooks/lint.contract.mjs      # cross-layer contract invariants (exit 1 on error)
 node .claude/hooks/lint.write.mjs --all   # lint every memory + plan file in the repo
 node .claude/telemetry/report.mjs         # gate hit rates, amendment mix, token spend
 ```
 
 Tune carve-outs and cadences from the telemetry numbers, not from feel.
+
+**Run `lint.contract.mjs` after any edit that moves a rule between layers.** The
+contract is stated across CLAUDE.md, five agent shells, nine mode files, nine
+assets, six skills, and these hooks; the audit that motivated it found a
+`**Security paths:**` pointer that had been dead for months behind an inline
+fallback list that happened to agree. Its warnings are advisory by design — an
+uncited CLAUDE.md section is a candidate for that file's own admission test, not
+a defect, and the token-shape scan cannot tell a protocol token from a field
+value (`NOT_TOKENS` carries the known non-tokens). Errors are not advisory.
 
 ## Relationship to `selfcheck.yaml`
 

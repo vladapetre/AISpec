@@ -17,7 +17,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "opensrc": "set \"OPENSRC_HOME=%cd%\\.opensrc\" && opensrc",
-    "lint:agents": "node scripts/lint-agents.mjs"
+    "lint:agents": "node scripts/lint-agents.mjs",
+    "lint:contract": "node .claude/hooks/lint.contract.mjs",
+    "lint:memory": "node .claude/hooks/lint.write.mjs --all"
   },
   "dependencies": {
     "opensrc": "^0.7.2",

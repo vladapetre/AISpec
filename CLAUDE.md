@@ -13,17 +13,9 @@ Team-lead-only rules — Team Setup, the Agent registry / spawn table, model tie
 
 ## Agent lifecycle — continue, don't respawn
 
-An idle teammate is not a dead teammate: a named agent that ended its turn resumes by name with its context intact. Entry-turn reads (memory, plan, ADR, templates, source familiarity) are paid **once per task** — every respawn pays them again for nothing. Default lifecycle per agent:
+An idle teammate is not a dead teammate: a named agent that ended its turn resumes by name with its context intact, so entry-turn reads (memory, plan, ADR, templates, source familiarity) are paid **once per task**. Which instance handles which request is a spawn decision, and only the team lead can make it — the per-agent lifecycle table and the fresh-eyes-on-stall rule live in `instructions/lead/orchestration.md`.
 
-- **developer** — ONE instance per plan. Every phase, approval relay, rejection, and reviewer verdict is a continuation turn of that instance. Respawn only on context loss (session died) or a new plan.
-- **reviewer** — ONE instance per plan. The cross-check, any checkpoint, re-reviews, and the cumulative pass are continuation turns: the ADR/plan are read once, and a re-review after `CHANGES REQUIRED` has its own prior findings in context. Independence is not compromised — the reviewer verifies the developer's code and the artifacts, never its own prior verdicts.
-- **architect** — Design mode spawns fresh per request (clean framing). Amendments to a plan whose architect instance is still resumable continue that instance (the ADR is in context); otherwise spawn fresh — Amendment mode's surgical-context rule bounds the reads either way.
-- **analyst** — fresh per source set; delta reports against a source set it already ingested continue the existing instance.
-- **consultant** — a discussion thread is one instance; ratification of a direction it discussed continues that instance into Artifact mode.
-
-**Continuation turns never re-read unchanged material** — memory, templates, the plan, the ADR, or previously read source files are already in context. Re-read exactly what changed: the amended plan section after an amendment, `plan-status.mjs check` output after a stamp, the new diff for a re-review. **Exception — files about to be edited:** the developer's per-phase rule "read every file you will touch" is NOT waived by continuation. In-context memory of a file is a belief, not the file; anything may have changed it between phases. Re-reading the touch set is cheap and is the only defense against out-of-band edits.
-
-**Fresh eyes on stall.** Continuation trades a respawn's re-ingestion cost for the author's context — usually the right trade, but the author's context includes the author's *anchoring*. When a phase hits the 3-rejection stall bound (`## Phase N Stalled`), the team lead SHOULD offer respawning a fresh developer instance for the retry alongside the user decision — an instance that hasn't spent three attempts defending one reading is the cheapest way to break the pattern. The per-plan progress file carries the durable state a fresh instance needs.
+What every teammate acts on is the other half: **continuation turns never re-read unchanged material.** Memory, templates, the plan, the ADR, and previously read source files are already in context. Re-read exactly what changed — the amended plan section after an amendment, `plan-status.mjs check` output after a stamp, the new diff for a re-review. **Exception — files about to be edited:** the developer's per-phase rule "read every file you will touch" is NOT waived by continuation. In-context memory of a file is a belief, not the file; anything may have changed it between phases. Re-reading the touch set is cheap and is the only defense against out-of-band edits.
 
 ## Turn discipline
 
@@ -38,6 +30,8 @@ Every named agent ends each turn with exactly one `SendMessage` to the team lead
 - `.claude/agents/assets/detectors.yaml` — test/lint detection cascade for the developer. Loaded on demand at step 7.
 - `.claude/agents/assets/selfcheck.yaml` — closing self-check registry. Each agent's `<instructions>` ends with one line referencing its keys (`#_universal` + `#<agent>` + `#<agent>-<mode>` where applicable). Loaded at the closing self-check step.
 - `.claude/agents/assets/mast.yaml` — designer's reference (MAST failure taxonomy + 14 design rules + audit checklist). Not loaded at runtime; consulted when authoring or amending agent/skill files. The runtime self-check boxes live in `selfcheck.yaml`; each box names its MAST FM code.
+- `.claude/skills/` — six skills, each a `SKILL.md` plus bundled templates/examples read on demand. **Auto-loaded** (full body injected at spawn, per the agent's `skills:` frontmatter): `documenting` → analyst, architect, consultant, developer; `reviewing` → reviewer; `branching` → developer. **Deferred** (read at the step that needs them): `understanding`, `ticketing`. **User-invoked only:** `summarizing` (`/summarizing`; `disable-model-invocation`, so no agent reaches it). A skill absent from this line is unreachable by contract — register it here when adding one.
+- `node .claude/hooks/lint.contract.mjs` — verifies the pointers in this file and across every layer still resolve (asset `#key` refs, `## Section` anchors, token registry parity, mode/pre-flight/self-check parity, referenced paths). Run it after moving a rule between layers. Maintainer's tool, not loaded at runtime.
 
 ## Agent memory layout
 
@@ -47,12 +41,10 @@ Every named teammate persists memory under `.claude/agent-memory/<agent>/`. The 
 - `<entity>-<short-title>.md` — optional **per-entity files** when an agent has rich state to keep beyond a one-liner (developer: `plan-<short-title>.md`; analyst: `report-<short-title>.md` only if a long-form follow-up is needed). File naming uses the same short-title the artifact uses, so `git log` and search join cleanly across `artifacts/` and `agent-memory/`.
 
 Rules:
-- `MEMORY.md` is the only mandatory file. Per-entity files are optional and reference-by-name from `MEMORY.md`.
-- Never write the same fact in two places. The per-entity file holds the detail; `MEMORY.md` carries the pointer.
-- Short-titles match the host artifact's short-title verbatim — no aliasing.
-- **Index-entry cap:** a `MEMORY.md` entry is ≤2 lines and ≤50 words — a hook, not a summary. Overflow goes to the per-entity file (create it if needed); detail already recorded in an artifact is a pointer, never a restatement.
-- **Registered file kinds only:** an agent writes `MEMORY.md`, per-entity files (`plan-*`, `adr-*`, `report-*`, `review-*`, `sdr-*`, `charter-*`), and optionally `lessons.md`. No other files. `lessons.md` holds one line per lesson and only *reusable rules* (a fact that will change a future decision) — never history, never a second copy of the index.
-- **Compaction protocol:** on an entry turn, if `MEMORY.md` exceeds 150 lines, compact before starting work — entries for closed/superseded plans and shipped ADRs collapse to one line; anything whose detail lives in an artifact loses the inline detail and keeps the pointer. Note `memory compacted <date>` at the top.
+- `MEMORY.md` is the only mandatory file; per-entity files are optional and referenced by name from it. Short-titles match the host artifact's verbatim — no aliasing.
+- Never write the same fact twice: the per-entity file holds the detail and `MEMORY.md` the pointer, and a fact already recorded in an artifact gets a pointer rather than a restatement.
+- **Caps and file kinds are hook-enforced** — `guard.write` blocks the write, `lint.write` bounces the turn, and `hooks/lib/ownership.mjs` is the registry both read, so it is the copy that must agree with this list. An index entry is ≤2 lines and ≤50 words (a hook, not a summary). The only legal files are `MEMORY.md`, `lessons.md`, and per-entity `plan-*`, `adr-*`, `report-*`, `review-*`, `sdr-*`, `charter-*`, `context-map-*` — no others, no subdirectories. `lessons.md` carries one line per *reusable rule* (a fact that will change a future decision), never history and never a second index.
+- **Compaction:** a `MEMORY.md` over 150 lines is compacted on the next entry turn, before work starts — closed or superseded plans and shipped ADRs collapse to one line, and anything whose detail lives in an artifact keeps only the pointer. Note `memory compacted <date>` at the top.
 
 `.claude/MEMORY.md` at project root is the **shared** glossary and decision log owned by the `understanding` skill — separate from per-agent memory.
 
@@ -83,34 +75,41 @@ The analyst writes reports and API documentation directly (no routing). All othe
 
 **The architect never self-certifies a fresh ADR/plan pair into implementation** (MAST R10 — a producer does not verify its own work into the next stage). By default `architect` (Design mode) runs its A13 five-check self-verification *and then* emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically). On `ALIGNED`, the plan goes to the developer for Phase 1.
 
-**Self-certify carve-out.** `architect` may skip the reviewer cross-check and emit `SELF_CHECKED` on the summary line ONLY when the plan is both trivial and low-risk — *all* of: no phase has >3 acceptance criteria; no phase touches a path in `## Security paths`; the ADR cites ≥2 driver findings; no binding-constraint tie fired at A5. If any one fails, cross-check is mandatory. This is the inverse of the old default — escalation is now the rule, self-certification the exception.
+**Self-certify carve-out.** `architect` may skip the pass and emit `SELF_CHECKED` instead, but only for a plan that is both trivial and low-risk. Escalation is the rule, self-certification the exception; the four conditions that must *all* hold are the architect's to evaluate and live in `design.md` A13.
 
 The cross-check is a read-only artifact↔artifact pass per ADR/plan pair, before Phase 1. Between-phase work uses the per-phase flow below.
 
-**Post-amendment re-checks are delta-scoped.** When a supersession ADR (`-r<N>`) follows a prior `ALIGNED` for the same pair, the reviewer scopes the pass to the amendment's revised decisions, delta consequences, and edited plan phase(s) only (reviewer CC-2) — never a fresh full pass. The architect's Amendment mode may waive the re-check entirely with `SELF_CHECKED (delta)` when the amendment is user-directed, semantics-preserving, revises ≤2 decisions, and touches no `## Security paths` (M5a). Reviewer-driven drift always re-checks. `CODE_DRIFT` amendments change no artifact and need no re-check.
+**Post-amendment re-checks are delta-scoped**, never a fresh full pass: the reviewer scopes to the amendment's revised decisions, delta consequences, and edited phase(s) (CC-2), and Amendment mode may waive the re-check entirely with `SELF_CHECKED (delta)` under its own four conditions (M5a). Reviewer-driven drift always re-checks; `CODE_DRIFT` changes no artifact and needs no re-check. Repeated `DRIFT DETECTED` on one plan is bounded — see `## Cycle bounds`.
 
 ## Implementation Review
 
 **Between phases: user approval, plus checkpoints on long plans.** After each phase the developer emits its `## Phase N Complete` summary — carrying the `**Verification:**` evidence field from the `implement.md` step 7a verification loop, since tests alone don't gate a phase — and waits for the user's `approved` reply. The user is the gate on every phase advancement. The reviewer is not invoked between *ordinary* phases, only at the checkpoints defined next.
 
-**Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, the developer routes an automatic per-phase reviewer pass (reviewer Per-phase mode — diff-size gated, so small phases stay cheap) *after* the user approves a phase and *before* advancing, whenever any of these hold:
-- (a) the plan has ≥6 phases AND this is the ⌈N/2⌉-th approved phase (once per plan, at the midpoint);
-- (b) the phase summary lists `[IRREVERSIBLE] steps executed`;
-- (c) the phase touched a path under `## Security paths`.
-
-On `CHANGES REQUIRED`, route findings to the developer and clear them before the next phase; on `ARCHITECT AMENDMENT NEEDED:`, route to the architect first. Plans with <6 phases and no irreversible/security phase keep the user-approval-only flow and the single end-of-plan cumulative pass. The checkpoint never replaces the end-of-plan cumulative review.
+**Mid-plan checkpoints.** So design drift cannot compound unseen across many phases, some approved phases route an automatic reviewer pass (Per-phase mode — diff-size gated, so small phases stay cheap) before the developer advances. The triggering conditions — plan midpoint, irreversible steps, security-path touch — are the developer's to evaluate and live in `implement.md` step 11. A checkpoint never replaces the end-of-plan cumulative review, and a plan that trips none keeps the user-approval-only flow.
 
 **At end-of-plan: one cumulative reviewer pass.** After the final phase is approved, the developer emits `## All Phases Complete` covering the full plan (every phase, full commit range, union of changed files) and routes it to `reviewer`. The reviewer (Per-phase mode, cumulative branch) runs one adversarial review across the entire branch diff and emits a single `APPROVED` or `CHANGES REQUIRED`.
 
 Model tiering at spawn is the team lead's alone (`instructions/lead/orchestration.md` — teammates cannot spawn and never act on it).
 
-The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears.
+The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears — bounded at three rounds per `## Cycle bounds`.
 
 **Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences; the original is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. The mode's surgical-context rule bounds its reads (see `amendment.md`).
 
 **Revision budget — deltas stop at r2.** The third amendment against the same ADR does not append `-r3`; it **consolidates** (amendment.md M2b/M3b): one re-issued full ADR at the next free top-level number, folding the chain, `**Consolidates:**` stamped, every superseded file stamped, the plan's `**Governing ADR:**` repointed, `D-###` numbers preserved. Deltas are cheap to write and expensive to read, and the cost lands on every later reader: one chain reached **r10**, so knowing the design meant folding eleven files by hand. Consolidation pays that fold once. `CODE_DRIFT` never counts toward the budget.
 
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
+
+## Cycle bounds
+
+Three gates can loop. Each has a bound, and reaching one is a **user decision**, never another automatic round.
+
+| Loop | Counted by | Bound | On reaching it |
+| --- | --- | --- | --- |
+| Phase rejection (user / reviewer / architect → developer) | developer, per phase | 3 | `## Phase N Stalled` — developer stops with a diagnosis |
+| End-of-plan cumulative review (`CHANGES REQUIRED` → fix → resubmit) | reviewer, `<plan>#cumulative` memory key | 3 | `CYCLE BOUND REACHED:` above the verdict; the verdict still renders |
+| Cross-check ↔ amendment (`DRIFT DETECTED` → amendment → re-check) | reviewer, `<plan>#crosscheck` memory key | 3 | `CYCLE BOUND REACHED:` above the verdict; the verdict still renders |
+
+The counts live in the reviewer's memory index, which it already writes each pass — no separate bookkeeping to fall out of date. `CYCLE BOUND REACHED:` is orthogonal to the verdict, like `ARCHITECT AMENDMENT NEEDED:`. The architect's r3 consolidation (`amendment.md` M2b) is not a cycle bound: it changes the ADR's shape, it does not break the loop.
 
 ## Spec volatility (hold-and-batch)
 
@@ -122,12 +121,7 @@ Two things go volatile mid-plan, and **neither is absorbed one ruling at a time*
 2. While the stamp is present, the developer's pre-flight marks `Inputs ⚠` and asks — no phase is implemented against a held plan. Completed phases stay completed.
 3. Deltas accumulate; when the spec settles, route **one** analyst delta report (what changed vs the framing report/ADR) and **one** architect amendment absorbing all of it, then remove the stamp.
 
-**Source B — the user rules on design shape against a live plan** ("merge those two ports", "make it injectable", "that static class is fluff", "the caller owns the transaction", "move the folder"). These are semantics-preserving structural directives, they arrive at phase gates and after close, and they **cluster** — so unlike Source A they do not stop the plan, and they get a queue rather than a stamp:
-
-1. The team lead **acknowledges and records** the ruling. It does **not** route `ARCHITECT AMENDMENT NEEDED:` on the spot.
-2. Work continues, with one exception: if the ruling changes the shape of the phase about to start, that phase waits for the batch to flush.
-3. Flush the queue — routing **one** amendment carrying every queued ruling as a numbered list — at the first of: the user says to proceed / asks for the amendment; the next phase cannot start without a queued ruling absorbed; the developer needs a queued decision to implement; or the plan reaches `## All Phases Complete`.
-4. One flush is **one** supersession ADR covering the whole batch, not one per ruling.
+**Source B — the user rules on design shape against a live plan** ("merge those two ports", "make it injectable", "the caller owns the transaction"). These are semantics-preserving structural directives, they arrive at phase gates and after close, and they **cluster** — so unlike Source A they do **not** stop the plan and there is no stamp. The team lead queues them and flushes the batch as ONE amendment; the queueing and flush rules are the lead's and live in `instructions/lead/orchestration.md`. What teammates need: work continues normally, and a phase waits only if a queued ruling changes the shape of the phase about to start.
 
 A ruling that is *not* semantics-preserving (it changes behaviour, a contract surface, or an acceptance criterion) is Source A, not Source B: stamp and hold.
 
@@ -192,17 +186,4 @@ The exact compact/expanded line formats, the `ASK` question grammar, and each ag
 
 # Source Code Reference
 
-Source code for dependencies and reference repositories is fetched on demand by the `opensrc` CLI into the project-local `.opensrc/` cache. Always invoke through the `npm run opensrc` script — it sets `OPENSRC_HOME` so the cache stays inside the project.
-
-- `npm run opensrc -- list` — see all cached sources, or read `.opensrc/sources.json` for the manifest.
-- `npm run opensrc -- path <spec>` — print the path to a cached source (fetches automatically on cache miss).
-- Use this when you need to understand how a package works internally, not just its types/interface.
-
-## Fetching Additional Source Code
-
-```
-npm run opensrc -- fetch <package>        # npm package        (e.g., npm run opensrc -- fetch zod)
-npm run opensrc -- fetch pypi:<package>   # Python package     (e.g., npm run opensrc -- fetch pypi:requests)
-npm run opensrc -- fetch crates:<package> # Rust crate         (e.g., npm run opensrc -- fetch crates:serde)
-npm run opensrc -- fetch <owner>/<repo>   # GitHub repository  (e.g., npm run opensrc -- fetch jdforsythe/forge)
-```
+To read a dependency's actual source — not just its types — use `npm run opensrc` (always via the script: it sets `OPENSRC_HOME` so the cache stays in the project's `.opensrc/`). `-- list` shows the cache, `-- path <spec>` prints a path and fetches on miss, `-- fetch <spec>` adds one. A spec is a bare npm name, `pypi:<pkg>`, `crates:<pkg>`, or `<owner>/<repo>`; `-- help` has the rest.

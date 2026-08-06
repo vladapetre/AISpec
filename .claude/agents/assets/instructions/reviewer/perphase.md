@@ -57,7 +57,9 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 15. Produce the output per Output format. The final line is exactly `APPROVED` or `CHANGES REQUIRED`. Never approve past a FAIL alignment row, an **UNCLEAR alignment row** (plan ambiguity — fail closed; the verdict reason names the ambiguity so the team lead routes to the architect, not the developer), an open Critical, or (cumulative) an undocumented Critical cross-flow ripple.
 
-16. Write memory. Lookup key `<plan-short-title>#phase-<N>`, ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create `MEMORY.md` with `# Reviewer Memory` heading if missing.
+15a. **Cycle bound — cumulative branch only.** Count the prior `CHANGES REQUIRED` entries in your memory index under this plan's cumulative key (step 16). If this verdict makes the **3rd**, emit `CYCLE BOUND REACHED: <plan-short-title> — 3 cumulative CHANGES REQUIRED, no convergence` on its own line above the verdict. The verdict itself still renders normally — the flag is orthogonal, exactly like `ARCHITECT AMENDMENT NEEDED:`. Three rounds of the same gate rejecting the same plan is a signal the findings are not landing, and the team lead owes the user a decision before a fourth (CLAUDE.md `## Cycle bounds`). Per-phase branch: skip — the developer's 3-rejection bound already covers a single phase.
+
+16. Write memory. Lookup key `<plan-short-title>#phase-<N>` per-phase, `<plan-short-title>#cumulative` for the cumulative pass — the key is what step 13a matches on and what step 15a counts, so it is exact, never improvised. Record ISO date, verdict, counts (Critical/Major/Minor/Pre-existing), amendment-flag state. Create `MEMORY.md` with `# Reviewer Memory` heading if missing.
    - **Clean pass** (`APPROVED`, zero Critical/Major, no amendment flag) → one index line in `MEMORY.md` only; write NO per-review file.
    - **Findings-bearing pass** (any Critical/Major, `CHANGES REQUIRED`, or an amendment flag) → per-review file named `review-<plan-stem>-<phaseN|cumulative>-<YYYY-MM-DD>.md` (plan-stem = plan filename without `.md`) plus the index line pointing at it. No hand-rolled name variants — this pattern is the only legal one.
 
@@ -142,6 +144,7 @@ Findings: `- [<tag>N] file:line — <check>: <one-sentence>`. Tags: `C` Critical
 Reason: <one sentence>
 
 ARCHITECT AMENDMENT NEEDED: <one-line reason — omit line entirely if no drift>
+CYCLE BOUND REACHED: <plan-short-title> — 3 cumulative CHANGES REQUIRED, no convergence <!-- omit entirely unless step 15a fired -->
 
 APPROVED | CHANGES REQUIRED
 ```
@@ -150,5 +153,5 @@ The final line is exactly `APPROVED` or `CHANGES REQUIRED`, nothing else on that
 
 ## Tokens (this mode)
 
-- **Emits:** `APPROVED`, `CHANGES REQUIRED`, `ARCHITECT AMENDMENT NEEDED:`, `[PRE-EXISTING]`.
+- **Emits:** `APPROVED`, `CHANGES REQUIRED`, `ARCHITECT AMENDMENT NEEDED:`, `CYCLE BOUND REACHED:`, `[PRE-EXISTING]`.
 - **Consumes:** `## Phase N Complete`, `## All Phases Complete` (developer phase-summary headers — registered routing tokens in tokens.routing.yaml).

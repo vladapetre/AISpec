@@ -24,9 +24,11 @@ CC-3. Run the five checks from `templates/cross-check.md` in order: terminology,
 
 CC-4. Verdict: `ALIGNED` if no critical or major rows; `DRIFT DETECTED` otherwise. `minor`/`pre-existing` never block.
 
+CC-4a. **Cycle bound.** Count the prior `DRIFT DETECTED` entries in your memory index under this plan's cross-check key (CC-6). If this verdict makes the **3rd**, emit `CYCLE BOUND REACHED: <plan-short-title> — 3 cross-check cycles, no convergence` on its own line above the verdict. The verdict still renders normally. Three amendment rounds that keep failing the same gate mean the ADR/plan pair is not converging by amendment, and the team lead owes the user a decision — redesign, or accept the drift — before a fourth (CLAUDE.md `## Cycle bounds`).
+
 CC-5. Emit the cross-check output. Final line is exactly `ALIGNED` or `DRIFT DETECTED`. No per-phase verdict tokens.
 
-CC-6. Write memory. **Clean pass** (`ALIGNED`, zero critical/major rows) → one index line in `MEMORY.md` only; write NO per-review file. **Findings-bearing pass** (any critical/major row, or `DRIFT DETECTED`) → per-review file named `review-<plan-stem>-crosscheck[-rN|-consolidated]-<YYYY-MM-DD>.md` (plan-stem = plan filename without `.md`; `-rN` when the ADR is a supersession, `-consolidated` when it is an M3b consolidation) plus the index line. Every entry records: ADR path, plan path, scope (full/delta), verdict, counts per check.
+CC-6. Write memory. Lookup key `<plan-short-title>#crosscheck` — stable across ADR revisions, since CC-2 and CC-4a both match on the plan, not the ADR. **Clean pass** (`ALIGNED`, zero critical/major rows) → one index line in `MEMORY.md` only; write NO per-review file. **Findings-bearing pass** (any critical/major row, or `DRIFT DETECTED`) → per-review file named `review-<plan-stem>-crosscheck[-rN|-consolidated]-<YYYY-MM-DD>.md` (plan-stem = plan filename without `.md`; `-rN` when the ADR is a supersession, `-consolidated` when it is an M3b consolidation) plus the index line. Every entry records: ADR path, plan path, scope (full/delta), verdict, counts per check.
 
 ## Mode-specific closing self-check
 
@@ -49,6 +51,8 @@ Emit exactly:
 
 **Verdict:** ALIGNED | DRIFT DETECTED
 
+CYCLE BOUND REACHED: <plan-short-title> — 3 cross-check cycles, no convergence <!-- omit entirely unless CC-4a fired -->
+
 ALIGNED | DRIFT DETECTED
 ```
 
@@ -56,5 +60,5 @@ The final line is exactly the verdict token, nothing else on that line.
 
 ## Tokens (this mode)
 
-- **Emits:** `ALIGNED`, `DRIFT DETECTED`.
+- **Emits:** `ALIGNED`, `DRIFT DETECTED`, `CYCLE BOUND REACHED:`.
 - **Consumes:** `CROSS_CHECK_REQUESTED:`.

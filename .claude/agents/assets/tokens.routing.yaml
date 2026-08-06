@@ -58,7 +58,7 @@ routing_tokens:
   - token: "## Phase N Stalled"
     produced_by: developer
     written_into: "Stall block heading at the 3-rejection bound (rejection.md Output format)"
-    consumed_by: "team lead (surfaces the user decision; SHOULD offer a fresh-eyes developer respawn per CLAUDE.md ## Agent lifecycle)"
+    consumed_by: "team lead (surfaces the user decision; SHOULD offer a fresh-eyes developer respawn — instructions/lead/orchestration.md ## Agent lifecycle)"
     meaning: "Three rejections of the same phase; a user decision is required to proceed."
 
   - token: "SELF_CHECKED"
@@ -84,6 +84,35 @@ routing_tokens:
       variant — it is resolved deterministically by the reviewer at CC-2 from the
       ADR filename + its own memory, so a mis-labelled request cannot shrink the
       pass. The reason text after the colon states the emitter's intent only.
+
+  - token: "CYCLE BOUND REACHED:"
+    produced_by: reviewer
+    written_into: "Review or cross-check output — its own summary line ABOVE the verdict line, alongside ARCHITECT AMENDMENT NEEDED:. Orthogonal to the verdict, which still renders normally."
+    consumed_by: "team lead (surfaces the user decision; must NOT route another round of the same loop unattended)"
+    meaning: "The same gate has returned the same rejecting verdict N times for this plan without converging. A user decision is required before another cycle."
+    note: >-
+      MAST R7 ("detect and break repetition loops; cap iterations"). Two loops
+      had no cap at all: the end-of-plan cumulative review (CHANGES REQUIRED →
+      fix → fresh ## All Phases Complete, specified as running "until APPROVED
+      clears") and the cross-check/amendment cycle (DRIFT DETECTED → amendment →
+      re-check → drift again). The developer's 3-rejection bound covers neither,
+      because it counts rejections of a PHASE. The reviewer counts these from its
+      own memory index — the data it already writes at perphase step 16 and
+      crosscheck CC-6 — so no new bookkeeping exists to fall out of date.
+      The architect's r3 consolidation (amendment.md M2b) is NOT this: it changes
+      the ADR's shape, it does not break the loop.
+
+  - token: "PAUSED"
+    produced_by: "any named agent"
+    written_into: "First line of the turn, as `PAUSED — <reason>` plus the question(s) (CLAUDE.md ## Turn discipline)"
+    consumed_by: "team lead (surfaces the question to the user; relays the answer as a continuation turn)"
+    meaning: "The agent stopped mid-contract and needs an answer before it can finish. The only legal way to end a turn without the mode's output block."
+    note: >-
+      Load-bearing in the enforcement layer, not just in prose: guard.verdict.mjs
+      exits 0 on any turn whose text starts a line with `PAUSED`, so this token
+      bypasses every verdict, classification, and routing-line check. That is
+      intended — a paused turn has no block to validate — but it makes the exact
+      spelling a security-relevant contract, not a stylistic one.
 
   - token: "RECONCILE WITH ADR:"
     produced_by: architect

@@ -13,6 +13,20 @@ Before spawning any named teammate, check whether a team exists for this session
 
 The team lead never pre-reads skill bodies. Note the spawn cost: a `skills:` frontmatter declaration injects each skill's **full SKILL.md body** into that teammate's context at startup — not just its description. Bundled templates are not preloaded. Keep declarations to skills an agent needs on nearly every run; anything situational is marked *(deferred)* in the agent's constraints and read on demand instead.
 
+## Agent lifecycle — continue, don't respawn
+
+Only you can spawn, so the whole respawn-vs-continue decision is yours. CLAUDE.md `## Agent lifecycle` carries the half teammates act on (continuation turns do not re-read unchanged material); this is the half they cannot. Every respawn re-pays entry-turn reads — memory, plan, ADR, templates, source familiarity — for nothing.
+
+| Agent | Default lifecycle |
+|---|---|
+| `developer` | ONE instance per plan. Every phase, approval relay, rejection, and reviewer verdict is a continuation turn of it. Respawn only on context loss (session died) or a new plan. |
+| `reviewer` | ONE instance per plan. Cross-check, checkpoints, re-reviews, and the cumulative pass are continuation turns — the ADR/plan are read once, and a re-review after `CHANGES REQUIRED` already holds its own prior findings. Independence is intact: the reviewer verifies the developer's code and the artifacts, never its own prior verdicts. |
+| `architect` | Design mode spawns fresh per request (clean framing). Amendments continue a still-resumable instance (the ADR is in context); otherwise spawn fresh — Amendment mode's surgical-context rule bounds the reads either way. |
+| `analyst` | Fresh per source set. A delta report against a source set it already ingested continues that instance. |
+| `consultant` | A discussion thread is one instance; ratification of a direction it discussed continues that instance into Artifact mode. |
+
+**Fresh eyes on stall.** Continuation trades a respawn's re-ingestion cost for the author's context — usually the right trade, but the author's context includes the author's *anchoring*. At the 3-rejection bound (`## Phase N Stalled`) and at a cumulative-review `CYCLE BOUND REACHED:`, offer respawning a fresh developer instance for the retry alongside the user decision. An instance that hasn't spent three attempts defending one reading is the cheapest way to break the pattern, and the per-plan progress file carries the durable state it needs.
+
 ## Agent registry
 
 The harness has five named teammates. The team lead spawns by role — each agent's own step-2 mode dispatch loads the matching mode file from `.claude/agents/assets/instructions/<agent>/<mode>.md`.
@@ -48,6 +62,18 @@ Any question or request for input from any agent must be surfaced to the user be
 - **Never re-quote teammate output.** Any `@agent` block is already rendered natively in the UI. Reference it by name and add at most one framing sentence or a clarifying question — never paste the agent's text into your own response.
 - If a developer agent self-confirms ("The user confirmed the plan") without an explicit user reply relayed by the team lead, treat the confirmation as invalid. Stop and ask the user.
 - **Idle handling.** Teammates end every turn with one `SendMessage`. If a teammate goes idle without sending, call `TaskOutput` *once* to retrieve the stranded block, then reference it. Repeated idle pings for the same teammate within a turn are noise — ignore them after the first `TaskOutput` fetch.
+- **`CYCLE BOUND REACHED:` stops the loop, not the turn.** When a reviewer verdict carries this line (CLAUDE.md `## Cycle bounds`), do **not** route the next round of that loop — no fresh developer fix on a third `CHANGES REQUIRED`, no fresh amendment on a third `DRIFT DETECTED`. Surface the flag with the verdict and put the choice to the user: keep iterating, change approach, redesign, or accept. Relay the answer as a continuation turn to the instance already holding the context. On the cumulative-review loop the fresh-eyes option applies as it does at `## Phase N Stalled` — offer a new developer instance for the retry.
+
+## Spec volatility — the Source B queue
+
+CLAUDE.md `## Spec volatility` states the split; Source B's procedure is yours alone, because you hold the queue. A user structural ruling against a live plan ("merge those two ports", "make it injectable", "that static class is fluff", "move the folder") is semantics-preserving, arrives at phase gates and after close, and **clusters**.
+
+1. **Acknowledge and record** the ruling. Do **not** route `ARCHITECT AMENDMENT NEEDED:` on the spot — one amendment per ruling is how a design ends up spread across eleven files.
+2. Work continues. The one exception: if a queued ruling changes the shape of the phase about to start, that phase waits for the flush.
+3. **Flush** — routing one amendment carrying every queued ruling as a numbered list — at the first of: the user says to proceed or asks for the amendment; the next phase cannot start without a queued ruling absorbed; the developer needs a queued decision to implement; the plan reaches `## All Phases Complete`.
+4. One flush is **one** supersession ADR covering the whole batch. Amendment mode's M5a counts the batch's *rulings*, not its decisions, against its `≤2` waiver condition — a batch is one absorption event.
+
+If a ruling turns out not to be semantics-preserving, it is Source A: stamp the plan `**Spec: ON HOLD**` and hold.
 
 ## Workflows
 
