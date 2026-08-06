@@ -67,13 +67,15 @@ Computed from the step-8 changed-file set: total changed files and total changed
 
 | Size | Threshold | Templates loaded |
 |---|---|---|
-| **Small** | ≤3 files AND ≤50 LOC | `alignment.md` + matching framework templates — **skip** `patterns.md` and concerns |
+| **Small** | ≤3 files AND ≤50 LOC | `alignment.md` + matching framework templates — **skip** `patterns.md` and concerns, except its Security, Comment discipline, and Test scope sections (floors below) |
 | **Medium** | not Small, AND LOC <300, AND files <10 | `alignment.md` + `patterns.md` (skip SOLID and DRY sections) + matching framework and concern templates |
 | **Large** | ≥300 LOC OR ≥10 files | full set — `alignment.md` + `patterns.md` (all sections) + matching framework and concern templates |
 
 **Boundary rule.** Small is conjunctive — fail either half → Medium. File-count ≥10 alone or LOC ≥300 alone → Large.
 
 **Security floor — Se1–Se3 always run, every gate.** The three security checks in `patterns.md` (hardcoded secrets, injection, insecure defaults) are never diff-size gated: a Small or Medium load that skips the rest of `patterns.md` still executes its Security section against every changed file. A 2-file, 40-LOC change can hardcode a secret as easily as a large one.
+
+**Authoring-policy floor — `## Comment discipline` and `## Test scope` also run at every gate.** Both check what the diff *adds* against the developer's standing constraints (comments carry WHY and are scarce; unit and conditional arch tests only), and both are cheap — they read the added lines and nothing else. Gating them out on Small would exempt exactly the diffs where a stray narration comment or a sneaked-in integration test is most likely to pass unnoticed. A Small or Medium load that skips the rest of `patterns.md` still executes these two sections plus Security.
 
 **Security carve-out** (overrides Small/Medium): any changed file under a path listed in CLAUDE.md `## Security paths` → load `patterns.md` in full (Se1–Se3 must always run). That section is the single copy of the list; a project extends it there and this carve-out picks the extension up with no edit here. Framework/concern gating still applies.
 

@@ -29,7 +29,7 @@ JWTs are re-validated per hop, blowing the p99 latency budget on fan-out endpoin
 
 ### Phase 2 — Gateway emits signed claims header
 **Changes:** gateway validates JWT once, attaches signed header via the Phase 1 helper, forwards downstream. JWT validation remains in downstream services as a fallback (dual-mode).
-**Done when:** integration test asserts header present on every forwarded request; existing JWT validation tests still pass.
+**Done when:** unit tests assert the forwarding path attaches the header for every request shape (fake helper, fake transport); driving the gateway shows the header on a real forwarded request; existing JWT validation tests still pass.
 <!-- status:phase-2 -->
 
 ### Phase 3 — Pilot downstream services trust the header

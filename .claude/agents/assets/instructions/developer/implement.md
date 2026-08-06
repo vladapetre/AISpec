@@ -21,7 +21,9 @@ When the gate holds, before step 5:
 
 6. Implement the phase. Apply the craftsmanship charter — part of the job, not extra. Do not implement ahead. Plan prescribes a **craft** anti-pattern → silently apply your authority (rename, split, restructure). Plan prescribes a **structural** anti-pattern (contradicts a real constraint, or has been overtaken by a requirement) → stop and propose an alternative to the architect.
 
-7. Run tests and linter. Load `assets/detectors.yaml` for the test/lint cascade and failure-handling rules (first match wins per category).
+6a. **Tests you write are bounded.** Load `assets/detectors.yaml#test_authoring_policy` before authoring any test. Unit tests are the default; architecture tests are permitted only under the condition stated there. Every other kind — integration, end-to-end, contract, performance, smoke — is **off by default**, including when the plan's own criteria name one (`plan_conflict`: cover the rule by unit test + the step-7a drive, and log a deviation). Only an explicit instruction unlocks a kind.
+
+7. Run tests and linter. Load `assets/detectors.yaml` for the test/lint cascade and failure-handling rules (first match wins per category). Pre-existing tests of excluded kinds still run — the policy in 6a restricts authoring, not execution.
    - **Redirect log-heavy commands, then digest** — a build or test log is thousands of lines and crowds the phase out of your own context:
      ```
      <test-or-build-command> > .claude/state/phase-<N>.log 2>&1; echo "exit=$?"
@@ -36,6 +38,8 @@ When the gate holds, before step 5:
    - **Rules:** `assets/detectors.yaml#verification_rules` — evidence is observed runtime output, never re-read code; dev/local data only; blocked environment → record and surface, never fake.
    - **The claim is checked, not trusted.** A `PostToolUse` hook records every Bash command you run, and the Stop guard blocks a `## Phase N Complete` on either of two grounds: the `**Verification:**` field claims a drive but does not follow the `<command driven> → <observed result>` form, or it claims a drive and no drive-class command was observed for the phase. **Neither inspection (`git`, `rg`, `cat`, `ls`) nor the build/test/lint run nor the phase commit counts as a drive** — those are mandatory anyway, and a green suite is what step 7a exists to reject as evidence. The two exemption forms pass without evidence, so when a flow genuinely cannot be driven, state the exemption; do not describe a drive that did not happen.
    - Starting the app / hitting endpoints are mutating actions: surface the exact command(s) once per phase for confirmation unless the project's settings already allowlist them.
+
+7b. **Craft lint — clear it before the summary, not in review.** Run `node .claude/scripts/lint.craft.mjs` (add `--range <phase range>` once the phase is committed, `-C <repo>` for a nested repo). Every **error** is fixed this phase: commented-out code goes, an excluded-kind test is replaced by unit coverage per `#test_authoring_policy`. Every **candidate** is a question about your own comments — answer it honestly against the charter (does this carry WHY, and would a reader be confused without it?), then delete the comment or dismiss the candidate. Silence is not a pass: the script cannot see a stale comment or a test that asserts nothing, so the charter still applies unaided. The reviewer runs the same script at its step 13c, so anything left here arrives as a finding with your name on it. Script absent → skip silently.
 
 8. Produce the phase summary per the Output format below.
 
@@ -67,7 +71,7 @@ Emit before requesting review. Always render every block; use `_None_` for empty
 **Pushed back on (structural only):**
 - design issues raised to the architect because they're structural, not craft | _None_
 
-**Tests:** passed | failed (list) | no test suite detected
+**Tests:** passed | failed (list) | no test suite detected — authored: <N unit, M arch> | none [| <kind> — unlocked by <who>]
 **Linter:** passed | failed (list) | no linter detected
 **Verification:** <command driven> → <observed result, trimmed> (covers T-N.x, T-N.y) | no drivable surface — <reason> | not drivable in this environment — <blocker, surfaced>
 

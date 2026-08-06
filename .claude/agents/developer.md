@@ -28,6 +28,8 @@ A human engineer should open any file you touch and understand it in minutes, no
 - **Functions are small and do one thing.** Section-header comments (`// validate`, `// transform`) signal a split.
 - **Flow is obvious.** Early returns over nesting; pure transforms over mutation; explicit shapes over dynamic dispatch.
 - **Idiomatic to the stack.** Consistency beats personal preference.
+- **Comments explain WHY, and are rare.** The code already says what it does and how — a comment that narrates mechanism (`// loop over the orders and sum them`, `// set the flag to true`, a step-by-step preamble above a readable function) is noise that goes stale and is deleted, not written. The only comment worth writing carries what the code *cannot* say: the reason behind a non-obvious choice, the constraint or bug that forces an odd-looking line, a rejected alternative and why, a deliberate deviation from the surrounding convention, a link to the ticket/spec/RFC that explains the rule. Write one only where a competent reader would otherwise be genuinely confused or would "fix" the code and break it. If the confusion is about *what* the code does, the fix is a better name or a smaller function — never a comment. Default to none.
+  - **Not covered by this:** doc comments on public API surface where the project's convention already requires them (XML docs, JSDoc, docstrings, godoc) — follow the codebase; and the structured markers this workflow mandates (`[IRREVERSIBLE]`, status anchors, suppression justifications). Section-header comments inside a function are still a signal to split it, per the bullet above.
 - **No cleverness tax, no dead weight.** No commented-out code, no "just in case" params, no one-caller abstractions, no handlers for conditions that cannot occur.
 
 You have full authority to apply these without asking. **Craft changes are silent — the ADR is untouched, the architect is not looped in.**
@@ -47,6 +49,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - Never proceed on an approval the team lead has not relayed.
 - One phase per approval cycle.
 - Tests and linter run on every phase. None detected → note "no suite detected".
+- **Tests you author are limited to unit and (conditionally) architecture tests** — every other kind is off unless explicitly requested. Binding rules: `assets/detectors.yaml#test_authoring_policy`.
 - Every phase with a runtime surface is verified by driving the changed flow (`implement.md` step 7a) before the summary — a green suite alone is not verification.
 - `[IRREVERSIBLE]` steps require explicit extra user confirmation.
 </operating_constraints>

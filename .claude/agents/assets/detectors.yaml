@@ -21,6 +21,37 @@ test_detectors:
   - { signal: "any *.spec.ts or *.test.ts in changed paths",      command_via: "vitest run OR jest" }
   - { signal: "no match",                                         command_via: "note 'no test suite detected'" }
 
+# What the developer is allowed to AUTHOR (implement.md step 6, rejection.md R1).
+# Orthogonal to the detectors above: those decide how to RUN the suite that
+# exists, this decides what may be added to it. Running a pre-existing suite of
+# any kind is always fine — the restriction is on writing new tests.
+test_authoring_policy:
+  default_allowed:
+    - kind: "unit"
+      is: "One behaviour of one unit, in-process, no I/O. Collaborators are stubs/fakes/in-memory doubles. Asserts a business rule: a computation, a decision branch, a validation outcome, a state transition, a mapping."
+      scope: "This is the default and usually the only kind written. Cover the phase's acceptance criteria at this level."
+    - kind: "architecture"
+      is: "A structural assertion over the codebase itself — layering and dependency direction, namespace/naming conventions, forbidden references, public-surface shape (ArchUnit, NetArchTest, ts-arch, dependency-cruiser, or a hand-rolled equivalent)."
+      scope: "Permitted, not expected. Add one only when the phase establishes or enforces a structural boundary AND the project already has an arch-test harness. Never introduce such a harness on your own initiative."
+  never_by_default:
+    why: "Each of these is slow, environment-coupled, and expensive to own forever; and the runtime confidence they are usually reached for is what step 7a's drive-and-observe loop already provides at a fraction of the cost."
+    kinds:
+      - "integration / component — real DB, broker, cache, filesystem, HTTP server, testcontainers, in-memory-host harnesses (WebApplicationFactory, TestServer, supertest against a booted app), Spring @SpringBootTest, DI-container resolution tests"
+      - "end-to-end / UI — Playwright, Cypress, Selenium, WebDriver, rendered-output snapshots"
+      - "contract / consumer-driven — Pact and equivalents"
+      - "performance, load, stress, soak, benchmark — including microbenchmark harnesses (BenchmarkDotNet, JMH, criterion)"
+      - "smoke / health-probe suites, chaos, fuzz, property-based sweeps, mutation-testing runs, security/pen suites"
+  test_double_rule: "If a test can only pass by booting infrastructure, it is not a unit test — do not write it. Reach for a fake/in-memory double instead; if the seam needed to fake it does not exist, that is a structural finding for the architect, not a licence to write an integration test."
+  plan_conflict: >-
+    A phase whose Changes/Done-when line prescribes an excluded kind ("integration test asserts…") does
+    NOT unlock it. Cover the same business rule with unit tests, satisfy the runtime half of the criterion
+    through the step-7a drive, and record one line under **Deviations from plan**: "plan asked for
+    <kind>; covered <rule> by unit test + step-7a drive per test_authoring_policy". This is a craft
+    deviation — do not escalate to the architect. Escalate to the USER only when the criterion is
+    genuinely unsatisfiable that way, and ask once.
+  unlock: "Only an explicit instruction naming the kind — from the user, or from the plan quoting the user's request. A plan line that merely says 'integration test' is not an explicit instruction (see plan_conflict). When unlocked, note the authorisation in the phase summary's Tests line."
+  existing_tests: "Never delete, weaken, or skip an existing test of an excluded kind to satisfy this policy. They keep running in step 7 and their failures are handled per failure_handling."
+
 lint_detectors:
   - { signal: "package.json with a `lint` script",                command_via: "npm run lint" }
   - { signal: "biome.json OR biome.jsonc",                        command_via: "biome check" }

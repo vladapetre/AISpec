@@ -48,6 +48,40 @@ These checks target universal correctness and maintainability principles. Skip a
 
 ---
 
+## Comment discipline
+
+The developer's charter: comments are **scarce** and carry **WHY**. A comment that narrates mechanism is noise — the code already says what it does, and a comment explaining *what* should have been a better name or a smaller function. Judge the comments the diff **adds**; pre-existing comments are out of scope unless the diff changed the code beneath them and left the comment stale.
+
+| # | Check | Fail condition | Severity |
+|---|-------|----------------|----------|
+| Cm1 | Mechanism narration | An added comment describes what the code does rather than why (`// loop over the orders and sum them`, `// set the flag`, `// returns the total`) — the line beneath it says the same thing to any competent reader | Minor |
+| Cm2 | Commented-out code | An added comment contains disabled code rather than prose | Minor |
+| Cm3 | Comment instead of a name | An added comment exists to explain an identifier or a block that a rename or an extracted function would have made self-evident | Minor |
+| Cm4 | Stale comment | The diff changed code beneath an existing comment and the comment now describes behaviour the code no longer has | **Major** |
+
+**Aggregate, never enumerate.** Cm1–Cm3 across the whole diff are reported as **one** Minor finding listing each `file:line` and the offending text, so a comment-heavy phase consumes one slot of the `## Evidence bar` E5 Minor cap instead of burying every blocking finding. Cm4 is reported per occurrence — a comment that now lies is a correctness hazard, not a style preference.
+
+**Exempt, never flagged:** doc comments on public API surface where the project's convention requires them (XML docs, JSDoc, docstrings, godoc); machine directives (`eslint-disable`, `@ts-expect-error`, `noqa`, `SuppressMessage`, pragmas) and their justification text; licence/SPDX headers; generated-file banners; and the workflow's own markers (`[IRREVERSIBLE]`, status anchors).
+
+---
+
+## Test scope
+
+The developer authors **unit** tests and, conditionally, **architecture** tests. Every other kind is off unless explicitly unlocked — the binding rules, including what counts as an unlock, are `.claude/agents/assets/detectors.yaml#test_authoring_policy`. Judge tests the diff **adds**; a pre-existing suite of any kind is not a finding.
+
+| # | Check | Fail condition | Severity |
+|---|-------|----------------|----------|
+| Ts1 | Excluded test kind authored | The diff adds an integration, component, end-to-end, contract, performance/benchmark, or smoke test, and neither the phase summary nor the plan records an explicit unlock naming that kind | **Major** |
+| Ts2 | Infrastructure in a unit test | An added test boots or reaches real infrastructure — DB provider, container, HTTP server, in-memory host, broker, filesystem — regardless of what the file is called | **Major** |
+| Ts3 | Architecture harness introduced | The diff introduces an arch-test harness (NetArchTest, ArchUnit, ts-arch, dependency-cruiser) where the project had none — permitted only when the harness already exists | Minor |
+| Ts4 | Test asserts nothing meaningful | An added test asserts only that a mock was called, or has no assertion on the business rule its name claims to cover | Major |
+
+A plan line prescribing an excluded kind is **not** an unlock (`plan_conflict`): the developer should have covered the rule with unit tests plus the step-7a drive and logged a deviation. Diff does that, plan asked for the excluded kind, developer logged the deviation → **no finding**; that is the policy working. Diff contains the excluded kind *because* the plan asked → still Ts1, and the plan's wording is worth an `ARCHITECT AMENDMENT NEEDED:` note if the criterion cannot be met any other way.
+
+**Locating candidates.** `node .claude/scripts/lint.craft.mjs --range <commit-range>` reports only what is decidable as **errors** — commented-out code (Cm2) and excluded-kind test files or harness imports (Ts1, Ts2). Everything judgemental comes back as a **candidate**: narration (Cm1), restatement (Cm3), comment density, and an introduced arch harness (Ts3). Cm4 and Ts4 it cannot see at all. It is your instrument, not a project gate — so `## Machine-enforced exclusions` does **not** suppress these findings on account of it. (If a project wires the script into CI or a pre-commit hook, the exclusion rule applies then, on that evidence, like any other detected gate.) Its errors are facts worth citing; its candidates are questions — confirm each against the charter before it becomes a finding, and never paste its output as the review.
+
+---
+
 ## Naming and readability
 
 | # | Check | Fail condition | Severity |

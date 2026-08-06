@@ -50,16 +50,18 @@ consultant-artifact:
 developer:
   _base:
     - { fm: FM-1.2, check: "Code matches craftsmanship charter: names carry meaning, no cleverness tax, no dead weight, idiomatic to the stack." }
+    - { fm: FM-1.2, check: "Comments are scarce and carry WHY — every one added this phase would leave a competent reader genuinely confused if removed; no mechanism narration, no what-it-does restatement (a better name or a smaller function was used instead). Convention-required doc comments on public surface excepted." }
     - { fm: FM-1.1, check: "Every touched file was read first." }
 developer-implement:
   - { fm: FM-1.3, check: "This phase only; no future-phase work." }
   - { fm: FM-3.3, check: "Tests and linter ran (or absence noted); introduced failures fixed; pre-existing tagged [PRE-EXISTING]." }
+  - { fm: FM-1.2, check: "Every test authored this phase is a unit test, or an architecture test meeting detectors.yaml#test_authoring_policy — no integration, e2e, contract, performance, or smoke test added without an explicit unlock; a plan line naming one was answered per plan_conflict and logged as a deviation." }
   - { fm: FM-3.3, check: "Step 7a verification ran: the changed flow was DRIVEN and the result OBSERVED, written as `<command driven> → <observed result>`, or the Verification field carries an honest exemption/blocker. Never inferred from reading code; the test suite and the phase commit are not drives; config/DI/startup wiring is never exempt." }
   - { fm: FM-3.1, check: "<output_format> block fully rendered; pushed-back items and decisions listed." }
   - { fm: FM-3.4, check: "On approval, plan-progress memory updated." }
 developer-rejection:
   - { fm: FM-2.4, check: "Feedback classified (craft / structural / grey zone); right escalation taken." }
-  - { fm: FM-3.3, check: "Tests and linter re-ran after fix; introduced failures fixed." }
+  - { fm: FM-3.3, check: "Tests and linter re-ran after fix; introduced failures fixed; any test added by the fix obeys detectors.yaml#test_authoring_policy." }
   - { fm: FM-3.1, check: "Fresh phase summary emitted, or stalled block at 3-rejection bound." }
 
 reviewer:
@@ -73,6 +75,7 @@ reviewer-perphase:
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
   - { fm: FM-2.1, check: "Cumulative only — step 15a cycle bound checked against the plan's #cumulative memory key; CYCLE BOUND REACHED: emitted at the 3rd CHANGES REQUIRED. (Per-phase: N/A.)" }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }
+  - { fm: FM-1.3, check: "Authoring-policy floor ran at this gate: patterns.md Comment discipline (Cm1-Cm4) and Test scope (Ts1-Ts4) judged against added lines, Cm1-Cm3 aggregated into one Minor; step 13c craft-lint output treated as evidence, its candidates confirmed or dismissed, never pasted as findings." }
   - { fm: FM-3.3, check: "Evidence bar held (SKILL.md ## Evidence bar): each finding survived an active attempt to disprove it; every Critical/Major carries a concrete failure scenario or was demoted; Minor capped at 5 with the remainder as a count." }
   - { fm: FM-1.2, check: "Machine-enforced set resolved and recorded on the Machines: line; no finding reported that this project's own gates already fail on — but a guard's OWN code was still reviewed." }
 reviewer-crosscheck:
