@@ -132,6 +132,12 @@ const META_ROOTS = new Set([
   "npx", "ts-node", "tsx", "deno", "bun",
 ]);
 
+// The directory name under which the `branching` skill parks per-feature
+// worktrees (`<repo>/.worktrees/<safe-branch-name>`). Deleting one of those
+// directories is the sanctioned last step of a worktree teardown when git's
+// own `worktree remove` refuses (see isWorktreeTeardown below).
+const WORKTREE_DIR = ".worktrees";
+
 // Redirection operators that write to disk - never auto-allow these,
 // since "cat foo" is safe but "cat foo > important_file" is not.
 const WRITE_REDIRECT_OPS = new Set([">", ">>", "&>", "&>>"]);
@@ -255,7 +261,33 @@ function splitIntoSegments(tokens) {
   return { segments, sawWriteRedirect, sawBackground };
 }
 
-function checkGit(tokens) {
+/**
+ * Drop git's leading GLOBAL options so the subcommand is always at index 1.
+ *
+ * Without this, `git -C <repo> status` classified on the token "-C" and fell
+ * through to a prompt, while `git -C <repo> push` missed the deny list
+ * entirely — the guard read the option, not the verb. Any tool driving nested
+ * repos (the `branching` skill runs every command as `git -C <repo> …`) hits
+ * this on every call, so normalize once here rather than at each call site.
+ *
+ * Returns a token array shaped `["git", <subcommand>, ...args]`.
+ */
+function stripGitGlobalOpts(tokens) {
+  const TAKES_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+  const rest = tokens.slice(1);
+  let i = 0;
+  while (i < rest.length) {
+    const t = rest[i];
+    if (typeof t !== "string" || !t.startsWith("-")) break;
+    // "--git-dir=<path>" carries its value inline; "-C <path>" consumes the next token.
+    if (t.includes("=")) { i += 1; continue; }
+    i += TAKES_VALUE.has(t) ? 2 : 1;
+  }
+  return ["git", ...rest.slice(i)];
+}
+
+function checkGit(rawTokens) {
+  const tokens = stripGitGlobalOpts(rawTokens);
   const sub = tokens[1];
   if (sub === "stash") {
     const action = tokens[2];
@@ -289,9 +321,60 @@ function checkGit(tokens) {
     const looksReadOnly = tokens.some((t) => t === "--get" || t === "--list");
     return looksReadOnly && !hasWriteFlag ? "safe" : "deny";
   }
+  if (sub === "worktree") {
+    // "worktree list" is pure inspection and the branching skill runs it once
+    // per mapped repo on EVERY invocation (manifest validation + resume check)
+    // — leaving it to the prompt taxes the common read path. add / remove /
+    // prune / move / lock / repair all mutate registrations: prompt, never
+    // auto-allow, and never hard-deny (teardown is a legitimate operation).
+    return tokens[2] === "list" ? "safe" : "unknown";
+  }
+  if (sub === "submodule") {
+    // status/summary inspect; init/update/deinit/foreach mutate working trees
+    // or run arbitrary commands.
+    return ["status", "summary"].includes(tokens[2]) ? "safe" : "unknown";
+  }
   if (DENY_GIT_SUBCOMMANDS.has(sub)) return "deny";
   if (SAFE_GIT_SUBCOMMANDS.has(sub)) return "safe";
   return "unknown";
+}
+
+/**
+ * Narrow carve-out for the one deletion this workflow legitimately needs:
+ * tearing down a per-feature worktree directory when `git worktree remove`
+ * refuses (the common cause is a gitlink/submodule entry in the worktree's
+ * index — a guard that `git submodule deinit` cannot satisfy, because it
+ * scans the index, not the initialization state). With `rm` hard-denied
+ * there was no legal route at all, which pushed the agent toward either
+ * dirtying the branch index (`git rm --cached`) or reaching for another
+ * deletion tool to get around the guard. Both are worse than a prompt.
+ *
+ * Returns true only when EVERY operand is a path with a `.worktrees/<name>`
+ * segment and at least one segment after `.worktrees` — so the worktree
+ * directory itself is deletable, while the `.worktrees` parent, the repo,
+ * and anything outside are not. Result is "unknown", NOT "allow": the user
+ * still sees the prompt (settings.json already lists `Bash(rm *)` under
+ * `ask`). This only stops the hard deny from pre-empting that prompt.
+ *
+ * Windows paths must be QUOTED to qualify: in an unquoted token the shell
+ * tokenizer eats `\` as an escape, so the separators — and with them any
+ * proof of scope — are gone by the time we see the operand. Failing closed
+ * (deny) there is deliberate.
+ */
+function isWorktreeTeardown(tokens) {
+  const operands = tokens.slice(1).filter(
+    (t) => typeof t === "string" && !t.startsWith("-")
+  );
+  if (!operands.length) return false; // e.g. globbed away by the tokenizer
+  return operands.every((raw) => {
+    if (/[*?]/.test(raw)) return false; // wildcards: scope isn't statically known
+    const segs = raw.replace(/\\/g, "/").split("/");
+    if (segs.includes("..")) return false; // no climbing back out
+    const i = segs.indexOf(WORKTREE_DIR);
+    if (i === -1) return false;
+    const rest = segs.slice(i + 1).filter((s) => s !== "" && s !== ".");
+    return rest.length >= 1; // must name a worktree, not the parent dir
+  });
 }
 
 /**
@@ -472,6 +555,9 @@ function classifySegment(tokens, cwd = process.cwd(), depth = 0) {
   if (root === "git") return checkGit(tokens);
   if (root === "dotnet") return checkDotnet(tokens);
   if (["npm", "yarn", "pnpm"].includes(root)) return checkNpmFamily(tokens, cwd);
+
+  const DELETE_ROOTS = new Set(["rm", "rmdir", "Remove-Item", "ri"]);
+  if (DELETE_ROOTS.has(root) && isWorktreeTeardown(tokens)) return "unknown";
 
   if (DENY_ROOTS.has(root)) return "deny";
   if (META_ROOTS.has(root)) return "unknown"; // never silently allow these

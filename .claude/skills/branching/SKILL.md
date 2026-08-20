@@ -121,8 +121,23 @@ For each mapped repo run `git -C <repo> worktree list` (read-only). Group the ou
 1. Ensure the manifest. No branch name → ask explicitly; stop.
 2. Locate the branch's worktrees via the resume check (step 3 above) across all repos.
 3. None found → report that there is nothing to remove; stop.
-4. **Surface the exact `git -C <repo> worktree remove <path>` command(s) for confirmation** (mutating). On confirmation, run each.
-5. **Never run a blanket `git worktree prune`** — it is global to a repo and can clobber a concurrent session's half-set-up worktree. Remove only the named worktrees. If a stale registration must be pruned, target it explicitly and surface that too.
+4. **Survey each worktree before proposing anything** (all read-only). Removal refuses for knowable reasons, and knowing which one you face decides the rung you start on:
+   - `git -C <worktree-path> status --porcelain` → uncommitted or untracked content.
+   - `git -C <worktree-path> ls-files --stage` for mode `160000` entries → **nested submodules**. See the gitlink note below.
+5. **Walk the removal ladder**, surfacing each command for confirmation before running it and stopping at the first rung that succeeds:
+
+   | Rung | Command | When |
+   |---|---|---|
+   | 1 | `git -C <repo> worktree remove <path>` | Always try first. Succeeds on a clean, submodule-free worktree. |
+   | 2 | `git -C <repo> worktree remove --force <path>` | Rung 1 refused. **Ask first**, and list exactly what step 4 found would be discarded. |
+   | 3 | delete `<path>`, then `git -C <repo> worktree prune` | Rung 2 still refuses (gitlink guard). Two commands, both surfaced. |
+
+6. **The gitlink note.** Git's removal guard scans the worktree's **index** for gitlink entries, not whether those submodules are initialized. So a worktree carrying submodules can refuse at rungs 1 and 2 even when it is entirely clean, and **`git submodule deinit` does not help** — it clears working directories without touching the index the guard reads. Do not attempt it as a workaround; it costs the user a populated submodule and buys nothing. `git rm --cached <submodule>` *would* satisfy the guard, and is equally out: it dirties the branch's index to work around a teardown. Rung 3 is the route.
+7. **Prune is scoped, not blanket.** Before running `git -C <repo> worktree prune`, enumerate that repo's registrations with `git -C <repo> worktree list` and report them. Prune only clears registrations whose directory is already gone, and it is per-repo — sibling repos in the manifest are untouched. State which registrations it will clear and note the one residual hazard: a concurrent session mid-`worktree add` in the *same* repo. If the listing shows nothing but the main worktree and the one being torn down, say so — that is what makes the prune safe, and it is worth saying rather than carrying a stale blanket warning.
+8. **Sweep the scaffolding.** After a rung-3 deletion, report any directory left empty by it — the `.worktrees/` parent, or intermediate directories created only to host the worktree. Offer removal; never delete silently and never leave them unmentioned.
+9. **Report per repo**: which rung cleared it, what was discarded at rung 2, what prune cleared at rung 3. State explicitly that the **branch ref itself still exists** — none of these rungs delete it, and users routinely assume `--remove` did.
+
+**Harness note.** Deletion commands are guard-denied unless every operand names a path *inside* a `.worktrees/<name>` directory (`.claude/hooks/guard.bash.mjs`), and Windows paths must be quoted to qualify. A refusal means the path is wrong or the scope is wider than a single worktree — **fix the path**. Reaching for a different deletion tool to get around the refusal is circumventing the guard, not satisfying it.
 
 ---
 
@@ -132,7 +147,7 @@ These hold even when two sessions run different features at once (worktrees of o
 
 1. **Feature-scoped naming.** Branch and worktree path both derive from the explicit branch name — never random. Unique branch names make cross-session collisions structurally impossible; a clash only ever produces git's loud "already checked out" error, never corruption.
 2. **Resume before create.** Always run the resume check first; never recreate a worktree that already exists for the branch.
-3. **Scoped teardown.** Remove only the named worktree; never a blanket `prune` while other worktrees may be active.
+3. **Scoped teardown.** Remove only the named worktree. `prune` is permitted as the last rung of the removal ladder, but only in the repo being torn down and only after its registrations have been enumerated and reported — never as a reflex, and never across repos.
 4. **No shared untracked state.** Let each worktree own its own `node_modules` / build output / `.env`; do not symlink these across worktrees to "save time" — it reintroduces the collisions worktrees exist to prevent.
 
 Runtime-resource collisions (two test runs binding the same port or hitting the same dev DB) are **out of this skill's scope** — they belong to whoever runs the tests, not to worktree setup. Flag the risk if a created worktree's repo has an obvious fixed-port/shared-DB test setup.
