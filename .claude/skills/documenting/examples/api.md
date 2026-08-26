@@ -1,4 +1,4 @@
-# Reference Example — To-Do List API v1
+# Reference Example: To-Do List API v1
 
 This is a **complete, finished output** sample. Use it to calibrate formatting, depth, field naming, enum handling, and table style.
 Do NOT reproduce this in output unless the user is actually documenting a to-do API.
@@ -21,7 +21,7 @@ All requests must include a valid Bearer token issued by the authentication serv
 
 ### Request
 
-The request body carries the item's initial data. No path or query parameters are required for this endpoint — all input is provided in the JSON body.
+The request body carries the item's initial data. No path or query parameters are required for this endpoint: all input is provided in the JSON body.
 
 ###### Request Body
 
@@ -40,10 +40,10 @@ Defines every field accepted in the JSON request body. `title` is the only requi
 
 | Field       | Type           | Required | Validation           | Description                         |
 | ----------- | -------------- | -------- | -------------------- | ----------------------------------- |
-| title       | string         | Yes      | 1–255 chars          | Short label for the to-do item      |
+| title       | string         | Yes      | 1 to 255 chars          | Short label for the to-do item      |
 | description | string         | No       | max 1 000 chars      | Optional longer description         |
 | dueDate     | string         | No       | ISO 8601 datetime    | When the item is due                |
-| priority    | integer (enum) | No       | Priority — see Enums | Defaults to `1` (Medium) if omitted |
+| priority    | integer (enum) | No       | Priority: see Enums | Defaults to `1` (Medium) if omitted |
 
 ### Response
 
@@ -66,7 +66,7 @@ On success the API returns `201 Created` with the full item object in the body, 
 
 #### Response Schema
 
-Documents every field present in the `201` response body. Enum fields (`priority`, `status`) are integers — consult the Enums & Mappings section for their named values.
+Documents every field present in the `201` response body. Enum fields (`priority`, `status`) are integers: consult the Enums & Mappings section for their named values.
 
 | Field       | Type           | Description                                     |
 | ----------- | -------------- | ----------------------------------------------- |
@@ -75,8 +75,8 @@ Documents every field present in the `201` response body. Enum fields (`priority
 | description | string         | Description as submitted, or `null`             |
 | isCompleted | boolean        | Always `false` on creation                      |
 | dueDate     | string         | ISO 8601 due date, or `null` if not provided    |
-| priority    | integer (enum) | Resolved priority — see `Priority` in Enums     |
-| status      | integer (enum) | Current item status — see `TodoStatus` in Enums |
+| priority    | integer (enum) | Resolved priority: see `Priority` in Enums     |
+| status      | integer (enum) | Current item status: see `TodoStatus` in Enums |
 | createdAt   | ISO 8601       | Server-assigned creation timestamp              |
 
 ### Error Responses
@@ -85,7 +85,7 @@ Lists every non-success status code this endpoint can return. Validation errors 
 
 | Status | Meaning                                  |
 | ------ | ---------------------------------------- |
-| 400    | Validation failed — see `errors` in body |
+| 400    | Validation failed: see `errors` in body |
 | 401    | Missing or invalid Bearer token          |
 | 403    | Token does not have write scope          |
 | 500    | Internal server error                    |
@@ -99,7 +99,7 @@ Lists every non-success status code this endpoint can return. Validation errors 
   "status": 400,
   "errors": {
     "title": ["The title field is required."],
-    "priority": ["Must be a valid Priority value (0–3)."]
+    "priority": ["Must be a valid Priority value (0 to 3)."]
   }
 }
 ```
@@ -182,8 +182,8 @@ Documents every field in the `200` response body. Compared to the create respons
 | description | string         | Current description, or `null`                  |
 | isCompleted | boolean        | Whether the item has been marked complete       |
 | dueDate     | string         | ISO 8601 due date, or `null`                    |
-| priority    | integer (enum) | Current priority — see `Priority` in Enums      |
-| status      | integer (enum) | Current item status — see `TodoStatus` in Enums |
+| priority    | integer (enum) | Current priority: see `Priority` in Enums      |
+| status      | integer (enum) | Current item status: see `TodoStatus` in Enums |
 | createdAt   | ISO 8601       | Creation timestamp                              |
 | updatedAt   | ISO 8601       | Last modification timestamp                     |
 
@@ -226,7 +226,7 @@ Controls the urgency level of a to-do item. Accepted as input on `POST /v1/todos
 
 ### TodoStatus
 
-Represents the lifecycle state of a to-do item. Returned in all responses; cannot be set directly by the client — the server advances the status based on actions performed on the item.
+Represents the lifecycle state of a to-do item. Returned in all responses; cannot be set directly by the client; the server advances the status based on actions performed on the item.
 
 | Value | Name       | Description                                  |
 | ----- | ---------- | -------------------------------------------- |

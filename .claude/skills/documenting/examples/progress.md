@@ -13,7 +13,7 @@ metadata:
 ---
 Plan: Auth Middleware. Artifact: artifacts/plans/auth-middleware.md
 
-**Phase 1 — Internal claims header schema and signing helper:** Complete
+**Phase 1 (Internal claims header schema and signing helper):** Complete
   - Added pkg/authclaims with signer, verifier, round-trip and skew tests. No deviations.
 
 **How to apply:** Future plans that touch identity propagation should reuse pkg/authclaims rather than re-implementing signing.
@@ -22,5 +22,5 @@ Plan: Auth Middleware. Artifact: artifacts/plans/auth-middleware.md
 **Index entry:**
 
 ```
-- [Plan: Auth Middleware](plan-auth-middleware.md) — migration from per-hop JWT to signed claims forwarding
+- [Plan: Auth Middleware](plan-auth-middleware.md): migration from per-hop JWT to signed claims forwarding
 ```

@@ -11,7 +11,7 @@ Subject: "Design of the Auth Middleware". Derived short title: `auth-middleware`
 **Date:** 2026-05-15
 
 ## Context
-The API gateway currently re-validates JWTs on every internal hop, doubling p99 latency for fan-out endpoints. Binding constraints: latency (p99 budget is 150ms), operability (security team owns key rotation). Reversibility is medium — middleware can be swapped within one release.
+The API gateway currently re-validates JWTs on every internal hop, doubling p99 latency for fan-out endpoints. Binding constraints: latency (p99 budget is 150ms), operability (security team owns key rotation). Reversibility is medium: middleware can be swapped within one release.
 
 ## Decision
 Validate JWTs once at the edge, then forward a signed internal claims header to downstream services. Downstream services trust the header when the request arrives over the internal mesh. Satisfies latency by removing N-1 validations; satisfies operability by keeping rotation logic in one place.
