@@ -46,12 +46,16 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/inject.project-memory.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/inject.project-memory.mjs"
+            ]
           },
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/inject.orchestration.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/inject.orchestration.mjs"
+            ]
           }
         ]
       }
@@ -63,7 +67,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.write.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.write.mjs"
+            ]
           }
         ]
       },
@@ -73,7 +79,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.bash.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.bash.mjs"
+            ]
           }
         ]
       }
@@ -85,7 +93,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/lint.write.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/lint.write.mjs"
+            ]
           }
         ]
       },
@@ -95,7 +105,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/observe.bash.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/observe.bash.mjs"
+            ]
           }
         ]
       }
@@ -106,12 +118,16 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.verdict.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.verdict.mjs"
+            ]
           },
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/emit.metrics.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/emit.metrics.mjs"
+            ]
           }
         ]
       }
@@ -122,16 +138,21 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.verdict.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.verdict.mjs"
+            ]
           },
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/emit.metrics.mjs"]
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/emit.metrics.mjs"
+            ]
           }
         ]
       }
     ]
   },
-  "remoteControlAtStartup": true
+  "remoteControlAtStartup": true,
+  "outputStyle": "custom"
 }

@@ -342,9 +342,10 @@ function checkGit(rawTokens) {
 /**
  * Narrow carve-out for the one deletion this workflow legitimately needs:
  * tearing down a per-feature worktree directory when `git worktree remove`
- * refuses (the common cause is a gitlink/submodule entry in the worktree's
- * index — a guard that `git submodule deinit` cannot satisfy, because it
- * scans the index, not the initialization state). With `rm` hard-denied
+ * refuses even with `--force`. (The common submodule case does NOT need this
+ * rung: git's guard trips on the worktree's own `modules/` dir, which
+ * `git submodule deinit` leaves behind — so rung 1 refuses — but `--force`
+ * clears it. See the branching skill's removal ladder.) With `rm` hard-denied
  * there was no legal route at all, which pushed the agent toward either
  * dirtying the branch index (`git rm --cached`) or reaching for another
  * deletion tool to get around the guard. Both are worse than a prompt.
