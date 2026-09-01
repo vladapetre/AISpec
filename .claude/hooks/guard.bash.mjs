@@ -427,6 +427,39 @@ function isWorktreeTeardown(tokens) {
  *       format without --verify-no-changes (rewrites source files).
  * Deny: nuget push / nuget delete (publishes/removes a package remotely).
  */
+/**
+ * `sed` cannot be a safe root: `-i` rewrites a file in place, and a `w` command
+ * inside a script writes one even without it. But in auto mode the harness
+ * drives file reads through the shell (`sed -n '1,80p' <file>`), which made sed
+ * the single largest group of commands this guard could not classify, each one
+ * costing a permission prompt to read a file.
+ *
+ * So recognise the print-only form and nothing else: `-n` must be present, the
+ * script must be a range or pattern ending in `p`, and any other flag or script
+ * shape stays "unknown" and reaches the human. A whitelist, not a blacklist —
+ * `s///w out`, `-i`, `e` and the rest all fail to match rather than needing to
+ * be enumerated.
+ */
+function checkSed(tokens) {
+  const args = tokens.slice(1).filter((t) => typeof t === "string");
+  const flags = args.filter((a) => a.startsWith("-") && a !== "-");
+  const rest = args.filter((a) => !a.startsWith("-") || a === "-");
+
+  if (!flags.includes("-n") && !flags.includes("--quiet") && !flags.includes("--silent"))
+    return "unknown";
+  if (flags.some((f) => !["-n", "--quiet", "--silent"].includes(f))) return "unknown";
+  if (!rest.length) return "unknown";
+
+  // Print-only scripts: line ranges (`1,80p`, `370p`, `12,$p`) and regex
+  // ranges (`/from/,/to/p`, `/only/p`). `=` prints line numbers and is equally
+  // read-only.
+  const PRINT_ONLY =
+    /^(?:\d+(?:,(?:\d+|\$))?|\/[^/]*\/(?:,\/[^/]*\/)?)[p=]$/;
+  if (!PRINT_ONLY.test(rest[0])) return "unknown";
+
+  return "safe";
+}
+
 function checkDotnet(tokens) {
   const sub = tokens[1];
 
@@ -590,6 +623,7 @@ function classifySegment(tokens, cwd = process.cwd(), depth = 0) {
   if (!tokens.length) return "unknown";
   const root = normalizeRoot(tokens[0]);
 
+  if (root === "sed") return checkSed(tokens);
   if (root === "git") return checkGit(tokens);
   if (root === "dotnet") return checkDotnet(tokens);
   if (["npm", "yarn", "pnpm"].includes(root)) return checkNpmFamily(tokens, cwd);
