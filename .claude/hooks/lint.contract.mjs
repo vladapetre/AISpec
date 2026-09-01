@@ -366,6 +366,11 @@ for (const p of skillFiles) {
   for (const m of text.matchAll(/\b(templates|examples|references|scripts)\/([\w./-]+\.\w+)/g)) {
     const target = join(dir, m[1], m[2]);
     if (m[2].includes("<") || m[2].includes("*")) continue;
+    // A project-rooted path that happens to contain one of these directory
+    // names is not a bundled asset: `.claude/scripts/lint.craft.mjs` is the
+    // shared craft linter, not `<skill>/scripts/lint.craft.mjs`. The explicit
+    // `.claude/` path check below already verifies it exists.
+    if (text.slice(Math.max(0, m.index - 8), m.index) === ".claude/") continue;
     if (!existsSync(target)) err(`${rel(p)}:${lineAt(text, m.index)}`, `${m[1]}/${m[2]} does not exist in this skill`);
   }
 }

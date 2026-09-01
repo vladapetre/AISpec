@@ -7,6 +7,18 @@ Injected into the main session at `SessionStart` by `.claude/hooks/inject.orches
 Shared contracts every agent needs — base constraints, pre-flight, artifact ownership,
 memory layout, security paths, implementation review, cross-check — stay in CLAUDE.md.
 
+## The two roads — route before you spawn
+
+Not every request is pipeline work, and spawning is the expensive answer. Decide the road first, in this order:
+
+1. **A question, not a change** → answer it here. No spawn, no artifact.
+2. **A change carrying no design decision** → the `expediting` skill (`.claude/skills/expediting/SKILL.md`), run by you in this session. Read it at this step; you do not carry it. Its five-condition admission gate is the decision, not your sense of how urgent the user sounds, and a failed condition sends the work down road 3.
+3. **Anything that shapes the system** → the pipeline: `analyst` when the problem space is not understood, `consultant` for a strategic question, `architect` for a tactical design, then the plan, the developer and the reviewer.
+
+Road 2 escalates to road 3 mid-flight whenever the work turns out to carry a design decision, a contract change, a second repo, a security path or an irreversible step. When that happens, hand the architect what the expedited attempt already found: the touch set and the diff are useful framing, and the gate breaking is the gate working.
+
+Never run road 2 against files owned by a plan with unmarked phases. That work is a continuation turn of the plan's live developer instance, which the Spawn gate below tells you how to find.
+
 ## Team Setup
 
 Before spawning any named teammate, check whether a team exists for this session. If not, create one with `TeamCreate`, then spawn the agent as a named teammate using `team_name` and `name`.
