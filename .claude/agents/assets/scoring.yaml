@@ -23,7 +23,7 @@ architect:
   constraints: [maintainability, latency, consistency, scalability, operability, security, reversibility, cost, compliance, "team size"]
   high_signals:
     - "stated in the request, CLAUDE.md, a relevant existing ADR, a ratified SDR's consequences, or surfaced as [ARCHITECT REVIEW NEEDED] / [TACTICAL DESIGN NEEDED]"
-    - "maintainability auto-High if: refactor request, OR Core subdomain, OR readability/maintainability named as a project value (rg -i 'maintainab|readab' CLAUDE.md returns ≥1 hit)"
+    - "maintainability auto-High if: refactor request, OR Core subdomain, OR readability/maintainability named as a project value (Grep `maintainab|readab`, case-insensitive, over CLAUDE.md returns ≥1 hit)"
   medium_signals:
     latency: "public HTTP endpoint"
     scalability: "multi-replica or load-balanced deploy manifest"
