@@ -9,7 +9,7 @@ tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, SendMessage, mcp__cla
 skills:
   - documenting
 model: opus
-effort: high
+effort: medium
 memory: project
 color: yellow
 ---

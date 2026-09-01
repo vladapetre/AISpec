@@ -13,7 +13,7 @@ description: >
 tools: Read, Write, Bash, Glob, Grep, SendMessage
 skills:
   - reviewing
-model: sonnet
+model: opus
 effort: medium
 memory: project
 color: red

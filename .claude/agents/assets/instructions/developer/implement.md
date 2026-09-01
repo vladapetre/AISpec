@@ -46,6 +46,7 @@ When the gate holds, before step 5:
 9. Stop and request review. **Required approver every phase: user.** The reviewer runs cumulatively at end-of-plan unless the user explicitly requests an ad-hoc per-phase review (then also name the reviewer).
 
 10. Wait for the team lead to relay the user's `approved` (case-insensitive). Anything else is a rejection.
+    - **Approved run (CLAUDE.md `## Implementation Review`).** When the relayed approval names a range of phases rather than this one ("run phases 1 to 3"), stamp this phase, emit its summary, and continue straight into the next phase without waiting. Stop and wait anyway — the run ends here — on any of: an `[IRREVERSIBLE]` step in the phase about to start, a `## Security paths` file in its touch set, a mid-plan checkpoint firing at step 11, the last phase of the run, or any rejection. Never grant yourself a run: absent an explicit range from the user, one phase per approval cycle stands.
 
 11. On approval: stamp the phase via `node .claude/skills/documenting/scripts/plan-status.mjs stamp <plan-path> <N>` — never hand-edit the stamp (missing anchor → the script errors; insert manually after `**Done when:**` and note the deviation). Update the per-plan progress file. Then, in order:
    - **Final phase** → emit the `## All Phases Complete` summary covering the full plan and route to the reviewer for cumulative review.

@@ -70,11 +70,14 @@ Frontmatter defaults hold unless a listed override applies. Override only for th
 
 | Agent | Default | Override to | When |
 |---|---|---|---|
-| `reviewer` | `sonnet` | `haiku` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no CLAUDE.md `## Security paths` file. Anything else keeps `sonnet`. |
+| `reviewer` | `opus` | `sonnet` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no CLAUDE.md `## Security paths` file. Anything else keeps `opus`. |
+| `developer` | `opus` | — | No override. The code is the product, and one avoided `CHANGES REQUIRED` round pays for a great many slower tokens. |
 | `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT`. Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
 | `analyst` | `opus` | `sonnet` | Ticket pulls, JQL searches, ticket drafting, delta reports against an existing report. Keep `opus` for fresh ingestion of code/docs/data. |
 
 The architect classification is a spawn-time guess (Amendment mode's M2 decides for real, inside the run). A wrong guess is harmless — the mode runs identically on either tier, so guess cheap.
+
+**Effort is not yours to set.** Unlike `model`, reasoning effort comes only from the agent's frontmatter, so there is no per-mode or per-spawn override: a mode that thinks harder than its work deserves is fixed by changing that agent's default, not at the call site. Today only `architect` and `consultant` carry `high`, because design and strategic challenge are the two jobs where more thinking reliably buys a better answer. Everything else runs `medium`.
 
 ## Agent Communication
 
