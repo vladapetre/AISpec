@@ -142,6 +142,29 @@ const WORKTREE_DIR = ".worktrees";
 // since "cat foo" is safe but "cat foo > important_file" is not.
 const WRITE_REDIRECT_OPS = new Set([">", ">>", "&>", "&>>"]);
 
+// The one write target this guard does auto-allow: the build/test log sink
+// that `implement.md` step 7 MANDATES
+// (`<test-command> > .claude/state/phase-<N>.log 2>&1`). Without this, the
+// contract tells the developer to use a command shape the guard refuses to
+// classify, so every phase's test run, build run and log digest falls through
+// to a permission prompt and waits for a human click.
+//
+// Safe because the sink is a dead-end: a `.log` file inside a `.claude/state`
+// directory is written by the toolkit, read by `logdigest.mjs`, and executed
+// by nothing. The path must be literal (no `..`, no glob, no variable), so a
+// redirect cannot walk out of the sink into source or config.
+const LOG_SINK_DIR = ".claude/state";
+
+function isSanctionedLogSink(target) {
+  if (typeof target !== "string" || !target) return false;
+  const norm = target.split("\\").join("/");
+  if (norm.includes("..")) return false;
+  if (/[*?$`~]/.test(norm)) return false; // glob or expansion - not a literal path
+  if (!norm.toLowerCase().endsWith(".log")) return false;
+  const dir = norm.slice(0, norm.lastIndexOf("/"));
+  return dir.toLowerCase().endsWith(LOG_SINK_DIR);
+}
+
 // ---------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------
@@ -218,6 +241,7 @@ function splitIntoSegments(tokens) {
   let current = [];
   let sawWriteRedirect = false;
   let sawBackground = false;
+  const redirectTargets = [];
 
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
@@ -233,6 +257,12 @@ function splitIntoSegments(tokens) {
           i++; // swallow the fd number so it doesn't pollute segment args
         } else {
           sawWriteRedirect = true;
+          if (typeof next === "string") {
+            redirectTargets.push(next);
+            i++; // the target is a filename, not an argument to the command
+          } else {
+            redirectTargets.push(null); // unresolvable target - never sanctioned
+          }
         }
         continue;
       }
@@ -245,6 +275,13 @@ function splitIntoSegments(tokens) {
       }
       if (WRITE_REDIRECT_OPS.has(tok.op)) {
         sawWriteRedirect = true;
+        const target = tokens[i + 1];
+        if (typeof target === "string") {
+          redirectTargets.push(target);
+          i++; // the target is a filename, not an argument to the command
+        } else {
+          redirectTargets.push(null); // unresolvable target - never sanctioned
+        }
         continue;
       }
       if (CHAIN_OPS.has(tok.op)) {
@@ -258,7 +295,7 @@ function splitIntoSegments(tokens) {
     current.push(tok);
   }
   if (current.length) segments.push(current);
-  return { segments, sawWriteRedirect, sawBackground };
+  return { segments, sawWriteRedirect, sawBackground, redirectTargets };
 }
 
 /**
@@ -614,7 +651,8 @@ async function main() {
     return fallThrough("unparsable");
   }
 
-  const { segments, sawWriteRedirect, sawBackground } = splitIntoSegments(tokens);
+  const { segments, sawWriteRedirect, sawBackground, redirectTargets } =
+    splitIntoSegments(tokens);
 
   if (!segments.length) return fallThrough("no-segments");
 
@@ -637,7 +675,21 @@ async function main() {
   }
 
   if (sawWriteRedirect) {
-    return fallThrough("write-redirect"); // writing to disk
+    // Every target must be the sanctioned log sink; one stray target and the
+    // whole command goes to the human, since a chained command writes both.
+    //
+    // Variable expansion is checked against the RAW command, not the parsed
+    // target: the tokenizer resolves `$FOO` before we ever see it, so
+    // `> .claude/state/$FOO.log` reaches isSanctionedLogSink already looking
+    // like a literal sink path while the shell writes somewhere else. `$?` is
+    // exempt - it is a status expansion, and `echo "exit=$?"` is part of the
+    // command shape implement.md step 7 mandates.
+    const hasVarExpansion = /\$(?!\?)/.test(rawCommand);
+    const allSinks =
+      !hasVarExpansion &&
+      redirectTargets.length > 0 &&
+      redirectTargets.every(isSanctionedLogSink);
+    if (!allSinks) return fallThrough("write-redirect"); // writing to disk
   }
 
   if (sawBackground) {
@@ -647,7 +699,7 @@ async function main() {
   if (classifications.every((c) => c === "safe")) {
     return decide(
       "allow",
-      "guard.bash: all sub-commands are read-only/inspection commands with no write redirection or hidden execution."
+      "guard.bash: all sub-commands are read-only/inspection commands, with no hidden execution and no write redirection outside the sanctioned .claude/state log sink."
     );
   }
 

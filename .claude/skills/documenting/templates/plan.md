@@ -51,6 +51,9 @@ One sentence: what are we solving and why now.
 Each phase is independently shippable. List in execution order. Produce between 3 and 10 phases (default 3 to 5). If the work is too small for 3 phases, split the smallest unit of change into setup, implementation, and validation. If the work fits in 3 to 5, prefer that range; expand to 6 to 10 only when phases would otherwise be compound. If the work exceeds 10 phases, split into two plans per the overflow path in the Caps table.
 
 ### Phase N: Name
+**Touch set:** every file this phase reads or edits, one repo-relative path per line, each with a three-to-six-word note on why it is in the set. `_None (new files only)_` when the phase creates everything it needs, and name those new paths under **Changes**.
+- `<module>/<layer>/<Entity>.<ext>` — holds the state machine
+- `<module>/<layer>/<Entity>Controller.<ext>` — endpoint to extend
 **Changes:** what is modified or created.
 **Done when:** acceptance criteria, stated as observable facts. Each criterion is a bullet led by `**T-N.<seq>**`:
 - **T-N.1** Observable fact one.
@@ -66,6 +69,8 @@ Each phase is independently shippable. List in execution order. Produce between 
 
 ## Notes
 
+- **The touch set is the phase's map, and writing it is the architect's job, not the developer's.** An architect who has just read the source knows the paths; a developer handed only `**Changes:**` prose goes and finds them again one search at a time, and repeats that on every phase. A phase touching three files should cost the developer zero searches.
+- The touch set is a floor, not a ceiling: it lists what the architect knows the phase needs. A developer that must open a file outside it does so and records it under `Files changed` in the phase summary, which is also the signal that the plan's map was incomplete.
 - Every hard-to-reverse step inside a phase must be marked `[IRREVERSIBLE]` inline.
 - Plans are always paired with an ADR. Write both in the same invocation.
 - Architect memory for plans is recorded in the ADR memory entry (see `adr.md` template). Developer plan-progress memory uses `progress.md`, a separate concern.

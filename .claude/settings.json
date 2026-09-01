@@ -28,7 +28,8 @@
       "Bash(node .claude/hooks/lint.contract.mjs*)",
       "Bash(node .claude/hooks/lint.write.mjs*)",
       "Edit(.claude/skills/documenting/**)",
-      "Edit(.claude/agents/*.md)"
+      "Edit(.claude/agents/*.md)",
+      "Edit(.claude/hooks/**)"
     ],
     "ask": [
       "Bash(rm *)",

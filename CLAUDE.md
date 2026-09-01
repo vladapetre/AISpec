@@ -30,7 +30,7 @@ Every named agent ends each turn with exactly one `SendMessage` to the team lead
 - `.claude/agents/assets/detectors.yaml` — test/lint detection cascade for the developer. Loaded on demand at step 7.
 - `.claude/agents/assets/selfcheck.yaml` — closing self-check registry. Each agent's `<instructions>` ends with one line referencing its keys (`#_universal` + `#<agent>` + `#<agent>-<mode>` where applicable). Loaded at the closing self-check step.
 - `.claude/agents/assets/mast.yaml` — designer's reference (MAST failure taxonomy + 14 design rules + audit checklist). Not loaded at runtime; consulted when authoring or amending agent/skill files. The runtime self-check boxes live in `selfcheck.yaml`; each box names its MAST FM code.
-- `.claude/skills/` — six skills, each a `SKILL.md` plus bundled templates/examples read on demand. **Auto-loaded** (full body injected at spawn, per the agent's `skills:` frontmatter): `documenting` → analyst, architect, consultant, developer; `reviewing` → reviewer; `branching` → developer. **Deferred** (read at the step that needs them): `understanding`, `ticketing`. **User-invoked only:** `summarizing` (`/summarizing`; `disable-model-invocation`, so no agent reaches it). A skill absent from this line is unreachable by contract — register it here when adding one.
+- `.claude/skills/` — seven skills, each a `SKILL.md` plus bundled templates/examples read on demand. **Auto-loaded** (full body injected at spawn, per the agent's `skills:` frontmatter): `documenting` → analyst, architect, consultant, developer; `reviewing` → reviewer; `branching` → developer. **Deferred** (read at the step that needs them): `understanding`, `ticketing`, `proofreading` (no agent carries it today; user-invoked via `/proofreading`, and model-invocable when a document is headed outside the team). **User-invoked only:** `summarizing` (`/summarizing`; `disable-model-invocation`, so no agent reaches it). A skill absent from this line is unreachable by contract — register it here when adding one.
 - `node .claude/hooks/lint.contract.mjs` — verifies the pointers in this file and across every layer still resolve (asset `#key` refs, `## Section` anchors, token registry parity, mode/pre-flight/self-check parity, referenced paths). Run it after moving a rule between layers. Maintainer's tool, not loaded at runtime.
 
 ## Agent memory layout
@@ -62,6 +62,7 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | `artifacts/plans/`       | architect            | Implementation plans (Amendment mode may edit a future phase + Governing ADR pointer) |
 | `artifacts/sql/`         | developer           | Verification / diagnostic queries produced during phases (read-only against the DB) |
 | `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                              |
+| `.claude/PROJECT-MAP.md` | analyst             | Where things live: repo/solution layout, module-to-folder map, test/config/DI/migration locations, path conventions (see `## Project facts`) |
 
 Directories not in this table are not written by any agent — a new artifact kind gets a row here first.
 
@@ -134,6 +135,7 @@ These apply to every named teammate. Each agent's `<operating_constraints>` list
 - **Named teammate.** No `Agent` tool. All hand-offs through the team lead. Surface questions for other agents in the output; never message them directly.
 - **Bash is read-only by default**: `git log/blame/show/diff/status`, `rg`, `wc`, `npm view`, `pip show`. Any mutating command must be surfaced for routing. The developer's pre-existing-failure stash dance (`git stash --include-untracked && <test> && git stash pop`) is the only standing exception.
 - **Write paths are agent-scoped.** Each agent's `<operating_constraints>` names its allowed write roots; nothing else is writable.
+- **Look-around is batched, never serial.** Issue every independent search, listing, and file read you can name *right now* in one tool block, then read the results together. One search per turn is the most expensive way to learn a codebase, since each hop costs a full model round trip. Ask three questions at once and you pay one round trip instead of three. This does not license guessing: it licenses asking wide.
 - **Skills come to you two ways.** A skill named in your `skills:` frontmatter — marked *(auto-loaded)* in your constraints — has its **full SKILL.md body already injected into your context at spawn**. Never re-load it; treat it as standing instructions you have already read. A skill marked *(deferred)* is **not** in your context: no agent has the `Skill` tool, so load it by reading `.claude/skills/<name>/SKILL.md` at the step that needs it. Bundled `templates/`, `references/`, and `examples/` files are never preloaded either way — read them on demand.
 
 ## Security paths
@@ -151,6 +153,10 @@ Projects extend this list by appending paths below — the architect (Amendment 
 ## Project facts
 
 Operational facts about the host project that every agent needs and none should rediscover — nested-repo layout ("`src/Rent` is its own git repo; run git `-C` there"), test conventions ("pipeline-only tests", fixed ports, shared dev DB), tool quirks, build entry points. Projects append facts below as one-liners.
+
+**The project map.** `.claude/PROJECT-MAP.md`, when present, is the standing answer to "where does anything live": the repo and solution layout, the module or bounded-context to folder mapping, where tests, config, DI wiring and migrations sit, and the naming conventions that make a path guessable. **Every agent reads it on entry turns, before searching.** It exists because rediscovery is the single largest measured cost in this workflow, and a map that one agent writes once is a map every later agent reads for free.
+
+It is the analyst's artifact (see `## Artifact Ownership`): ask for it when it is missing or stale, and route a refresh rather than editing it in place. It is a map, not documentation — paths, layout and conventions, capped at what a reader can hold, never per-file prose. A map that tries to describe behaviour goes stale in a week and gets ignored, which is worse than having none.
 
 **Promotion rule.** When an agent records an *environmental* fact in its own memory (not a review/plan/analysis fact), the team lead promotes it to this block and the agent's copy becomes redundant. One discovery, all agents — an operational gotcha that lives in one agent's memory will be rediscovered by every other agent at full cost.
 

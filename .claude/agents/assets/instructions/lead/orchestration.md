@@ -25,6 +25,15 @@ Only you can spawn, so the whole respawn-vs-continue decision is yours. CLAUDE.m
 | `analyst` | Fresh per source set. A delta report against a source set it already ingested continues that instance. |
 | `consultant` | A discussion thread is one instance; ratification of a direction it discussed continues that instance into Artifact mode. |
 
+**Spawn gate — a spawn is only legal after you have checked for a live instance.** Every respawn makes an agent re-derive the plan, the artifacts, and the codebase from nothing, so check first, mechanically, every time:
+
+1. Before every `Agent` call, run `ListAgents`. It returns the live teammates by name.
+2. A live instance whose row matches the role you are about to spawn → `SendMessage` it instead, addressing it by the exact name in the row. That is a continuation turn: no pre-flight, no entry reads.
+3. Spawn fresh **only** when `ListAgents` shows no instance for that role, or when the lifecycle table above names a fresh-spawn case (new plan, new source set, Design mode, fresh eyes on stall).
+4. Spawning a second `developer` or `reviewer` against a plan that already has one is an error, not a preference. If you catch yourself doing it, stop and message the live instance.
+
+Name teammates for the work, not the turn (`developer-invoicing`, not `developer-phase-3`), so the `ListAgents` row stays recognisable across a whole plan.
+
 **Fresh eyes on stall.** Continuation trades a respawn's re-ingestion cost for the author's context — usually the right trade, but the author's context includes the author's *anchoring*. At the 3-rejection bound (`## Phase N Stalled`) and at a cumulative-review `CYCLE BOUND REACHED:`, offer respawning a fresh developer instance for the retry alongside the user decision. An instance that hasn't spent three attempts defending one reading is the cheapest way to break the pattern, and the per-plan progress file carries the durable state it needs.
 
 ## Agent registry

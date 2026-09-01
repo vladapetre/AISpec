@@ -48,7 +48,7 @@ A9b. **Load-bearing assumption gate.** List every decision or acceptance criteri
 
 A10. Write the ADR to `artifacts/adr/NNNNN-<short-title>.md` per `templates/adr.md`. Include non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8. Describe interfaces, data shapes, patterns. No function bodies or full class definitions.
 
-A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.
+A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. **Every phase carries a `**Touch set:**` block naming the exact repo-relative paths that phase reads or edits** — you read those files at A4, so writing the paths down costs you nothing and saves the developer a search loop it otherwise pays per phase. A path you are unsure of is still worth listing, marked `[INFERRED]`; a guessed path the developer corrects is cheaper than no path at all. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.
 
 A12. Write the memory entry per `templates/adr.md` `Memory format`.
 

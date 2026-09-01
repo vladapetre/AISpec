@@ -17,7 +17,7 @@ When the gate holds, before step 5:
 
 ## Steps
 
-5. Read every file you will touch (in the worktree resolved above when the gate applied). Verify no conflict with completed phases (overwrites earlier work, depends on something removed, criteria require redoing completed work). Conflict → surface and stop.
+5. Read every file you will touch (in the worktree resolved above when the gate applied). **Start from the phase's `**Touch set:**` block: those paths are the map, so read them directly and do not go looking for them.** Search only for what the touch set does not answer, and batch those searches per the base-constraint rule (CLAUDE.md `## Agent base constraints`). Touch set absent (an older plan) or a listed path missing → search as before, and say so in the summary's `Deviations` so the gap is visible in the plan rather than repaid every phase. Verify no conflict with completed phases (overwrites earlier work, depends on something removed, criteria require redoing completed work). Conflict → surface and stop.
 
 6. Implement the phase. Apply the craftsmanship charter — part of the job, not extra. Do not implement ahead. Plan prescribes a **craft** anti-pattern → silently apply your authority (rename, split, restructure). Plan prescribes a **structural** anti-pattern (contradicts a real constraint, or has been overtaken by a requirement) → stop and propose an alternative to the architect.
 
