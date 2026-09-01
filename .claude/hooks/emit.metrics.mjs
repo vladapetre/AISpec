@@ -28,6 +28,7 @@ import {
   detectClassification,
   detectScope,
   isSubagentTurn,
+  turnSpan,
 } from "./lib/turn-block.mjs";
 import { projectRoot } from "./lib/project-root.mjs";
 import {
@@ -131,11 +132,20 @@ if (!isSub) {
   }
 }
 
+// Per-turn wall-clock and cost, for both events. Cheap (one bounded tail read)
+// and it answers the question the cumulative totals cannot: was this turn slow
+// because the model thought, because a tool ran, or because a human was away?
+// `turn_usage` is deliberately NOT `usage` — see turnSpan's contract.
+const span = turnSpan(transcriptPath);
+
 const record = {
   ts: new Date().toISOString(),
   session: data.session_id ?? null,
   event: isSub ? "subagent_stop" : "stop",
   model,
+  ...(span.durationMs !== null && { duration_ms: span.durationMs }),
+  ...(span.usage && { turn_usage: span.usage }),
+  ...(span.assistantTurns !== null && { turn_steps: span.assistantTurns }),
   ...(isSub && data.agent_type && { agent_type: data.agent_type }),
   ...(isSub && data.agent_id && { agent_id: data.agent_id }),
   ...(assistantCount !== null && { turns: assistantCount }),

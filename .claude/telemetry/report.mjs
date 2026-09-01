@@ -110,6 +110,42 @@ if (vRows.length) {
     console.log(`drive vs current tree: fresh ${fresh}, stale ${stale} (${pct(stale, fresh + stale)} stale)`);
 }
 
+// --- Turn duration and per-turn cost. Only rows written after emit.metrics
+// started recording `duration_ms` carry these, so the section stays silent on
+// an older ledger rather than reporting a misleading zero.
+const timed = rows.filter((r) => typeof r.duration_ms === "number");
+if (timed.length) {
+  const q = (arr, p) => {
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.min(s.length - 1, Math.floor(s.length * p))];
+  };
+  const fmt = (ms) => (ms >= 60000 ? `${(ms / 60000).toFixed(1)}min` : `${Math.round(ms / 1000)}s`);
+  console.log("\n— Turn duration —");
+  for (const [label, subset] of [
+    ["lead     ", timed.filter((r) => r.event !== "subagent_stop")],
+    ["teammates", timed.filter((r) => r.event === "subagent_stop")],
+  ]) {
+    if (!subset.length) continue;
+    const d = subset.map((r) => r.duration_ms);
+    console.log(
+      `${label}: n=${subset.length} | p50 ${fmt(q(d, 0.5))} | p90 ${fmt(q(d, 0.9))} | max ${fmt(Math.max(...d))}`
+    );
+  }
+  // Output tokens per second separates thinking from waiting: a long turn at a
+  // high rate was generating, a long turn at a low rate was running tools or
+  // sitting at a gate. The two have opposite fixes.
+  const rated = timed.filter((r) => r.turn_usage?.output > 0 && r.duration_ms > 1000);
+  if (rated.length) {
+    const rate = rated.map((r) => (r.turn_usage.output / r.duration_ms) * 1000);
+    console.log(
+      `output tokens/sec on working turns: p50 ${q(rate, 0.5).toFixed(1)} | p90 ${q(rate, 0.9).toFixed(1)} ` +
+        "(low rate on a long turn = tool or human time, not thinking)"
+    );
+  }
+  const slow = timed.filter((r) => r.duration_ms >= 600000);
+  if (slow.length) console.log(`turns over 10 min: ${slow.length} (${pct(slow.length, timed.length)})`);
+}
+
 console.log("\n— Tokens (cumulative across sessions) —");
 console.log(`turns: ${totals.turns} | in: ${totals.input.toLocaleString()} | out: ${totals.output.toLocaleString()} | cache-read: ${totals.cache_read.toLocaleString()} | cache-write: ${totals.cache_creation.toLocaleString()}`);
 console.log("\n— Output tokens by day —");

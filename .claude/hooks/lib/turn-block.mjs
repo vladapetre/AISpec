@@ -172,6 +172,82 @@ export function readTurn(data, { includeToolPayloads = isSubagentTurn(data) } = 
   return { text: candidates.length ? candidates[candidates.length - 1] : "", model };
 }
 
+/**
+ * Cost and duration of the turn that just ended, from one bounded tail read.
+ *
+ * Wall-clock per turn used to be derivable only as the gap between consecutive
+ * ledger rows, which conflates thinking and tool time with the human sitting at
+ * a phase gate — a 15-minute gap could be either, and those have opposite
+ * fixes. This measures the turn itself: from the request entering the
+ * transcript to the last assistant entry leaving it.
+ *
+ * Token totals here are PER TURN and belong under a key of their own. The
+ * ledger's `usage` field is cumulative per session and report.mjs reads the
+ * last line as the session total, so a teammate's numbers must never land
+ * there (see emit.metrics.mjs).
+ *
+ * Returns nulls rather than guesses when the boundary falls outside the tail
+ * window: a missing number is honest, a wrong one is worse than none.
+ */
+export function turnSpan(path) {
+  const empty = { durationMs: null, usage: null, assistantTurns: null };
+  if (!path || !existsSync(path)) return empty;
+
+  let chunk;
+  try {
+    chunk = readTail(path, WINDOWS[0]);
+  } catch {
+    return empty;
+  }
+
+  const lines = chunk.split("\n");
+  const usage = { input: 0, output: 0, cache_read: 0, cache_creation: 0 };
+  let assistantTurns = 0;
+  let endedAt = null;
+  let startedAt = null;
+
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue; // truncated or unrelated line
+    }
+    const ts = entry?.timestamp ? Date.parse(entry.timestamp) : NaN;
+    if (entry?.type === "assistant") {
+      if (endedAt === null && !Number.isNaN(ts)) endedAt = ts;
+      assistantTurns++;
+      const u = entry.message?.usage ?? {};
+      usage.input += u.input_tokens ?? 0;
+      usage.output += u.output_tokens ?? 0;
+      usage.cache_read += u.cache_read_input_tokens ?? 0;
+      usage.cache_creation += u.cache_creation_input_tokens ?? 0;
+      continue;
+    }
+    // The turn starts at the request that provoked it. A `user` entry carrying
+    // tool_result content is this turn's own tool output coming back, not a new
+    // request, so it is not the boundary.
+    if (entry?.type === "user") {
+      const content = entry.message?.content;
+      const isToolResult =
+        Array.isArray(content) && content.some((c) => c?.type === "tool_result");
+      if (isToolResult) continue;
+      if (!Number.isNaN(ts)) startedAt = ts;
+      break;
+    }
+  }
+
+  const durationMs =
+    startedAt !== null && endedAt !== null && endedAt >= startedAt ? endedAt - startedAt : null;
+  return {
+    durationMs,
+    usage: assistantTurns ? usage : null,
+    assistantTurns: assistantTurns || null,
+  };
+}
+
 // True when this invocation is a teammate's turn ending, not the lead's.
 export function isSubagentTurn(data) {
   return data?.hook_event_name === "SubagentStop" || Boolean(data?.agent_id);
