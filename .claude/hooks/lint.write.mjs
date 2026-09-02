@@ -5,6 +5,8 @@
 //      lines (compaction protocol) and index entries ≤2 lines / ≤50 words.
 //   2. .claude/MEMORY.md — ## Decisions entries are hooks, not essays (≤120 words).
 //   3. artifacts/plans/*.md — anchor/stamp integrity via plan-status.mjs check.
+//   4. artifacts/reports/*.md — the documenting report template's own caps
+//      (≤50 findings, ≤5 body lines per finding).
 // Also runnable standalone: `node lint.write.mjs --all` lints every
 // agent-memory MEMORY.md plus .claude/MEMORY.md (for periodic sweeps).
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
@@ -53,6 +55,42 @@ function lintProjectMemory(path, label) {
     else if (start >= 0 && l.trim() === "") flush(i);
   });
   flush(lines.length);
+}
+
+// Analysis reports: the documenting template's own caps (templates/report.md
+// ## Caps and overflow), enforced because prose alone measurably is not — on the
+// development umbrella the >100-word finding share held at ~40% for three months
+// after the caps landed (June mean 101 words/finding, August 103).
+function lintReport(path, label) {
+  const text = readFileSync(path, "utf8");
+  const section = /^## Findings\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(text)?.[1];
+  if (!section) return;
+  const lines = section.split(/\r?\n/);
+  const entries = []; // body/words counted with fences excluded — a one-line
+  // 300-word paragraph satisfies a line cap, so the word cap does the real work
+  let cur = null;
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*```/.test(l)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    if (/^- \*\*R-\d+/.test(l)) {
+      cur = { id: /R-\d+/.exec(l)[0], bodyLines: 0, words: l.split(/\s+/).filter(Boolean).length };
+      entries.push(cur);
+      continue;
+    }
+    if (/^#{2,3}\s/.test(l)) { cur = null; continue; }
+    if (cur && l.trim() !== "") { cur.bodyLines++; cur.words += l.split(/\s+/).filter(Boolean).length; }
+  }
+  if (entries.length > 50)
+    problems.push(`${label}: ${entries.length} findings (cap 50) — keep the top 50 by severity and move the rest to a sibling extras file (documenting templates/report.md ## Caps and overflow)`);
+  const over = entries.filter((e) => e.bodyLines > 5 || e.words > 120);
+  if (over.length)
+    problems.push(
+      `${label}: ${over.length} finding(s) over the per-finding cap (5 body lines / 120 words, fenced snippets excluded): ` +
+        over.map((e) => `${e.id} (${e.bodyLines}l/${e.words}w)`).join(", ") +
+        ` — split into sibling findings or link a deep-dive note (documenting templates/report.md)`
+    );
 }
 
 function lintPlan(path, root, label) {
@@ -113,6 +151,12 @@ if (process.argv.includes("--all")) {
   if (existsSync(plansRoot))
     for (const name of readdirSync(plansRoot))
       if (name.endsWith(".md")) lintPlan(join(plansRoot, name), root, `artifacts/plans/${name}`);
+
+  // Report caps across every report, for the same reason.
+  const reportsRoot = join(artRoot, "reports");
+  if (existsSync(reportsRoot))
+    for (const name of readdirSync(reportsRoot))
+      if (name.endsWith(".md")) lintReport(join(reportsRoot, name), `artifacts/reports/${name}`);
 } else {
   let data;
   try {
@@ -135,6 +179,7 @@ if (process.argv.includes("--all")) {
   if (/^\.claude\/agent-memory\/[^/]+\/MEMORY\.md$/.test(rel)) lintAgentMemory(abs, rel);
   else if (rel === ".claude/MEMORY.md") lintProjectMemory(abs, rel);
   else if (/^artifacts\/plans\/[^/]+\.md$/.test(rel)) lintPlan(abs, root, rel);
+  else if (/^artifacts\/reports\/[^/]+\.md$/.test(rel)) lintReport(abs, rel);
   else process.exit(0);
 }
 

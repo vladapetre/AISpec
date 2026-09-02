@@ -9,7 +9,7 @@
 | Field | Cap | Overflow |
 |---|---|---|
 | `## Findings` | **≤50** | Top 50 by severity; append `(N more omitted: see artifacts/reports/<short-title>-extras.md)` and write the overflow file. |
-| Per-finding | **≤6 lines** (heading + ≤5 body, fenced snippets excluded) | Split into siblings under the same theme, or link a sibling deep-dive note. |
+| Per-finding | **≤6 lines and ≤120 words** (heading + ≤5 body, fenced snippets excluded — the word cap exists because a one-line 300-word paragraph satisfies a line cap) | Split into siblings under the same theme, or link a sibling deep-dive note. |
 | `## Recommendations` | **Exactly 4** | Excess items demote to Findings with action language. |
 
 Section-level caps (e.g. Executive Summary = 4 sentences) are in the file template.
@@ -70,7 +70,7 @@ Derive the theme list directly from the source structure; do not invent themes:
 
 Each theme is one subsection (### heading) titled exactly as the module/section/entity is named in the source. Each subsection must be at least 2 paragraphs.
 
-Within each theme, each individual finding is a bulleted entry led by `**R-###** [<severity>] <one-line claim>`, followed by ≤5 body lines (evidence at `file:line`, mechanism, recommendation hook). The ### theme heading itself carries the confidence marker that applies to the theme as a whole; per-finding confidence may be added inline (`[INFERRED]`) when a single finding's confidence differs from the theme's. Apply the rules defined in `SKILL.md` under **Confidence markers**; do not re-derive them here.
+Within each theme, each individual finding is a bulleted entry led by `**R-###** [<severity>] <one-line claim>`, followed by ≤5 body lines and ≤120 words in total (evidence at `file:line`, mechanism, recommendation hook). The ### theme heading itself carries the confidence marker that applies to the theme as a whole; per-finding confidence may be added inline (`[INFERRED]`) when a single finding's confidence differs from the theme's. Apply the rules defined in `SKILL.md` under **Confidence markers**; do not re-derive them here.
 
 ## Dependencies and Relationships
 What this subject depends on, and what depends on it. Always produce a bullet list. If the list has more than 5 items, also add an ASCII diagram below it.
