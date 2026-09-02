@@ -54,6 +54,15 @@ if (!transcriptPath || !existsSync(transcriptPath)) bail();
 
 const isSub = isSubagentTurn(data);
 
+// A SubagentStop that hands us the MAIN session transcript has nothing of the
+// teammate's to read: turnSpan would re-measure the lead's last turn (measured
+// on the development umbrella: 68 of 88 timed subagent rows mirrored a stop
+// row's exact duration and usage), and readTurn's tool-payload scan would judge
+// the lead's own relayed SendMessages as teammate blocks. A subagent's
+// transcript is never the session's own file, so drop the event entirely; if a
+// harness version names transcripts differently the check simply never fires.
+if (isSub && transcriptPath.replace(/\\/g, "/").endsWith(`/${data.session_id}.jsonl`)) bail();
+
 // The turn's contract text — one bounded tail read, wherever the block lives.
 let turn;
 try {

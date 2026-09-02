@@ -16,11 +16,31 @@ if (!existsSync(ledgerPath)) {
   process.exit(1);
 }
 
-const rows = readFileSync(ledgerPath, "utf8")
+const parsed = readFileSync(ledgerPath, "utf8")
   .split("\n")
   .filter((l) => l.trim())
   .map((l) => { try { return JSON.parse(l); } catch { return null; } })
   .filter(Boolean);
+
+// Ledger lines written before emit.metrics learned to drop main-transcript
+// SubagentStop events mirror a lead stop row exactly (same session, duration,
+// output — the span was measured on the lead's transcript). An identical-ms
+// match is measurement identity, not coincidence; drop the mirror so teammate
+// durations and verdict counts stay honest.
+const stopSpanKeys = new Set(
+  parsed
+    .filter((r) => r.event !== "subagent_stop" && typeof r.duration_ms === "number")
+    .map((r) => `${r.session}|${r.duration_ms}|${r.turn_usage?.output ?? -1}`)
+);
+const rows = parsed.filter(
+  (r) =>
+    !(
+      r.event === "subagent_stop" &&
+      typeof r.duration_ms === "number" &&
+      stopSpanKeys.has(`${r.session}|${r.duration_ms}|${r.turn_usage?.output ?? -1}`)
+    )
+);
+const mirrored = parsed.length - rows.length;
 
 if (!rows.length) {
   console.error("ledger is empty");
@@ -70,7 +90,11 @@ const amendments = rows.filter((r) => r.block === "amendment" && r.classificatio
 const amendBy = {};
 for (const r of amendments) amendBy[r.classification] = (amendBy[r.classification] ?? 0) + 1;
 
-console.log(`ledger: ${rows.length} lines, ${bySession.size} sessions\n`);
+console.log(
+  `ledger: ${rows.length} lines, ${bySession.size} sessions` +
+    (mirrored ? ` (${mirrored} mirrored subagent rows dropped)` : "") +
+    "\n"
+);
 console.log("— Gates —");
 console.log(`cross-checks: ${ccAll} (${ccDelta} delta-scoped) | DRIFT rate: ${ccDrift}/${ccAll} (${pct(ccDrift, ccAll)})`);
 console.log(`reviews:      ${revAll} | CHANGES REQUIRED rate: ${revChanges}/${revAll} (${pct(revChanges, revAll)})`);
