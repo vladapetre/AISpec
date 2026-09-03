@@ -7,6 +7,9 @@
 //   3. artifacts/plans/*.md — anchor/stamp integrity via plan-status.mjs check.
 //   4. artifacts/reports/*.md — the documenting report template's own caps
 //      (≤50 findings, ≤5 body lines per finding).
+//   5. artifacts/plans/*.md with a ## Decisions section (design records) — the
+//      revision protocol: D-### bodies changed vs git HEAD need a bumped (rN)
+//      marker and a Revision log line; decisions are withdrawn, never deleted.
 // Also runnable standalone: `node lint.write.mjs --all` lints every
 // agent-memory MEMORY.md plus .claude/MEMORY.md (for periodic sweeps).
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
@@ -93,6 +96,55 @@ function lintReport(path, label) {
     );
 }
 
+// Design records (artifacts/plans/*.md with a ## Decisions section): the revision
+// protocol from documenting templates/design-record.md. Amendments edit decisions
+// in place, so the audit trail is the (rN) marker + Revision log line — and git
+// history holds the bytes. The baseline is the git-tracked version: an untracked
+// file is a draft and the rule stays silent. Markers are monotonic, so the check
+// survives the bulk artifact commits measured on the development umbrella
+// ("update adr" carrying 17 files): any body that differs from HEAD needs a
+// marker higher than HEAD's, however many amendments landed in between.
+function parseDecisions(text) {
+  const map = new Map(); // id -> { marker, body }
+  const re = /^###\s+(D-\d{3})(?:\s+\(r(\d+)\))?[^\n]*\n([\s\S]*?)(?=^###\s|^##\s|(?![\s\S]))/gm;
+  const section = /^## Decisions\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(text)?.[1];
+  if (section == null) return null;
+  let m;
+  while ((m = re.exec(section)) !== null)
+    map.set(m[1], { marker: m[2] ? parseInt(m[2], 10) : 1, body: m[3].replace(/\s+/g, " ").trim() });
+  return map;
+}
+
+function lintDesignRecord(path, root, label, rel) {
+  const text = readFileSync(path, "utf8");
+  const now = parseDecisions(text);
+  if (now === null) return; // legacy plan (no ## Decisions) — not a design record
+  let headText;
+  try {
+    headText = execFileSync("git", ["-C", root, "show", `HEAD:${rel}`], {
+      stdio: ["ignore", "pipe", "ignore"],
+    }).toString();
+  } catch {
+    return; // untracked or no git — drafting, no ratified baseline to hold against
+  }
+  const head = parseDecisions(headText);
+  if (head === null) return; // tracked version predates the Decisions section
+  const log = /^## Revision log\s*$([\s\S]*)$/m.exec(text)?.[1] ?? "";
+  for (const [id, was] of head) {
+    const cur = now.get(id);
+    if (!cur) {
+      problems.push(`${label}: ${id} was deleted — decisions are withdrawn with [withdrawn] and a bumped (rN) marker, never removed (design-record.md Revision protocol)`);
+      continue;
+    }
+    if (cur.marker < was.marker)
+      problems.push(`${label}: ${id} marker went backwards (r${was.marker} → r${cur.marker}) — markers only increase`);
+    else if (cur.body !== was.body && cur.marker === was.marker)
+      problems.push(`${label}: ${id} body changed without a marker bump — set "### ${id} (r${was.marker + 1}): ..." and add a Revision log line (design-record.md Revision protocol)`);
+    else if (cur.body !== was.body && !log.includes(id))
+      problems.push(`${label}: ${id} was revised to r${cur.marker} but ## Revision log has no line naming it — append "- r${cur.marker} <date> — ${id}: <what changed>; <why>"`);
+  }
+}
+
 function lintPlan(path, root, label) {
   const script = join(root, ".claude", "skills", "documenting", "scripts", "plan-status.mjs");
   if (!existsSync(script)) return;
@@ -150,7 +202,10 @@ if (process.argv.includes("--all")) {
   const plansRoot = join(artRoot, "plans");
   if (existsSync(plansRoot))
     for (const name of readdirSync(plansRoot))
-      if (name.endsWith(".md")) lintPlan(join(plansRoot, name), root, `artifacts/plans/${name}`);
+      if (name.endsWith(".md")) {
+        lintPlan(join(plansRoot, name), root, `artifacts/plans/${name}`);
+        lintDesignRecord(join(plansRoot, name), root, `artifacts/plans/${name}`, `artifacts/plans/${name}`);
+      }
 
   // Report caps across every report, for the same reason.
   const reportsRoot = join(artRoot, "reports");
@@ -178,7 +233,7 @@ if (process.argv.includes("--all")) {
   if (outside || !existsSync(abs)) process.exit(0);
   if (/^\.claude\/agent-memory\/[^/]+\/MEMORY\.md$/.test(rel)) lintAgentMemory(abs, rel);
   else if (rel === ".claude/MEMORY.md") lintProjectMemory(abs, rel);
-  else if (/^artifacts\/plans\/[^/]+\.md$/.test(rel)) lintPlan(abs, root, rel);
+  else if (/^artifacts\/plans\/[^/]+\.md$/.test(rel)) { lintPlan(abs, root, rel); lintDesignRecord(abs, root, rel, rel); }
   else if (/^artifacts\/reports\/[^/]+\.md$/.test(rel)) lintReport(abs, rel);
   else process.exit(0);
 }
