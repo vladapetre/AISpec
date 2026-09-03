@@ -24,16 +24,16 @@ architect:
   _base:
     - { fm: FM-1.2, check: "No code, no strategic ratification." }
 architect-design:
-  - { fm: FM-1.3, check: "SELF_CHECKED or CROSS_CHECK_REQUESTED line present per A13." }
+  - { fm: FM-1.3, check: "A13 threshold routing ran: Thresholds: line rendered with the counted values; final line is CROSS_CHECK_REQUESTED (any threshold tripped) or SELF_CHECKED (none)." }
   - { fm: FM-1.1, check: "A9b assumption gate ran: every load-bearing [INFERRED]/[ASSUMED] premise about existing schema/data/legacy behaviour was verified or downgraded to a plan [UNKNOWN] with a named fallback; no acceptance criterion silently rests on an [ASSUMED] finding." }
   - { fm: FM-2.4, check: "Every blocking [STRATEGIC REVIEW NEEDED] emitted where step rules require it." }
   - { fm: FM-3.1, check: "Exactly 2 binding constraints; exactly 2 alternatives (or _None identified_); single recommended design." }
 architect-amendment:
-  - { fm: FM-1.1, check: "Surgical context only — no full-ADR, full-plan, or full-file re-reads (Security paths excepted; a M3b consolidation reads its whole chain by design)." }
-  - { fm: FM-2.4, check: "RECONCILE WITH ADR: emitted (CODE_DRIFT) or supersession ADR written (ADR_AMENDED / PLAN_UPDATED)." }
-  - { fm: FM-2.4, check: "Revision budget checked (M2b): existing -r* siblings counted; r1/r2 append a delta, the third amendment onward consolidates (M3b) and stamps every file in the chain." }
-  - { fm: FM-1.2, check: "A batched user-ruling flush produced ONE supersession ADR covering every queued ruling — not one per ruling." }
-  - { fm: FM-2.4, check: "M5a routing line present: CROSS_CHECK_REQUESTED (default) or SELF_CHECKED (delta) with all four carve-out conditions genuinely held; trigger source classified." }
+  - { fm: FM-1.1, check: "Surgical context only — no full-record, full-ADR, or full-file re-reads (Security paths excepted; a legacy M3b consolidation reads its whole chain by design)." }
+  - { fm: FM-2.4, check: "RECONCILE WITH ADR: emitted (CODE_DRIFT), or the M3 revision applied whole: D-### bodies edited, (rN) markers bumped, ONE Revision log line appended (legacy pair: supersession ADR written instead)." }
+  - { fm: FM-2.4, check: "Legacy pairs only — revision budget checked (M2b): existing -r* siblings counted; r1/r2 append a delta, the third amendment onward consolidates and stamps every file in the chain. (Design records: N/A — no supersession files exist.)" }
+  - { fm: FM-1.2, check: "A batched user-ruling flush produced ONE amendment (one Revision log line, or one legacy supersession ADR) covering every queued ruling — not one per ruling." }
+  - { fm: FM-2.4, check: "M5a routing line present: CROSS_CHECK_REQUESTED when any M5a condition holds (REVIEWER_DRIFT, ≥2 revision-log entries, >2 decisions revised, security path), else SELF_CHECKED (delta); trigger source classified." }
   - { fm: FM-3.1, check: "Classification line is exactly one of CODE_DRIFT / ADR_AMENDED / PLAN_UPDATED." }
 
 consultant:
@@ -81,6 +81,6 @@ reviewer-perphase:
 reviewer-crosscheck:
   - { fm: FM-3.1, check: "Final line is exactly ALIGNED or DRIFT DETECTED; cross-check table rows ≤30 (delta: ≤10)." }
   - { fm: FM-3.3, check: "Every row cites the artifact location it checks." }
-  - { fm: FM-1.1, check: "Scope line matches the CC-2 resolution (delta only when supersession ADR + prior ALIGNED for the same plan); delta pass read only the revised/edited sections." }
-  - { fm: FM-3.4, check: "Memory write followed CC-6: clean pass → index line only; findings-bearing pass → review-<plan-stem>-crosscheck[-rN]-<date>.md plus index line; index entry filed under the <plan-short-title>#crosscheck key." }
+  - { fm: FM-1.1, check: "Scope line matches the CC-2 resolution (delta only when the request carries a delta scope — D-### list, or legacy supersession/consolidation ADR — AND a prior ALIGNED exists for the same file); delta pass read only the revised/edited sections." }
+  - { fm: FM-3.4, check: "Memory write followed CC-6: clean pass → index line only; findings-bearing pass → review-<stem>-crosscheck[-rN|-consolidated]-<date>.md plus index line; index entry filed under the <short-title>#crosscheck key." }
   - { fm: FM-2.1, check: "CC-4a cycle bound checked against that key; CYCLE BOUND REACHED: emitted at the 3rd DRIFT DETECTED for this plan." }

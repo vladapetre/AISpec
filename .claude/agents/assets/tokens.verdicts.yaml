@@ -2,10 +2,11 @@
 #
 # Phase-approval gate: every phase needs the user's `approved`. Reviewer's APPROVED is
 # cumulative at end-of-plan unless the user asks for ad-hoc per-phase review.
-# Cross-check gate fires per ADR/plan pair before Phase 1 (full pass) and after
-# amendments (delta pass, or waived via SELF_CHECKED (delta) under the M5a carve-out).
-# Default: architect emits CROSS_CHECK_REQUESTED (never self-certifies — MAST R10);
-# SELF_CHECKED waives the fresh-pair pass only under the trivial/low-risk A13 carve-out.
+# Cross-check gate fires per design before Phase 1 (full pass) when an A13 threshold
+# trips (≥4 phases, security path, [IRREVERSIBLE], schema/migration), and after
+# amendments (delta pass) when an M5a condition holds; SELF_CHECKED / SELF_CHECKED
+# (delta) record the no-threshold outcome. The check is decisions↔phases inside a
+# design record, or plan↔ADR on a legacy pair.
 
 verdict_tokens:
   - token: "APPROVED"
@@ -27,9 +28,9 @@ verdict_tokens:
   - token: "ALIGNED"
     issued_by: reviewer
     gate: "cross-check gate (architect CROSS_CHECK_REQUESTED, or user /cross-check)"
-    effect: "ADR/plan pair is mutually consistent; developer may start Phase 1."
+    effect: "The design is internally consistent (record decisions↔phases, or legacy ADR↔plan); developer may start Phase 1."
 
   - token: "DRIFT DETECTED"
     issued_by: reviewer
     gate: "cross-check gate (architect CROSS_CHECK_REQUESTED, or user /cross-check)"
-    effect: "ADR/plan pair has critical/major cross-artifact drift; architect reconciles (Amendment mode via ARCHITECT AMENDMENT NEEDED:)."
+    effect: "The design has critical/major internal drift; architect reconciles (Amendment mode via ARCHITECT AMENDMENT NEEDED:)."

@@ -35,7 +35,7 @@ routing_tokens:
     produced_by: "reviewer; team lead (attached)"
     written_into: "Per-phase review output — summary line above the verdict (orthogonal to APPROVED/CHANGES REQUIRED); or the head of a team-lead amendment request."
     consumed_by: architect
-    meaning: "The governing design artifacts (ADR/plan) need architect attention."
+    meaning: "The governing design artifacts (design record, or legacy ADR/plan pair) need architect attention."
     note: >-
       One meaning, three legal emission conditions — the architect's M2a classifies which:
       (1) reviewer-recorded ADR drift; (2) team-lead-attached user/PO ruling changing an
@@ -63,27 +63,27 @@ routing_tokens:
 
   - token: "SELF_CHECKED"
     produced_by: architect
-    written_into: "architect output — final summary line in Design mode ONLY when all four A13 carve-out conditions hold (trivial, low-risk plan)"
+    written_into: "architect output — final summary line in Design mode when NO A13 threshold tripped (phases ≤3, no security path, no [IRREVERSIBLE] step, no schema/migration work); the Thresholds: line shows the arithmetic"
     consumed_by: "developer pre-flight (satisfies the phase-1 'prior' check when no ALIGNED exists — preflight.yaml#developer-implement)"
-    meaning: "Architect performed the five-check self-verification and the plan met the trivial/low-risk carve-out, so no reviewer cross-check is required."
+    meaning: "Architect performed the five-check self-verification and no cross-check threshold tripped, so no reviewer pass runs before Phase 1. The cumulative review still runs."
 
   - token: "SELF_CHECKED (delta)"
     produced_by: architect
-    written_into: "Amendment output — final line, ONLY when all four M5a carve-out conditions hold (USER_DIRECTED trigger, ≤2 revised decisions, semantics-preserving, no security path)"
+    written_into: "Amendment output — final line when NO M5a condition holds (trigger USER_DIRECTED, <2 revision-log entries, ≤2 decisions revised, no security path)"
     consumed_by: "(none — informational; signals the post-amendment delta re-check was waived)"
-    meaning: "A user-directed, semantics-preserving supersession skips the reviewer's delta cross-check. Reviewer-driven drift never qualifies."
+    meaning: "A user-directed, low-churn amendment skips the reviewer's delta re-check. Reviewer-driven drift never qualifies, and record churn (≥2 prior amendments) re-arms the gate."
 
   - token: "CROSS_CHECK_REQUESTED:"
     produced_by: architect
-    written_into: "architect output — the DEFAULT final summary line in Design mode (MAST R10: never self-certify a fresh pair into implementation) AND the default Amendment-mode final line for ADR_AMENDED / PLAN_UPDATED (delta re-check). Carries plan path and one-line reason."
+    written_into: "architect output — the Design-mode final line when an A13 threshold tripped, AND the Amendment-mode final line when an M5a condition holds. Carries the record/plan path, the tripped condition(s), and (amendment) the delta scope as a D-### list."
     consumed_by: reviewer
-    meaning: "Architect requests an external cross-check pass. Fresh pairs get a full pass; supersessions after a prior ALIGNED get a delta-scoped pass (reviewer CC-2)."
+    meaning: "Architect requests an external cross-check pass. Fresh designs get a full pass; amendments after a prior ALIGNED get a delta-scoped pass (reviewer CC-2)."
     note: >-
       Named exception to "one token = one meaning": this token carries one request
       (run a cross-check); the SCOPE (full vs delta) is deliberately NOT a token
       variant — it is resolved deterministically by the reviewer at CC-2 from the
-      ADR filename + its own memory, so a mis-labelled request cannot shrink the
-      pass. The reason text after the colon states the emitter's intent only.
+      request's scope clause (or legacy ADR filename) + its own memory, so a
+      mis-labelled request cannot shrink the pass.
 
   - token: "CYCLE BOUND REACHED:"
     produced_by: reviewer

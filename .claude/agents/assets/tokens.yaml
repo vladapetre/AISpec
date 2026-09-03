@@ -49,6 +49,8 @@ quick_lookup:
   "[withdrawn]":                 markers
   "<!-- status:phase-N -->":     markers
   "**Status: Complete**":        markers
+  "(rN)":                        markers
+  "## Revision log":             markers
   "**Governing ADR:**":          markers
   "**Spec: ON HOLD**":           markers
   "**Supersedes:**":             markers
