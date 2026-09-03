@@ -18,7 +18,7 @@ function die(msg) {
   process.exit(1);
 }
 
-const TYPES = ['report', 'adr', 'plan', 'sdr', 'charter', 'context-map', 'glossary', 'progress', 'api'];
+const TYPES = ['report', 'adr', 'plan', 'design', 'sdr', 'charter', 'context-map', 'glossary', 'progress', 'api'];
 
 const [type, subjectArg] = process.argv.slice(2);
 if (!type || !subjectArg) die(`usage: filename.mjs <${TYPES.join('|')}> "<subject>"`);
@@ -97,6 +97,15 @@ function nextSequence(dir) {
 
 if (type === 'adr') {
   const next = nextSequence(join(REPO_ROOT, 'artifacts/adr'));
+  process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
+} else if (type === 'design') {
+  // Design records live in artifacts/plans/ but share history with legacy ADR-prefixed
+  // pairs, so the sequence scans BOTH directories — a new record must never collide
+  // with a legacy pair's number in either.
+  const next = Math.max(
+    nextSequence(join(REPO_ROOT, 'artifacts/adr')),
+    nextSequence(join(REPO_ROOT, 'artifacts/plans')),
+  );
   process.stdout.write(`${String(next).padStart(5, '0')}-${stem}\n`);
 } else if (type === 'sdr') {
   const next = nextSequence(join(REPO_ROOT, 'artifacts/strategy/decisions'));

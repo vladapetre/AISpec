@@ -25,8 +25,9 @@ Central registry for output-format conventions and artifact templates. Agents lo
 | Artifact type             | Template                             | Produced by  |
 |---------------------------|--------------------------------------|--------------|
 | Analysis report           | `templates/report.md`                | analyst      |
-| ADR (tactical)            | `templates/adr.md`                   | architect    |
-| Implementation plan       | `templates/plan.md`                  | architect    |
+| Design record             | `templates/design-record.md`         | architect    |
+| ADR (standing / legacy)   | `templates/adr.md`                   | architect    |
+| Implementation plan (legacy) | `templates/plan.md`               | architect    |
 | Progress                  | `templates/progress.md`              | developer    |
 | Bounded context charter   | `templates/charter.md`               | consultant   |
 | Context map               | `templates/context-map.md`           | consultant   |
@@ -37,6 +38,8 @@ Central registry for output-format conventions and artifact templates. Agents lo
 Read the template for your artifact type before writing. Worked examples (`report`, `adr`, `plan`, `progress`, `api`) live in `examples/<type>.md` — read only if uncertain about tone or section shape after reading the template.
 
 **Tactical ADR vs SDR.** `adr.md` is for tactical decisions (architect — implementation patterns, component design, API shape within a context). `sdr.md` is for strategic decision records (consultant — subdomain investment, context boundaries, build/buy/outsource, relationship pattern). The file name is the disambiguator: never use `adr.md` for a strategic decision. Numbering is independent: tactical at `artifacts/adr/NNNNN-*`, strategic at `artifacts/strategy/decisions/NNNNN-*`.
+
+**Design record vs the legacy pair.** New feature work is one Design Record (`design-record.md`) in `artifacts/plans/` — decisions and phases in the same file, amended in place per its Revision protocol. `adr.md` remains for rare standing decisions that constrain future features, and both legacy templates remain for reading the pre-existing pairs: a plan carrying `**Governing ADR:**` is legacy and follows the old flow.
 
 ---
 
