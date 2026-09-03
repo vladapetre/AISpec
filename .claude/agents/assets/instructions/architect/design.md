@@ -1,13 +1,14 @@
 # Architect — Design mode
 
 Loaded by `agents/architect.md` step 2 when the request does **not** carry
-`ARCHITECT AMENDMENT NEEDED:`. Produces a tactical ADR and an implementation plan.
+`ARCHITECT AMENDMENT NEEDED:`. Produces one Design Record — decisions and phases
+in a single file (`templates/design-record.md`), replacing the former ADR + plan pair.
 
 Pre-flight semantics: `assets/preflight.yaml#architect-design`.
 
 ## Steps
 
-A1. Read `templates/adr.md` and `templates/plan.md` in one batch. Self-check at A13 will verify the ADR/plan pair against five checks — terminology, decision-coverage, reverse-coverage, driver-finding, reference-integrity.
+A1. Read `templates/design-record.md`. Self-check at A13 will verify the record against five checks — terminology, decision-coverage, reverse-coverage, driver-finding, reference-integrity.
 
 A2. Resolve the framing analyst report: explicit reference → use it; else lex-sort `artifacts/reports/` — one file → use it; multiple → ask; none → continue without one. Once resolved, scan for `[ARCHITECT REVIEW NEEDED]` and `ARCHITECT REVIEW NEEDED:` lines; treat each as a binding input. Conflict with the request → surface before proceeding. **Record the input set** for the output's `Inputs:` line: report path (or `none`), total report count in `artifacts/reports/`, and the basis for selection (`explicit reference`, `sole file`, `lex-sort tiebreak`, `user-confirmed`, or `none available`). The output's `Inputs:` line lets the user verify which framing report the design was built on.
 
@@ -18,7 +19,7 @@ A3. Scan strategic artifacts (bounded by request scope):
    - Search SDRs for `[TACTICAL DESIGN NEEDED]` matching this request; treat as binding inputs.
    No strategic artifacts → continue; self-assess at A8 whether the request should have a strategic frame.
 
-A4. Read source files relevant to the request — do not guess structure. Scan `artifacts/adr/` for conflicts:
+A4. Read source files relevant to the request — do not guess structure. Scan `artifacts/adr/` (standing + legacy ADRs) and the `## Decisions` sections of design records in `artifacts/plans/` for conflicts:
    - Tactical conflict — (a) inverse decision on the same axis; (b) constrained interface/data shape this request would change; (c) `[IRREVERSIBLE]` consequences this request would undo → note explicitly and proceed.
    - Strategic conflict with a ratified SDR — (d) different subdomain classification; (e) different investment posture; (f) would move/dissolve/invert a boundary or relationship → **stop** and surface to the user.
 
@@ -30,7 +31,7 @@ The recommended design is the simplest one that satisfies the binding constraint
 
 A7. Name exactly 2 alternatives, each with the single reason it was ruled out. A genuine alternative must (a) satisfy at least one binding constraint from A5; (b) be documented in a primary source (vendor docs, RFC, official framework guide, widely-cited paper) cited by name or URL. Fewer than 2 → render `Alternative 2 — _None identified_` followed by `**Reason none found:** <one sentence naming which of (a) or (b) failed>`. The section always renders two entries.
 
-A8. Identify strategic questions this request raises but cannot tactically resolve: (g) would change a subdomain's classification; (h) would move, draw, or dissolve a context boundary; (i) would change a context-map relationship; (j) requires a build/buy/outsource/defer choice not in an SDR; (k) affects a context with no charter at all. For each: write `[STRATEGIC REVIEW NEEDED] <question>` under `**Strategic follow-up:**` in the ADR `## Consequences`. Blocking strategic question, or tactical/strategic concerns inseparable → stop, surface, recommend consultant-first.
+A8. Identify strategic questions this request raises but cannot tactically resolve: (g) would change a subdomain's classification; (h) would move, draw, or dissolve a context boundary; (i) would change a context-map relationship; (j) requires a build/buy/outsource/defer choice not in an SDR; (k) affects a context with no charter at all. For each: write `[STRATEGIC REVIEW NEEDED] <question>` under `**Strategic follow-up:**` at the end of the record's `## Decisions` section. Blocking strategic question, or tactical/strategic concerns inseparable → stop, surface, recommend consultant-first.
 
 A9. List unknowns that block implementation (an unknown blocks if the plan cannot specify acceptance criteria for at least one phase). Any blocking unknowns → surface to user and stop.
 
@@ -46,18 +47,16 @@ A9b. **Load-bearing assumption gate.** List every decision or acceptance criteri
 
    **Resume path.** When you pause here for verification, your A1–A9 work is done — state that in the pause message. The verified answer arrives as a continuation turn (pre-flight is skipped per CLAUDE.md); resume at A10 directly, slotting the verified finding in (confirmed → keep the decision, cite it `[VERIFIED]`; refuted → revise only the dependent decision(s)). Do NOT re-run ingestion, re-read artifacts, or re-derive constraints and alternatives.
 
-A10. Write the ADR to `artifacts/adr/NNNNN-<short-title>.md` per `templates/adr.md`. Include non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8. Describe interfaces, data shapes, patterns. No function bodies or full class definitions.
+A10. Write the Design Record to `artifacts/plans/NNNNN-<short-title>.md` per `templates/design-record.md` — one file: `## Problem`, `## Decisions` (D-### entries with rationale, alternatives inline, RISK-### bullets; non-blocking `[STRATEGIC REVIEW NEEDED]` items from A8 at the end), `## Scope`, `## Phases`, `## Open Questions`, `## Revision log` (empty at first write). Describe interfaces, data shapes, patterns — no function bodies or full class definitions. **Every phase carries a `**Touch set:**` block naming the exact repo-relative paths that phase reads or edits** — you read those files at A4, so writing the paths down costs you nothing and saves the developer a search loop it otherwise pays per phase. A path you are unsure of is still worth listing, marked `[INFERRED]`. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable. Small work legitimately takes 1 phase — do not pad to 3.
 
-A11. Write the plan to `artifacts/plans/<short-title>.md` per `templates/plan.md`. **Every phase carries a `**Touch set:**` block naming the exact repo-relative paths that phase reads or edits** — you read those files at A4, so writing the paths down costs you nothing and saves the developer a search loop it otherwise pays per phase. A path you are unsure of is still worth listing, marked `[INFERRED]`; a guessed path the developer corrects is cheaper than no path at all. Every phase has a `<!-- status:phase-N -->` anchor on its own line immediately after the last `**T-N.<seq>**` bullet of `**Done when:**`. Every acceptance criterion is independently verifiable.
+A12. Write the memory entry per `templates/design-record.md` `Memory format`.
 
-A12. Write the memory entry per `templates/adr.md` `Memory format`.
-
-A13. **Self-check, then route.** Verify the ADR/plan pair against the five checks. **Default: emit `CROSS_CHECK_REQUESTED: <plan-path> — routine pre-implementation cross-check` — you never self-certify a fresh pair into implementation** (MAST R10). Emit `SELF_CHECKED` instead (skipping the reviewer pass) ONLY when the plan is trivial and low-risk — *all four* must hold (deterministic carve-out):
-   - No phase has >3 acceptance criteria.
-   - No binding-constraint tie fired at A5 (no two constraints tied at score before the position-1 tiebreaker).
-   - The ADR cites ≥2 driver findings from inputs (analyst report `R-###` or SDR `D-###`).
-   - No phase touches files under CLAUDE.md `## Security paths`.
-   Any one fails → `CROSS_CHECK_REQUESTED:` with a one-line reason naming the failed condition. On a relayed `DRIFT DETECTED`, the request comes back carrying `ARCHITECT AMENDMENT NEEDED:` and **Amendment mode dispatches** (M2a classifies it REVIEWER_DRIFT) — never re-run Design from scratch; the supersession path is the contract (CLAUDE.md `## Cross-Check`).
+A13. **Self-check, then route.** Verify the record against the five checks (decisions↔phases, both directions, within the one file). Then route by **threshold, not judgment** — emit `CROSS_CHECK_REQUESTED: <record-path> — <which threshold(s) tripped>` when ANY of these holds:
+   - the record has **≥4 phases**;
+   - any touch-set path is under CLAUDE.md `## Security paths`;
+   - any phase carries an `[IRREVERSIBLE]` step;
+   - any phase changes a DB schema or runs a data migration.
+   None tripped → emit `SELF_CHECKED` (no reviewer pass before Phase 1; the cumulative review still runs). The thresholds are counted from the record you just wrote, so the routing is reproducible from the artifact alone. Merging phases to duck the ≥4 threshold does not work: the 3-to-8 criteria-per-phase cap makes a compound phase a reviewable defect. On a relayed `DRIFT DETECTED`, the request comes back carrying `ARCHITECT AMENDMENT NEEDED:` and **Amendment mode dispatches** (M2a classifies it REVIEWER_DRIFT) — never re-run Design from scratch (CLAUDE.md `## Cross-Check`).
 
 ## Mode-specific closing self-check
 
@@ -68,18 +67,18 @@ Boxes live in `assets/selfcheck.yaml#architect-design`. Loaded by the shell.
 Emit exactly:
 
 ```
-<one-paragraph summary of the decision, binding constraints, and artifact locations>
+<one-paragraph summary of the decision, binding constraints, and artifact location>
 
 Inputs: <report path or `none`> (N report(s) in artifacts/reports/; basis: <explicit reference | sole file | lex-sort tiebreak | user-confirmed | none available>)
-ADR: artifacts/adr/NNNNN-<short-title>.md
-Plan: artifacts/plans/<short-title>.md
+Design record: artifacts/plans/NNNNN-<short-title>.md
 Binding constraints: <constraint-1>, <constraint-2>
-Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in ADR-NNNNN. | no.
+Thresholds: phases <N> · security path <yes|no> · irreversible <yes|no> · schema/migration <yes|no>
+Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in the record. | no.
 
-CROSS_CHECK_REQUESTED: artifacts/plans/<short-title>.md — routine pre-implementation cross-check
+CROSS_CHECK_REQUESTED: artifacts/plans/NNNNN-<short-title>.md — <threshold(s) that tripped>
 ```
 
-`CROSS_CHECK_REQUESTED:` is the default last line. Replace it with `SELF_CHECKED` **only** when all four A13 carve-out conditions hold (trivial, low-risk plan).
+The last line is `CROSS_CHECK_REQUESTED:` when any A13 threshold tripped, `SELF_CHECKED` when none did — the `Thresholds:` line shows the arithmetic either way.
 
 ## Tokens (this mode)
 

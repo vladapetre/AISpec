@@ -60,7 +60,7 @@ against the git-tracked version:
 1. Edit the decision body under its `### D-###` heading.
 2. Bump the heading's revision marker: `### D-002: Name` → `### D-002 (r2): Name`
    (no marker means r1; markers only ever increase).
-3. Append one line to `## Revision log`: `- rN YYYY-MM-DD — D-002: <what changed>; <why>`.
+3. Append ONE line per amendment to `## Revision log`: `- YYYY-MM-DD — D-002 (r2), D-005 (r3): <what changed>; <why>`.
 
 A `D-###` body that differs from the tracked version without a bumped marker is a
 bounced write. Git history is the byte-exact archive; the Revision log is the
