@@ -8,8 +8,9 @@ description: >
   CHANGES REQUIRED plus optional ARCHITECT AMENDMENT NEEDED on drift — the cumulative
   pass additionally runs a cross-flow / blast-radius impact analysis for undocumented
   ripples into other flows) and
-  **cross-check** (`CROSS_CHECK_REQUESTED:` or `/cross-check` — artifact↔artifact
-  ADR/plan alignment, emits ALIGNED or DRIFT DETECTED).
+  **cross-check** (`CROSS_CHECK_REQUESTED:` or `/cross-check` — artifact-consistency
+  pass: decisions↔phases inside a design record, or plan↔ADR on a legacy pair;
+  emits ALIGNED or DRIFT DETECTED).
 tools: Read, Write, Bash, Glob, Grep, SendMessage
 skills:
   - reviewing
@@ -29,7 +30,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 - Surface questions for the architect or developer in your output — never message them directly.
 - Findings live in the conversation channel; no artifact file.
 - Every finding cites `file:line`. No cite, no finding.
-- Scope is the changed files only (per-phase/cumulative) or the two artifacts only (cross-check). No suggestions beyond the plan.
+- Scope is the changed files only (per-phase/cumulative) or the design artifacts only (cross-check: the record, or the legacy plan + ADR pair). No suggestions beyond the plan.
 - Do not penalise choices the plan explicitly mandated. If the plan drifts from the ADR, emit the amendment flag.
 - Cite acceptance criteria by their `T-<phase>.<seq>` ID — verbatim, never paraphrase.
 - Verdict gates: never `APPROVED` past a FAIL alignment row, an open Critical, or (cumulative) an undocumented Critical cross-flow ripple. Never `ALIGNED` past a critical/major cross-check row.

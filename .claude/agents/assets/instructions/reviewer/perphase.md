@@ -17,10 +17,10 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
    - **Cumulative:** read the `## All Phases Complete` summary. Commit range = full plan span (developer summary states it; if absent, ask). Steps 10 and 11 cover every phase, not one, and steps 11a (cross-flow impact) runs.
    - **Nested-repo rule:** resolve the range in the repository that actually contains the changed files — a worktree or nested sub-repo has its own history and branch, so running `git` from the umbrella root produces false "branch mismatch" flags and empty diffs. When the developer summary names a worktree path, run all git commands `-C` that path.
 
-7. Resolve the governing ADR.
-   - Prefer the plan's `**Governing ADR:**` pointer.
-   - Fallback: glob `artifacts/adr/NNNNN-<short-title>*.md`, filter out files with `**Superseded by:**`, pick highest `-r<N>` (un-suffixed wins only if no `-r*` siblings exist). Ambiguous → ask user.
-   - If the ADR is a supersession (`-r<N>`), also read every ancestor's `## Revised decision` and `## Delta consequences`, plus the root's `## Decision` and `## Consequences`. These form the effective ADR for step 11.
+7. Resolve the decision source — by artifact model, detected from the plan file itself:
+   - **Design Record** (the plan file has a `## Decisions` section): the decision source is that section — it is always current (amendments edit it in place per its Revision protocol), so there is no chain to union. Note any `(rN)` markers and the `## Revision log` for what changed recently.
+   - **Legacy pair** (the plan carries `**Governing ADR:**`): prefer that pointer. Fallback: glob `artifacts/adr/NNNNN-<short-title>*.md`, filter out files with `**Superseded by:**`, pick highest `-r<N>` (un-suffixed wins only if no `-r*` siblings exist). Ambiguous → ask user. If the ADR is a supersession (`-r<N>`), also read every ancestor's `## Revised decision` and `## Delta consequences`, plus the root's `## Decision` and `## Consequences`. These form the effective ADR.
+   Either way, the resolved decision source feeds step 11.
 
 8. Identify the changed file set (stop at first):
    - (a) "Changes made" from the developer summary (per-phase: that phase; cumulative: the union).
@@ -33,7 +33,7 @@ Pre-flight semantics: `assets/preflight.yaml#reviewer-perphase`.
 
 10. **Acceptance-criteria alignment** — load `templates/alignment.md`. For every criterion of the phase(s) under review: map to evidence (file/symbol/test); mark PASS (cite evidence), FAIL (absent/partial/contradicts), or UNCLEAR (ambiguous). Table format per `templates/alignment.md` (4 columns: Criterion | Result | Evidence | Note). Any UNCLEAR row emits `ARCHITECT AMENDMENT NEEDED: <T-ids> too ambiguous to verify` on its own line — that flag is the transport to the architect; the table row alone reaches nobody (SKILL.md verdict-blocking rule).
 
-11. **ADR-alignment** — read the effective ADR's `## Decision` and `## Consequences`. For each key decision (pattern, boundary, data shape, binding-constraint trade-off, every `[IRREVERSIBLE]` consequence): verify the diff honours it. Drift → record decision + `file:line` + one-line reason. Drift is **orthogonal to the verdict** — clean code can still drift. Emit `ARCHITECT AMENDMENT NEEDED: <reason>` whenever drift is recorded, regardless of verdict.
+11. **ADR-alignment** (the name is historical — it checks the step-7 decision source, whichever model) — read the step-7 decision source (record `## Decisions`, or legacy effective ADR). For each key decision (pattern, boundary, data shape, binding-constraint trade-off, every `[IRREVERSIBLE]` consequence): verify the diff honours it, citing decisions by `D-###`. Drift → record decision + `file:line` + one-line reason. Drift is **orthogonal to the verdict** — clean code can still drift. Emit `ARCHITECT AMENDMENT NEEDED: <reason>` whenever drift is recorded, regardless of verdict.
 
 11a. **Cross-flow impact analysis** — *cumulative branch only; skip entirely in per-phase.* The cumulative diff spans the whole branch, so a change to shared logic can silently alter flows the plan never named. A locally-correct edit is not enough — the question is what *else* moved. For each changed symbol, query, guard, or side-effecting call in the step-8 set:
     - **Find consumers.** `git grep` / `grep` for callers of every changed exported symbol and references to every changed shared query, helper, or config value. Any consumer **outside** the plan's documented scope (not named in an acceptance criterion, the plan's scope, or the ADR consequences) is a *candidate impacted flow*.
@@ -78,7 +78,7 @@ Produce this exactly. Empty severity lists use `(none)`. Omit the `ARCHITECT AME
 <!-- Cumulative: replace heading with `## Cumulative Review — <plan-short-title>` and add `**Phases:** 1..M` beneath. Section 1 groups rows under `**Phase N**` sub-headers. -->
 
 **Plan:** artifacts/plans/<short-title>.md
-**Governing ADR:** artifacts/adr/NNNNN-<short-title>.md
+**Decision source:** `## Decisions` (design record) | artifacts/adr/NNNNN-<short-title>.md (legacy)
 **Machines:** <detected gates whose finding classes were excluded | none detected>
 
 ### 1. Acceptance-Criteria Alignment

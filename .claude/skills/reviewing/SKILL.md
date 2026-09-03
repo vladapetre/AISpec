@@ -143,7 +143,7 @@ E1–E4 apply to every mode. E5 applies wherever Minor findings are rendered.
 ## Modes
 
 - **per-phase / cumulative** (default) — fires on a developer phase summary or `## All Phases Complete`. Runs alignment + framework + concern templates + `patterns.md` against the changed files, plus the **removed-guard check** (step 11b, both branches, never gated): every deleted or weakened guard/filter/validation must map to a criterion mandating its removal. The cumulative (full-scope) pass additionally runs a **cross-flow impact analysis** (step 11a): it traces consumers of changed shared logic and flags undocumented behaviour-shifting ripples into flows the plan never named — e.g. a dropped `.Distinct()` that fires duplicate SMS. Emits `APPROVED` or `CHANGES REQUIRED` plus optional `ARCHITECT AMENDMENT NEEDED:`.
-- **cross-check** — fires on `CROSS_CHECK_REQUESTED:` (architect) or `/cross-check` (user). Runs `templates/cross-check.md` only. **Full pass** on the first check of an ADR/plan pair; **delta pass** (revised decisions + delta consequences + edited phases only, row cap 10) when the ADR is a supersession following a prior `ALIGNED` (mode file CC-2). Emits `ALIGNED` or `DRIFT DETECTED`. Read-only.
+- **cross-check** — fires on `CROSS_CHECK_REQUESTED:` (architect) or `/cross-check` (user). Runs `templates/cross-check.md` only (its model mapping covers both design records and legacy ADR/plan pairs). **Full pass** on the first check of a design; **delta pass** (revised decisions + edited phases only, row cap 10) when the request carries a delta scope after a prior `ALIGNED` (mode file CC-2). Emits `ALIGNED` or `DRIFT DETECTED`. Read-only.
 
 ---
 

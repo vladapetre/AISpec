@@ -1,8 +1,10 @@
 # Template: Cross-Artifact Check
 
-**Purpose:** Verify that an ADR and its companion plan are mutually consistent — and that both honour the analyst reports and strategic artifacts they cite — **before** the developer starts Phase 1. This is the artifact↔artifact alignment pass; the per-phase alignment check covers artifact↔code in-flight.
+**Purpose:** Verify that a design's decisions and its execution phases are mutually consistent — and that both honour the analyst reports and strategic artifacts they cite — **before** the developer starts Phase 1. This is the artifact-consistency pass; the per-phase alignment check covers artifact↔code in-flight.
 
-Fires once per ADR/plan pair (re-fires on amendment). Read-only — never writes to artifacts.
+**Model mapping.** The five checks below are written in the legacy pair's vocabulary. They apply verbatim to a Design Record (one file, `templates/design-record.md`) under this mapping: read "the ADR" as the record's `## Problem` + `## Decisions`, and "the plan" as the record's `## Scope` + `## Phases`. `## Alternatives Considered` maps to the decisions' `**Instead of:**` lines; the ADR's `## Context` citations map to citations in `## Problem`. The worked examples remain pair-shaped; the row grammar is identical either way.
+
+Fires once per design (re-fires on amendment when the architect's M5a conditions trip). Read-only — never writes to artifacts.
 
 ---
 
