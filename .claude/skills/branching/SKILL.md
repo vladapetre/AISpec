@@ -8,15 +8,15 @@ description: >
   work on a feature branch across the umbrella's sub-repos — phrasings like "start a
   branch", "spin up a worktree", "resume work on <branch>", "set up branches for this
   feature", "list my worktrees", or "tear down the worktree for <branch>". Requires an
-  explicit branch name — never invents one. Invoke standalone via `/branching <branch>`,
-  or load via the `skills:` frontmatter field on the developer agent.
+  explicit branch name — never invents one. Invoke standalone via `/branching <branch>`;
+  the developer reads it on demand at implement.md's worktree-readiness gate.
 ---
 
 # Skill: branching
 
 Per-feature worktree manager for a multi-repo umbrella whose sub-repositories are **separate nested git repos** under a scan root (default `src/`). A worktree gives each repo an isolated working folder on a feature branch, backed by that repo's own shared history — so one feature can progress across several repos at once without checkout-thrashing or file collisions.
 
-**Shape:** linear. Dual-mode — standalone via `/branching <branch>`, or loaded via `skills:` frontmatter on the developer agent.
+**Shape:** linear. Dual-mode — standalone via `/branching <branch>`, or read on demand by the developer at implement.md's worktree-readiness gate (deferred: it is not in the spawn context, because most projects and every ordinary continuation turn never need it).
 
 **Scope (Stage 0 — deliberately simple).** One branch per repo per feature; one worktree per (repo, branch). No within-repo parallel story branches, no automated merge orchestration. The branch name is the identity that ties a feature's worktrees together across repos.
 

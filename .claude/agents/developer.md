@@ -10,7 +10,6 @@ description: >
 tools: Read, Edit, Write, Bash, Glob, Grep, SendMessage
 skills:
   - documenting
-  - branching
 model: opus
 effort: medium
 memory: project

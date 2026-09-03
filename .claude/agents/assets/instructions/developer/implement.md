@@ -12,7 +12,7 @@ Runs **once per task entry** — the first phase of a plan, or the first turn re
 
 When the gate holds, before step 5:
 1. Determine the **feature branch name** — from the plan (its short-title or an explicit branch reference) or from what the user/team lead supplied. Unknown → ask the user for it and stop; **never invent one** (the `branching` skill enforces the same rule).
-2. Run the **create-or-resume** operation from the `branching` skill — already in your context (auto-loaded), so do not re-read it. It resumes the feature's existing worktree(s) if present, else creates one per repo the feature touches. Surface its mutating `git worktree` command(s) for confirmation as usual.
+2. Read `.claude/skills/branching/SKILL.md` now — it is *(deferred)*, loaded only when this gate holds, because most projects and every ordinary continuation turn never need it. Run its **create-or-resume** operation: it resumes the feature's existing worktree(s) if present, else creates one per repo the feature touches. Surface its mutating `git worktree` command(s) for confirmation as usual.
 3. Implement the phase **inside the resolved worktree path(s)**, not the umbrella's main checkout. Record the worktree path(s) in the per-plan progress file so later phases resume in place.
 
 ## Steps
