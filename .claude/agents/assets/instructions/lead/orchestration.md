@@ -70,9 +70,9 @@ Frontmatter defaults hold unless a listed override applies. Override only for th
 
 | Agent | Default | Override to | When |
 |---|---|---|---|
-| `reviewer` | `opus` | `sonnet` | ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no CLAUDE.md `## Security paths` file. Anything else keeps `opus`. |
+| `reviewer` | `opus` | `sonnet` | The governing design record tripped no A13 threshold — read the architect output's `Thresholds:` line (≤3 phases, no security path, no `[IRREVERSIBLE]`, no schema/migration): its reviews are small by construction. For ad-hoc or legacy spawns: ≤3 changed files AND no `[IRREVERSIBLE] steps executed` AND no security-path file. Anything else keeps `opus`. |
 | `developer` | `opus` | — | No override. The code is the product, and one avoided `CHANGES REQUIRED` round pays for a great many slower tokens. |
-| `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT`. Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
+| `architect` | `opus` | `sonnet` | Amendment mode, trigger is user-directed or expected `CODE_DRIFT` — and always for a legacy consolidation fold (M2b r3+: mechanical folding of already-ratified text, no new design content). Keep `opus` when the amendment must produce new design content against a reviewer drift flag. |
 | `analyst` | `opus` | `sonnet` | Ticket pulls, JQL searches, ticket drafting, delta reports against an existing report. Keep `opus` for fresh ingestion of code/docs/data. |
 
 The architect classification is a spawn-time guess (Amendment mode's M2 decides for real, inside the run). A wrong guess is harmless — the mode runs identically on either tier, so guess cheap.
