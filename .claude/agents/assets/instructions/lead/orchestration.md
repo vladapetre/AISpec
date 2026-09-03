@@ -33,7 +33,7 @@ Only you can spawn, so the whole respawn-vs-continue decision is yours. CLAUDE.m
 |---|---|
 | `developer` | ONE instance per plan. Every phase, approval relay, rejection, and reviewer verdict is a continuation turn of it. Respawn only on context loss (session died) or a new plan. |
 | `reviewer` | ONE instance per plan. Cross-check, checkpoints, re-reviews, and the cumulative pass are continuation turns — the ADR/plan are read once, and a re-review after `CHANGES REQUIRED` already holds its own prior findings. Independence is intact: the reviewer verifies the developer's code and the artifacts, never its own prior verdicts. |
-| `architect` | Design mode spawns fresh per request (clean framing). Amendments continue a still-resumable instance (the ADR is in context); otherwise spawn fresh — Amendment mode's surgical-context rule bounds the reads either way. |
+| `architect` | Design mode spawns fresh per request (clean framing). Amendments continue a still-resumable instance (the design record is in context); otherwise spawn fresh — Amendment mode's surgical-context rule bounds the reads either way. |
 | `analyst` | Fresh per source set. A delta report against a source set it already ingested continues that instance. |
 | `consultant` | A discussion thread is one instance; ratification of a direction it discussed continues that instance into Artifact mode. |
 
@@ -95,7 +95,7 @@ CLAUDE.md `## Spec volatility` states the split; Source B's procedure is yours a
 1. **Acknowledge and record** the ruling. Do **not** route `ARCHITECT AMENDMENT NEEDED:` on the spot — one amendment per ruling is how a design ends up spread across eleven files.
 2. Work continues. The one exception: if a queued ruling changes the shape of the phase about to start, that phase waits for the flush.
 3. **Flush** — routing one amendment carrying every queued ruling as a numbered list — at the first of: the user says to proceed or asks for the amendment; the next phase cannot start without a queued ruling absorbed; the developer needs a queued decision to implement; the plan reaches `## All Phases Complete`.
-4. One flush is **one** supersession ADR covering the whole batch. Amendment mode's M5a counts the batch's *rulings*, not its decisions, against its `≤2` waiver condition — a batch is one absorption event.
+4. One flush is **one** amendment covering the whole batch — one revision-log line on a design record, or one supersession ADR on a legacy pair. Amendment mode's M5a counts the batch's *rulings*, not its decisions, against its decision-count condition — a batch is one absorption event.
 
 If a ruling turns out not to be semantics-preserving, it is Source A: stamp the plan `**Spec: ON HOLD**` and hold.
 

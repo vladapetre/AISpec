@@ -58,8 +58,8 @@ Each agent owns a specific artifact directory. Route writes to the owner via `Se
 | `artifacts/api/`         | analyst             | REST API documentation (written directly; `documenting` `templates/api.md`) |
 | `artifacts/inbound/`     | analyst             | Raw received specs / handoffs, verbatim — ingestion sources, never edited after landing |
 | `artifacts/strategy/`    | consultant (Artifact mode) | Bounded-context charters, context maps, SDRs, glossary entries |
-| `artifacts/adr/`         | architect            | Architectural decision records (supersession ADRs come from Amendment mode; scope changes live in the supersession's `**Trigger:**` line — no separate scope-change files) |
-| `artifacts/plans/`       | architect            | Implementation plans (Amendment mode may edit a future phase + Governing ADR pointer) |
+| `artifacts/adr/`         | architect            | Standing ADRs (rare: decisions that constrain future features) + the frozen legacy chains and their supersessions |
+| `artifacts/plans/`       | architect            | Design records (decisions + phases, one file per feature; Amendment mode revises decisions in place and may edit a future phase) + legacy implementation plans |
 | `artifacts/sql/`         | developer           | Verification / diagnostic queries produced during phases (read-only against the DB) |
 | `.claude/MEMORY.md`      | understanding skill | Project glossary and decision log                              |
 | `.claude/PROJECT-MAP.md` | analyst             | Where things live: repo/solution layout, module-to-folder map, test/config/DI/migration locations, path conventions (see `## Project facts`) |
@@ -74,13 +74,13 @@ The analyst writes reports and API documentation directly (no routing). All othe
 
 ## Cross-Check (Pre-Implementation)
 
-**The architect never self-certifies a fresh ADR/plan pair into implementation** (MAST R10 — a producer does not verify its own work into the next stage). By default `architect` (Design mode) runs its A13 five-check self-verification *and then* emits `CROSS_CHECK_REQUESTED: <plan-path>` with a one-line reason. Route to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically). On `ALIGNED`, the plan goes to the developer for Phase 1.
+**The artifact model.** New feature work produces one **Design Record** in `artifacts/plans/` (`documenting` `templates/design-record.md`): decisions and phases in a single file, amended in place per its Revision protocol. A plan carrying `**Governing ADR:**` is a **legacy pair** (frozen ADR + plan, supersession on amendment) and keeps its original flow; the `## Decisions` section's presence is the mechanical detector everywhere. Never convert a legacy pair.
 
-**Self-certify carve-out.** `architect` may skip the pass and emit `SELF_CHECKED` instead, but only for a plan that is both trivial and low-risk. Escalation is the rule, self-certification the exception; the four conditions that must *all* hold are the architect's to evaluate and live in `design.md` A13.
+**The cross-check fires by counted threshold, not by default.** `architect` (Design mode) runs its A13 five-check self-verification, then emits `CROSS_CHECK_REQUESTED: <record-path>` when any threshold trips — **≥4 phases, a security path, an `[IRREVERSIBLE]` step, or schema/migration work** — and `SELF_CHECKED` when none does (the developer starts Phase 1 directly; the cumulative review still runs). The thresholds were validated against the host project's nine historical `DRIFT DETECTED` chains: each trips a threshold or the amendment-churn condition below. Route a `CROSS_CHECK_REQUESTED:` to `reviewer` (Cross-check mode); wait for `ALIGNED` or `DRIFT DETECTED`. On `DRIFT DETECTED`, route back to `architect` (the request now carries `ARCHITECT AMENDMENT NEEDED:` — Amendment mode dispatches automatically). On `ALIGNED`, the developer starts Phase 1.
 
-The cross-check is a read-only artifact↔artifact pass per ADR/plan pair, before Phase 1. Between-phase work uses the per-phase flow below.
+The cross-check is a read-only artifact-consistency pass before Phase 1 — decisions↔phases inside a record, plan↔ADR on a legacy pair. Between-phase work uses the per-phase flow below.
 
-**Post-amendment re-checks are delta-scoped**, never a fresh full pass: the reviewer scopes to the amendment's revised decisions, delta consequences, and edited phase(s) (CC-2), and Amendment mode may waive the re-check entirely with `SELF_CHECKED (delta)` under its own four conditions (M5a). Reviewer-driven drift always re-checks; `CODE_DRIFT` changes no artifact and needs no re-check. Repeated `DRIFT DETECTED` on one plan is bounded — see `## Cycle bounds`.
+**Post-amendment re-checks are delta-scoped**, never a fresh full pass: the reviewer scopes to the revised decisions and edited phase(s) named in the request (CC-2). Amendment mode requests a re-check when any M5a condition holds — reviewer-driven drift, **≥2 revision-log entries on the record** (churn is itself a drift signal), >2 decisions revised, or a security path — and waives it with `SELF_CHECKED (delta)` otherwise. `CODE_DRIFT` changes no artifact and needs no re-check. Repeated `DRIFT DETECTED` on one design is bounded — see `## Cycle bounds`.
 
 ## Implementation Review
 
@@ -96,9 +96,7 @@ Model tiering at spawn is the team lead's alone (`instructions/lead/orchestratio
 
 The cumulative review includes the ADR-alignment check and may emit `ARCHITECT AMENDMENT NEEDED: <reason>` on design-level drift. Route to `architect` immediately (its mode dispatch will pick Amendment mode). On `CHANGES REQUIRED`, route findings to the developer; the developer addresses them and re-routes a fresh `## All Phases Complete` summary until `APPROVED` clears — bounded at three rounds per `## Cycle bounds`.
 
-**Amendments use supersession, not in-place edits.** `architect` (Amendment mode) writes a new tiny ADR at `artifacts/adr/NNNNM-<short-title>-r<N>.md` carrying only revised decisions and delta consequences; the original is stamped with one `**Superseded by:**` line beneath its title and otherwise frozen. The mode's surgical-context rule bounds its reads (see `amendment.md`).
-
-**Revision budget — deltas stop at r2.** The third amendment against the same ADR does not append `-r3`; it **consolidates** (amendment.md M2b/M3b): one re-issued full ADR at the next free top-level number, folding the chain, `**Consolidates:**` stamped, every superseded file stamped, the plan's `**Governing ADR:**` repointed, `D-###` numbers preserved. Deltas are cheap to write and expensive to read, and the cost lands on every later reader: one chain reached **r10**, so knowing the design meant folding eleven files by hand. Consolidation pays that fold once. `CODE_DRIFT` never counts toward the budget.
+**Amendments revise the record in place — the Revision protocol is the audit trail.** `architect` (Amendment mode) edits the affected `### D-###` bodies, bumps each heading's `(rN)` marker, and appends one `## Revision log` line per amendment (`design-record.md` Revision protocol; `lint.write` bounces a partial revision, checking markers against git HEAD). The record is always current — no reader ever unions a chain. Git history holds the bytes; the log line is the reader-facing summary. Motivation is measured: 96 of the host project's 180 ADR files were supersession deltas, one chain reached **r10**, so knowing that design meant folding eleven files by hand. **Legacy pairs keep supersession**: a new `-r<N>` delta ADR per amendment, consolidation at r3+ — the procedure lives in `amendment.md` `## Legacy pairs`. The mode's surgical-context rule bounds its reads either way.
 
 **Ad-hoc per-phase review.** The reviewer's `## Phase N Complete` mode remains available when the user explicitly requests review of a single phase (security-sensitive change, long-running plan where mid-stream feedback is wanted). Default flow is end-of-plan only.
 
@@ -116,7 +114,7 @@ The counts live in the reviewer's memory index, which it already writes each pas
 
 ## Spec volatility (hold-and-batch)
 
-Two things go volatile mid-plan, and **neither is absorbed one ruling at a time** — each ruling would otherwise cost a full amendment (+ often a re-check) round, and one supersession ADR per ruling is how a design ends up spread across eleven files. The signal for both is the same: the *second* change request against the same plan while a first is still being absorbed.
+Two things go volatile mid-plan, and **neither is absorbed one ruling at a time** — each ruling would otherwise cost a full amendment (+ often a re-check) round, and one amendment per ruling is how a design's revision log turns into churn (and how a legacy chain ended up spread across eleven files). The signal for both is the same: the *second* change request against the same plan while a first is still being absorbed.
 
 **Source A — the spec is renegotiated externally** (Jira ticket amended mid-plan, PO rulings pending, the user announces the requirements are moving). Phases must not proceed, because the target itself is moving:
 
