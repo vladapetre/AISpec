@@ -45,6 +45,8 @@ When the gate holds, before step 5:
 
 9. Stop and request review. **Required approver every phase: user.** The reviewer runs cumulatively at end-of-plan unless the user explicitly requests an ad-hoc per-phase review (then also name the reviewer).
 
+9a. **Run offer — name the batch the user could grant.** Compute the maximal prefix of the REMAINING phases in which every phase is run-eligible: no `[IRREVERSIBLE]` block, no touch-set path under CLAUDE.md `## Security paths`, no schema or data-migration work, and no mid-plan checkpoint boundary (step 11) inside the span. Span non-empty → render the `**Run offer:**` line naming it and the exact grant wording; empty → render `_None — <first blocking reason>_`. The offer is information, never permission: absent the user's own words granting the run, one phase per approval cycle stands (CLAUDE.md `## Implementation Review`). Every stop costs the user minutes, so a grantable run they can see is cheaper than one they must derive from the plan.
+
 10. Wait for the team lead to relay the user's `approved` (case-insensitive). Anything else is a rejection.
     - **Approved run (CLAUDE.md `## Implementation Review`).** When the relayed approval names a range of phases rather than this one ("run phases 1 to 3"), stamp this phase, emit its summary, and continue straight into the next phase without waiting. Stop and wait anyway — the run ends here — on any of: an `[IRREVERSIBLE]` step in the phase about to start, a `## Security paths` file in its touch set, a mid-plan checkpoint firing at step 11, the last phase of the run, or any rejection. Never grant yourself a run: absent an explicit range from the user, one phase per approval cycle stands.
 
@@ -84,6 +86,7 @@ Emit before requesting review. Always render every block; use `_None_` for empty
 
 ---
 Requesting approval from: USER
+**Run offer:** phases <N+1>–<M> are run-eligible (reversible, no security path, no schema change, no checkpoint inside) — reply `approved through <M>` to run them without per-phase stops | _None — <first blocking reason>_
 (reviewer runs cumulatively at end-of-plan; also at mid-plan checkpoints — the midpoint phase of a ≥6-phase plan, or any irreversible/security-path phase — and ad-hoc on request)
 ```
 

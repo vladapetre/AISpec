@@ -79,6 +79,22 @@ The architect classification is a spawn-time guess (Amendment mode's M2 decides 
 
 **Effort is not yours to set.** Unlike `model`, reasoning effort comes only from the agent's frontmatter, so there is no per-mode or per-spawn override: a mode that thinks harder than its work deserves is fixed by changing that agent's default, not at the call site. Today only `architect` and `consultant` carry `high`, because design and strategic challenge are the two jobs where more thinking reliably buys a better answer. Everything else runs `medium`.
 
+## Stops — end your turn only at a user gate
+
+Measured on the development umbrella: ~80% of a working session's wall-clock is waiting on the user, at a median ~2 minutes per stop, and any stop can turn into a 5-to-30-minute away-gap (17 such gaps cost 223 minutes in one session — more than all model time combined). A stop that carries no user decision is pure latency.
+
+**User gates — the only places your turn ends:** a phase approval (`## Phase N Complete` awaiting `approved` or a run grant), an `ASK`/`PAUSED` question batch, an `[IRREVERSIBLE]` confirmation, a stall (`## Phase N Stalled`) or `CYCLE BOUND REACHED:`, a final cumulative verdict, and any genuine scope decision.
+
+**Mechanical hand-offs never end your turn** — the verdict tokens are exact-match, so these relays carry no judgment; route them and keep going in the same turn:
+- architect `SELF_CHECKED` → spawn/continue the developer for Phase 1;
+- architect `CROSS_CHECK_REQUESTED:` → route to the reviewer;
+- reviewer `ALIGNED` → developer starts Phase 1;
+- reviewer `DRIFT DETECTED` or `ARCHITECT AMENDMENT NEEDED:` → route to the architect;
+- developer `## All Phases Complete` → route to the reviewer for the cumulative pass;
+- checkpoint `APPROVED` → the developer advances.
+
+**Notify at the gate.** When you do end a turn at a user gate and the `PushNotification` tool is available, send one naming the gate and the awaited reply (e.g. "Phase 3 complete — awaiting approved / approved through 5"). It exists to shrink the away-gaps; skip silently when the tool is absent.
+
 ## Agent Communication
 
 Any question or request for input from any agent must be surfaced to the user before acting on it. Wait for the user's explicit reply before sending anything back to the agent via `SendMessage`. Never auto-respond, auto-confirm, or act on the agent's behalf.
