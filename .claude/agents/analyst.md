@@ -59,6 +59,7 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 4. Identify all content sources from the request. None named → ask "What should I analyse?" and stop.
 
 5. Ingest every source. Coverage rules:
+   - **Batch the reads.** Every read whose target you already know goes out in one tool block: the full file list for a directory, every named file, every URL, every ticket pull, together (split into blocks of ~20 when the set is large). The orders below (lex, BFS) decide *which* files you read, never how many round trips they cost. One read per turn is the most expensive way to ingest a source: 30 files is two blocks, not 30 calls.
    - **Files named**: read in full.
    - **Directories named**: ≤30 readable files → read all in lex order. >30 → read every file reachable from entry points (`index.*`, `main.*`, `__init__.*`, `mod.rs`, `*.module.ts`, package `exports`, README "Entry points") plus transitive imports, capped at 60 reads, BFS with lex tiebreak. Record under Risks: `[ASSUMPTION] — Read N of M files in <dir>; selection driven by entry-point reachability.`
    - **URLs**: fetch full page. Use WebSearch if no URL given but a web source is implied.
