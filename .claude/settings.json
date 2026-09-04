@@ -175,5 +175,6 @@
     ]
   },
   "remoteControlAtStartup": true,
-  "outputStyle": "custom"
+  "outputStyle": "custom",
+  "disableClaudeAiConnectors": true
 }

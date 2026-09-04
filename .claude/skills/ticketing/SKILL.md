@@ -3,7 +3,7 @@ name: ticketing
 description: >
   Pull, create, and update tickets on external work-tracking platforms via their MCP
   servers, and draft well-structured items (user story, change request, bug, technical
-  debt, spike) from raw specialist input. Routes per provider to template files under
+  debt, spike, epic) from raw specialist input. Routes per provider to template files under
   `.claude/skills/ticketing/templates/<provider>/`. Focused on Jira today, extensible
   to other providers. Use this skill whenever the user wants to create, draft, write,
   pull, fetch, or update a ticket, story, bug, task, epic, spike, change request, or
@@ -35,14 +35,14 @@ Treat the user input above as the source of truth. If empty, present the item ty
 
 Each provider owns a template directory and a set of MCP tools. Resolve the provider first, then route to that provider's templates and tools. Jira is the default when no provider is named.
 
-| Provider | Status   | Templates                  | MCP namespace                 |
-|----------|----------|----------------------------|-------------------------------|
-| Jira     | active   | `templates/jira/`          | `mcp__claude_ai_Atlassian__*` |
-| Linear   | future   | `templates/linear/`        | `mcp__claude_ai_Linear__*`    |
-| Asana    | future   | `templates/asana/`         | `mcp__claude_ai_Asana__*`     |
-| Notion   | future   | `templates/notion/`        | `mcp__claude_ai_Notion__*`    |
+| Provider | Status   | Templates           | MCP namespace       | Server in `.mcp.json` |
+|----------|----------|---------------------|---------------------|-----------------------|
+| Jira     | active   | `templates/jira/`   | `mcp__atlassian__*` | `atlassian`           |
+| Linear   | future   | `templates/linear/` | `mcp__linear__*`    | not configured        |
+| Asana    | future   | `templates/asana/`  | `mcp__asana__*`     | not configured        |
+| Notion   | future   | `templates/notion/` | `mcp__notion__*`    | not configured        |
 
-**Adding a provider:** create `templates/<provider>/` with one file per item type (mirror the canonical item set below), add a row here with its MCP namespace, and add a provider operations block under **Provider operations**. No change to the steps is needed — routing is table-driven.
+**Adding a provider:** register the provider's MCP server in the project's `.mcp.json` (its server name *is* the namespace — a server named `atlassian` yields `mcp__atlassian__*`), create `templates/<provider>/` with one file per item type (mirror the canonical item set below), add a row here, and add a provider operations block under **Provider operations**. No change to the steps is needed — routing is table-driven. Tools still have to be granted on each agent that needs them (see **Provider operations**).
 
 Only Jira ships templates today. If the user names a `future` provider, say its templates are not authored yet and offer to draft against the Jira structure or scaffold the new provider directory.
 
@@ -52,7 +52,7 @@ Only Jira ships templates today. If the user names a `future` provider, say its 
 
 Item types are provider-agnostic. Each maps to a template file `templates/<provider>/<item>.md` and to a provider-native issue type (resolved in **Provider operations**).
 
-Use the **first** matching flag. If none is given, infer from content — "it's broken" / "crash" / "null ref" → `bug`; "we should refactor" / "tech debt" / "cleanup" → `tech-debt`; "investigate" / "decide between" → `spike`. If still ambiguous, present this list and ask.
+Use the **first** matching flag. If none is given, infer from content — "it's broken" / "crash" / "null ref" → `bug`; "we should refactor" / "tech debt" / "cleanup" → `tech-debt`; "investigate" / "decide between" → `spike`; "this spans several sprints" / "umbrella for" / a request that only decomposes into multiple shippable items → `epic`. If still ambiguous, present this list and ask.
 
 | Flag       | Item              | Template file       | Specialist voice                 |
 |------------|-------------------|---------------------|----------------------------------|
@@ -61,6 +61,7 @@ Use the **first** matching flag. If none is given, infer from content — "it's 
 | `--bug`    | Bug / Defect      | `bug.md`            | QA Engineer / Developer          |
 | `--debt`   | Technical Debt    | `tech-debt.md`      | Principal Engineer / Architect   |
 | `--spike`  | Analysis (SPIKE)  | `spike.md`          | Architect / Tech Lead            |
+| `--epic`   | Epic              | `epic.md`           | Product Manager / Programme Lead |
 
 Read the template (mandatory structure) before writing. A worked example per item lives at `examples/<provider>/<item>.md` — read it only if uncertain about tone or section depth after reading the template.
 
@@ -121,7 +122,20 @@ Per-provider MCP wiring for `pull`, `create`, and `update`. Surface any mutating
 
 ### Jira
 
-**Required agent tools** — read-only: `mcp__claude_ai_Atlassian__getAccessibleAtlassianResources`, `getVisibleJiraProjects`, `getJiraProjectIssueTypesMetadata`, `getJiraIssue`, `searchJiraIssuesUsingJql`, `getTransitionsForJiraIssue` · mutating (surface for confirmation): `createJiraIssue`, `editJiraIssue`, `transitionJiraIssue`, `addCommentToJiraIssue`, `createIssueLink`. (All under the `mcp__claude_ai_Atlassian__` namespace.)
+**Required agent tools** — primary tools, called directly: `mcp__atlassian__getAccessibleAtlassianResources`, `getJiraIssue`, `searchJiraIssuesUsingJql` · mutating primary tools (surface for confirmation): `createJiraIssue`, `editJiraIssue`, `transitionJiraIssue`, `addOrEditJiraIssueComment` · catalog access: `discover`, `executeRead`, `executeWrite`. (All under the `mcp__atlassian__` namespace. `executeDestructive` is deliberately **not** granted: no ticketing operation deletes.)
+
+**Two layers, and the second one bites.** The server exposes about 20 primary tools directly and keeps roughly 220 more in a searchable catalog, reached through `discover` plus an execute-family tool matched to the operation's risk tier: `executeRead` for lookups, `executeWrite` for creates and updates. Six operations this skill needs are catalog-only, so each is called as `executeRead({ name, cloudId, inputs })` rather than as a tool of its own:
+
+| Operation | Tier | Purpose |
+|-----------|------|---------|
+| `listJiraProjects` | `executeRead` | projects visible to the user |
+| `listJiraProjectIssueTypesMetadata` | `executeRead` | issue types available in a project |
+| `listJiraIssueTransitions` | `executeRead` | available workflow transitions for an issue |
+| `listJiraIssueComments` | `executeRead` | an issue's comment thread (Pull step 2) |
+| `listJiraIssueLinkTypes` | `executeRead` | valid link type names: Blocks, Relates, Duplicates |
+| `createJiraIssueLink` | `executeWrite` | link two issues (mutating: confirm first) |
+
+Three rules the server enforces. `cloudId` is a **top-level** argument on every execute-family call, a sibling of `name` and `inputs`, never inside `inputs`. Never invent an operation name: use one from this table, one already in the tool list, or call `discover` first. And responses default to a compact view that **omits custom fields**, so to read or verify story points pass `view: "evidence"` or name the site's `customfield_*` ID explicitly, because those IDs differ per site.
 
 Item-type → Jira issue type:
 
@@ -132,21 +146,24 @@ Item-type → Jira issue type:
 | Bug / Defect    | `Bug`           |
 | Technical Debt  | `Task`          |
 | Analysis (SPIKE)| `Task`          |
+| Epic            | `Epic`          |
 
 **Pull** (`--pull`):
-1. By key (e.g. `PROJ-123`) → `mcp__claude_ai_Atlassian__getJiraIssue`. By query → `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`.
-2. Render the fetched item; map fields back onto the matching template structure where useful.
+1. By key (e.g. `PROJ-123`) → `mcp__atlassian__getJiraIssue`. By query → `mcp__atlassian__searchJiraIssuesUsingJql`.
+2. **Fetch the comments too** — `executeRead` with `name: "listJiraIssueComments"`. `getJiraIssue` reports only *how many* comments an issue has, never their text, and the comment thread is where scope decisions, open questions and blockers actually live. Pulling the issue alone and calling it context is how a ticket gets re-litigated.
+3. Before drafting or analysing anything, state what was loaded: issue key, type, status, assignee, comment count, and any thread carrying an open question or a scope change.
+4. Render the fetched item; map fields back onto the matching template structure where useful.
 
 **Create** (`--create`):
-1. `mcp__claude_ai_Atlassian__getAccessibleAtlassianResources` to resolve the cloud id (if not already known).
-2. `mcp__claude_ai_Atlassian__getVisibleJiraProjects` to list projects; if the project is ambiguous, ask the user to confirm the project key.
-3. Map the item type to the Jira issue type above (verify against `mcp__claude_ai_Atlassian__getJiraProjectIssueTypesMetadata` when unsure the type exists in the project).
-4. `mcp__claude_ai_Atlassian__createJiraIssue` with summary and description.
+1. `mcp__atlassian__getAccessibleAtlassianResources` to resolve the cloud id (if not already known).
+2. `executeRead` with `name: "listJiraProjects"` to list projects; if the project is ambiguous, ask the user to confirm the project key.
+3. Map the item type to the Jira issue type above. Verifying it exists in the project is optional: `createJiraIssue` returns the required fields and their allowed values when it rejects a create, so retry from that rather than pre-fetching. When you do want to check up front, `executeRead` with `name: "listJiraProjectIssueTypesMetadata"`.
+4. `mcp__atlassian__createJiraIssue` with summary and description. Custom fields (story points and the like) go in `additional_fields`, keyed by field name or `customfield_*` ID; values resolve automatically, so no field lookup is needed first.
 5. Report the created issue key and URL.
 
 **Update** (`--update`):
 1. Resolve the target key (ask if not given).
-2. Field edits → `mcp__claude_ai_Atlassian__editJiraIssue`. Status change → `mcp__claude_ai_Atlassian__getTransitionsForJiraIssue` then `mcp__claude_ai_Atlassian__transitionJiraIssue`. A note → `mcp__claude_ai_Atlassian__addCommentToJiraIssue`.
+2. Field edits → `mcp__atlassian__editJiraIssue` (clear a field with an explicit `null`). Status change → `executeRead` with `name: "listJiraIssueTransitions"`, then `mcp__atlassian__transitionJiraIssue`. A note → `mcp__atlassian__addOrEditJiraIssueComment` (omit `commentId` to add, pass it to edit; the body takes markdown and the server converts it to ADF).
 3. Report what changed and the issue URL.
 
 ---

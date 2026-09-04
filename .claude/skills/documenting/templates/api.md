@@ -17,7 +17,7 @@ These rules are strictly enforced: they are the substance of this artifact type,
 - **Backticks are for prose only.** Use single backticks when an identifier appears *inside a sentence*: descriptions, validation text, business rules (e.g. "required when `otherField` is set"). Do **not** backtick the bare identifier in the **Field** / **Parameter** column of a schema table: write it as plain text (e.g. the Field cell reads `nameOfField`, not a code span). The same applies to enum value/name cells.
 - Produce one self-contained section per endpoint; repeat the full endpoint block for each.
 - Omit sub-sections that genuinely do not apply (e.g. no path parameters → omit that table). Never leave a section blank or write "N/A".
-- HTTP status codes covered: 200/201, 400, 401, 403, 404, 500 (add others if relevant).
+- HTTP status codes covered: 200/201, 400, 401, 403, 404, 500 (add others if relevant: 409 for a conflict, 429 when the endpoint is rate limited).
 - Every endpoint includes a cURL example. Add JavaScript (fetch) and Python (httpx) examples when the request body is non-trivial.
 - The **Business Rules** section is optional per endpoint: include it only when the endpoint has domain constraints, sequencing requirements, or conditional behaviour not self-evident from the schema; omit it otherwise.
 
@@ -169,20 +169,53 @@ Every non-success status. The Meaning column states the specific triggering cond
 | 403    | Authenticated user lacks permission for this operation|
 | 404    | No resource found matching the given identifier       |
 | 409    | (describe the specific conflict condition)            |
+| 429    | Rate limit exceeded: retry after `retryAfter` seconds  |
 | 500    | Internal server error                                 |
 
 ###### Error Body
+
+Every error response is an RFC 7807 Problem Details object.
 
 ```json
 {
   "type": "https://api.example.com/errors/validation-failed",
   "title": "Validation Failed",
   "status": 400,
+  "detail": "One or more validation errors occurred.",
+  "instance": "/v1/path",
   "errors": {
     "fieldName": ["Error description."]
   }
 }
 ```
+
+| Field      | Type    | Required | Description                                                        |
+| ---------- | ------- | -------- | ------------------------------------------------------------------ |
+| type       | URI     | Yes      | Absolute URI identifying the problem type                          |
+| title      | string  | Yes      | Short human-readable summary of the problem type                   |
+| status     | integer | Yes      | HTTP status code, repeated in the body                             |
+| detail     | string  | Yes      | Explanation specific to this occurrence                            |
+| instance   | URI     | No       | URI of the specific occurrence                                     |
+| errors     | object  | No       | Field-level validation errors: camelCase field name to string array |
+| retryAfter | integer | No       | Seconds to wait before retrying; on 429 only                       |
+| traceId    | string  | No       | Server trace identifier for support; on 5xx only                   |
+
+### Pagination
+
+> Optional: include only when the endpoint returns a collection that pages. Omit entirely otherwise.
+
+- **Method:** cursor-based.
+- **Request:** `limit` (integer, 1 to 100, default 20), `cursor` (opaque string, omit for the first page).
+- **Response:** `nextCursor` (string or null), `hasMore` (boolean).
+- When `hasMore` is false there are no further pages; do not send another request.
+
+### Rate Limiting
+
+> Optional: include only when the endpoint enforces a limit. Omit entirely otherwise.
+
+- **Limit:** state the actual budget and window (e.g. 1,000 requests per 15 minutes per API key).
+- **Headers:** `X-RateLimit-Remaining` carries the remaining count; `Retry-After` carries the wait in seconds.
+- Exceeding the limit returns 429 with `retryAfter` in the Problem Details body.
 
 ### Examples
 

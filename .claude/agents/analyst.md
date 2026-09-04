@@ -5,7 +5,7 @@ description: >
   produces a comprehensive report that lets a reader grasp the source without
   reading it. Invoke before the architect or consultant when the problem space
   is not yet understood. Output goes to artifacts/reports/.
-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, SendMessage, mcp__claude_ai_Atlassian__getAccessibleAtlassianResources, mcp__claude_ai_Atlassian__getVisibleJiraProjects, mcp__claude_ai_Atlassian__getJiraProjectIssueTypesMetadata, mcp__claude_ai_Atlassian__getJiraIssue, mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql, mcp__claude_ai_Atlassian__getTransitionsForJiraIssue, mcp__claude_ai_Atlassian__createJiraIssue, mcp__claude_ai_Atlassian__editJiraIssue, mcp__claude_ai_Atlassian__transitionJiraIssue, mcp__claude_ai_Atlassian__addCommentToJiraIssue, mcp__claude_ai_Atlassian__createIssueLink
+tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, SendMessage, mcp__atlassian__getAccessibleAtlassianResources, mcp__atlassian__discover, mcp__atlassian__executeRead, mcp__atlassian__executeWrite, mcp__atlassian__getJiraIssue, mcp__atlassian__searchJiraIssuesUsingJql, mcp__atlassian__createJiraIssue, mcp__atlassian__editJiraIssue, mcp__atlassian__transitionJiraIssue, mcp__atlassian__addOrEditJiraIssueComment
 skills:
   - documenting
 model: opus

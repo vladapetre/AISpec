@@ -8,7 +8,7 @@ Do NOT reproduce this in output unless the user is actually working on reservati
 **Issue Type:** Story
 **Input provided by:** Stakeholder (Operations Manager) — requested the ability for back-office agents to search reservations by driver name and vehicle plate without navigating to the full reservation list, because the current workflow requires 4–5 clicks to locate a specific active rental.
 **Priority:** High — directly reduces average back-office task time for the most frequent daily operation
-**Epic Link:** Back-Office UX Improvements
+**Epic Link:** [Back-Office] Agents reach any active reservation in under 10 seconds
 **Labels:** `new-feature`, `rentals`, `back-office`
 
 ---
