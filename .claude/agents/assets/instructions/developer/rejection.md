@@ -17,7 +17,9 @@ R3. After the 3rd rejection of the same phase, stop and escalate to the user wit
 
 ## Output format
 
-After addressing feedback, emit the standard `## Phase N Complete` block from `implement.md`, with the **Decisions made** block carrying any reading-changes prompted by the feedback. At the 3-rejection bound, emit instead:
+Governed by `assets/brief.yaml#developer-rejection`. After addressing feedback, emit the standard `## Phase N Complete` block from `implement.md` — its budget and its `Nil:` collapse govern here unchanged — with the **Decisions made** block carrying any reading-changes prompted by the feedback.
+
+At the 3-rejection bound, emit instead:
 
 ```
 ## Phase N Stalled — <title from the plan>

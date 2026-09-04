@@ -9,7 +9,7 @@
 
 _universal:
   - { fm: FM-1.2, check: "Stayed inside <decision_authority> — no out-of-scope work." }
-  - { fm: FM-3.1, check: "<output_format> block fully rendered; required fields populated." }
+  - { fm: FM-3.1, check: "<output_format> block emitted per brief.yaml#<key>: answer in the first line, every always-field populated, every empty field collapsed onto the Nil: line rather than rendered, tables and run metadata in the detail file behind one pointer." }
   - { fm: FM-3.4, check: "Memory entry written per the active template / role rule." }
   - { fm: FM-3.4, check: "Index entry within cap (≤2 lines / ≤50 words); no fact duplicated between MEMORY.md and an entity file or artifact; only registered memory file kinds written." }
 
@@ -57,7 +57,7 @@ developer-implement:
   - { fm: FM-3.3, check: "Tests and linter ran (or absence noted); introduced failures fixed; pre-existing tagged [PRE-EXISTING]." }
   - { fm: FM-1.2, check: "Every test authored this phase is a unit test, or an architecture test meeting detectors.yaml#test_authoring_policy — no integration, e2e, contract, performance, or smoke test added without an explicit unlock; a plan line naming one was answered per plan_conflict and logged as a deviation." }
   - { fm: FM-3.3, check: "Step 7a verification ran: the changed flow was DRIVEN and the result OBSERVED, written as `<command driven> → <observed result>`, or the Verification field carries an honest exemption/blocker. Never inferred from reading code; the test suite and the phase commit are not drives; config/DI/startup wiring is never exempt." }
-  - { fm: FM-3.1, check: "<output_format> block fully rendered; pushed-back items and decisions listed." }
+  - { fm: FM-3.1, check: "<output_format> block emitted per brief.yaml#developer-implement; any pushed-back item or decision listed, and the four list blocks collapsed onto the Nil: line when empty." }
   - { fm: FM-3.4, check: "On approval, plan-progress memory updated." }
 developer-rejection:
   - { fm: FM-2.4, check: "Feedback classified (craft / structural / grey zone); right escalation taken." }
@@ -67,11 +67,11 @@ developer-rejection:
 reviewer:
   _base:
     - { fm: FM-1.2, check: "Stayed inside <decision_authority>: no fixes, no redesigns, no features." }
-    - { fm: FM-1.3, check: "Every <output_format> field rendered; UNCLEAR rows surfaced." }
+    - { fm: FM-1.3, check: "Every populated <output_format> field rendered; UNCLEAR rows surfaced (an UNCLEAR row is never collapsed - it is the reason the verdict fails closed)." }
 reviewer-perphase:
   - { fm: FM-2.4, check: "Amendment flag emitted whenever step 11 recorded drift, independent of verdict." }
   - { fm: FM-1.3, check: "Step 11b removed-guard check ran: every deleted/weakened guard, filter, or validation maps to a criterion mandating its removal, or is a finding." }
-  - { fm: FM-1.3, check: "Cumulative only — step 11a cross-flow impact analysis run; consumers of changed shared logic traced; undocumented behaviour-shifting ripples flagged with both change and consumer file:line, and section 2b rendered. (Per-phase: N/A.)" }
+  - { fm: FM-1.3, check: "Cumulative only — step 11a cross-flow impact analysis run; consumers of changed shared logic traced; undocumented behaviour-shifting ripples flagged with both change and consumer file:line, and the **Cross-flow:** line rendered. (Per-phase: N/A.)" }
   - { fm: FM-3.1, check: "Verdict is one of the two exact strings on its own line; amendment flag (if any) on its own line above it." }
   - { fm: FM-2.1, check: "Cumulative only — step 15a cycle bound checked against the plan's #cumulative memory key; CYCLE BOUND REACHED: emitted at the 3rd CHANGES REQUIRED. (Per-phase: N/A.)" }
   - { fm: FM-3.3, check: "Every finding cites file:line; pre-existing findings tagged and excluded." }

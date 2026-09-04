@@ -44,26 +44,31 @@ Boxes live in `assets/selfcheck.yaml#reviewer-crosscheck`. Loaded by the shell.
 
 ## Output format
 
-Emit exactly:
+Governed by `assets/brief.yaml#reviewer-crosscheck` — read that key before emitting.
 
 ```
 ## Cross-check: <short-title>
 
-**Date:** YYYY-MM-DD
-**Model:** design record | legacy pair
-**Scope:** full | delta (prior ALIGNED <date>)
-**Inputs:** record `artifacts/plans/NNNNN-<title>.md` | plan + ADR paths (legacy), cited: <paths or none>
+<one sentence: the verdict and the single reason for it — brief.yaml answer_first>
+
+**Scope:** full | delta (prior ALIGNED <date>) · <design record | legacy pair> · record `artifacts/plans/NNNNN-<title>.md` | plan + ADR paths (legacy)
+**Findings:** <N> critical, <N> major, <N> minor | none
 
 | ID    | Check | Severity | Location | Summary | Recommendation |
 |-------|-------|----------|----------|---------|----------------|
 | X-001 | terminology / decision-coverage / reverse-coverage / driver-finding / reference-integrity | critical / major / minor / pre-existing | <artifact#anchor> | <one-line> | <one-line> |
 
-**Verdict:** ALIGNED | DRIFT DETECTED
-
+Nil: <fields omitted this pass, in output order>
+Full: .claude/agent-memory/reviewer/review-<stem>-crosscheck[-rN|-consolidated]-<date>.md — full table
 CYCLE BOUND REACHED: <short-title> — 3 cross-check cycles, no convergence <!-- omit entirely unless CC-4a fired -->
 
 ALIGNED | DRIFT DETECTED
 ```
+
+Field rules:
+- **Critical and major rows always render inline** — a drift row is the reason the pass ran, and routing it to a file would hide the finding behind the verdict. Minor rows render inline while the block fits its cap; past it, they become a count on the `**Findings:**` line and the whole table goes to the CC-6 file.
+- An `ALIGNED` pass with no findings renders no table and no `Full:` line: the verdict sentence, the `**Scope:**` line, `**Findings:** none`, and the token. Four lines is the right length for "the artifacts agree".
+- `**Date:**`, `**Model:**`, and `**Inputs:**` leave the block: the date is in the memory index entry, and the other two fold into the `**Scope:**` line.
 
 The final line is exactly the verdict token, nothing else on that line.
 

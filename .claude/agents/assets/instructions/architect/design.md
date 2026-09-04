@@ -64,21 +64,28 @@ Boxes live in `assets/selfcheck.yaml#architect-design`. Loaded by the shell.
 
 ## Output format
 
-Emit exactly:
+Governed by `assets/brief.yaml#architect-design` — read that key before emitting.
 
 ```
-<one-paragraph summary of the decision, binding constraints, and artifact location>
+<one sentence: the design decision and what it constrains — brief.yaml answer_first>
 
-Inputs: <report path or `none`> (N report(s) in artifacts/reports/; basis: <explicit reference | sole file | lex-sort tiebreak | user-confirmed | none available>)
 Design record: artifacts/plans/NNNNN-<short-title>.md
 Binding constraints: <constraint-1>, <constraint-2>
 Thresholds: phases <N> · security path <yes|no> · irreversible <yes|no> · schema/migration <yes|no>
-Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in the record. | no.
+Inputs: <report path> | none
+Strategic review needed: yes — see [STRATEGIC REVIEW NEEDED] items in the record.
+Nil: <fields omitted, in output order>
 
 CROSS_CHECK_REQUESTED: artifacts/plans/NNNNN-<short-title>.md — <threshold(s) that tripped>
 ```
 
-The last line is `CROSS_CHECK_REQUESTED:` when any A13 threshold tripped, `SELF_CHECKED` when none did — the `Thresholds:` line shows the arithmetic either way.
+Field rules:
+- `Thresholds:` always renders. It shows the arithmetic behind the final routing line, so the reader can check the routing instead of trusting it.
+- `Inputs:` keeps the report path alone. The selection basis (explicit reference / sole file / lex-sort tiebreak / user-confirmed) is audit metadata: it belongs in the record, where a later reader asking "why this report" will actually look.
+- `Strategic review needed: no` is a nil value and collapses to the `Nil:` line. The `yes` form always renders, because it is a routing instruction rather than a status.
+- The design's reasoning does not belong in this block at all. It is in the record, which the developer and the reviewer each read in full — restating it here is a second copy that will drift from the first.
+
+The last line is `CROSS_CHECK_REQUESTED:` when any A13 threshold tripped, `SELF_CHECKED` when none did. The `Thresholds:` line shows the arithmetic either way, and neither form is ever collapsed.
 
 ## Tokens (this mode)
 

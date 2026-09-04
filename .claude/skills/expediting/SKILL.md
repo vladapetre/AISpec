@@ -61,19 +61,26 @@ Escalating is a success of the gate, not a failure of it.
 
 ## Output format
 
+Same discipline as the pipeline's blocks (`agents/assets/brief.yaml`), applied here by hand since no agent key governs this road: the answer leads, and an empty field is named once on the `Nil:` line instead of rendered as `_None_`.
+
 ```
 ## Expedited — <short title>
+
+<one sentence: what now behaves differently>
 
 **Gate:** passed (no design decision · 1 repo, <n> files · no security path · reversible · no open plan)
 **Files changed:**
 - `<path>` — <what changed, one line>
 
-**Decisions made:** <ambiguities you resolved and the reading you took, or _None_>
+**Decisions made:** <ambiguities you resolved and the reading you took>
 **Tests:** <command> → <result>. Pre-existing failures: <list or none>
 **Verification:** <command driven> → <observed result>, or `no drivable surface — <reason>`
 **Craft lint:** <errors fixed, candidates answered, or clean>
-**Not done:** <anything adjacent you deliberately left alone, or _None_>
+**Not done:** <anything adjacent you deliberately left alone>
+Nil: <fields omitted, in output order>
 ```
+
+`**Gate:**`, `**Tests:**`, `**Verification:**` and `**Craft lint:**` always render — they are the evidence this road did not skip verification, and their absence is the thing a reader would need to notice. `**Decisions made:**` and `**Not done:**` collapse when empty.
 
 ## When this skill is the wrong tool
 

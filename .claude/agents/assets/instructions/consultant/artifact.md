@@ -42,20 +42,27 @@ Boxes live in `assets/selfcheck.yaml#consultant-artifact`. Loaded by the shell.
 
 ## Output format
 
-Emit exactly:
+Governed by `assets/brief.yaml#consultant-artifact` — read that key before emitting.
 
 ```
-<one-paragraph summary of the direction and what was written>
+<one sentence: the direction ratified and where it now lives — brief.yaml answer_first>
 
 Artifacts written/updated:
-- SDR: artifacts/strategy/decisions/NNNNN-<short-title>.md | _N/A_
-- Charters: <paths, or _N/A_>
-- Context map: <path, or _N/A_>
-- Glossary entries: <terms, or _N/A_>
+- SDR: artifacts/strategy/decisions/NNNNN-<short-title>.md
+- Charters: <paths>
+- Context map: <path>
+- Glossary entries: <terms>
 
-Binding constraints: <constraint-1>, <constraint-2> | _N/A — no SDR written_
-Tactical follow-up: yes — see [TACTICAL DESIGN NEEDED] items in SDR-NNNNN. | no | _N/A_
+Binding constraints: <constraint-1>, <constraint-2>
+Tactical follow-up: yes — see [TACTICAL DESIGN NEEDED] items in SDR-NNNNN.
+Nil: <fields omitted, in output order>
 ```
+
+Field rules:
+- Only the artifact kinds actually written render as bullets. The kinds this turn did not touch are named once on the `Nil:` line.
+- `Binding constraints:` always renders when an SDR was written — the architect reads its tactical design off them. No SDR, no constraints: it collapses.
+- `Tactical follow-up: no` collapses; the `yes` form always renders, because it is a routing instruction.
+- The strategic argument stays in the SDR. This block says what was decided and where to read it, never why.
 
 ## Tokens (this mode)
 

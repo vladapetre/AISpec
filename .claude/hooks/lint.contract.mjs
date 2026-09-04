@@ -114,13 +114,19 @@ for (const [p, text] of docs) {
   for (const m of text.matchAll(/([a-z][\w.-]*\.yaml)#([^\s`)\]"',;]+)/g)) {
     const file = m[1];
     const key = m[2].replace(/[.,:)\]]+$/, "");
-    if (key.includes("<")) continue; // templated, e.g. selfcheck.yaml#<agent>-<mode>
+    // Templated rather than literal: a prose placeholder (selfcheck.yaml#<agent>-<mode>)
+    // or, in the hooks this also scans, a JS interpolation (brief.yaml#${key}).
+    if (key.includes("<") || key.includes("${")) continue;
     const where = `${rel(p)}:${lineAt(text, m.index)}`;
     if (!assetKeys.has(file)) {
       err(where, `references ${file}, which is not an asset under .claude/agents/assets/`);
       continue;
     }
-    if (!assetKeys.get(file).has(key)) err(where, `${file}#${key} — no top-level key "${key}" in that file`);
+    // A dotted anchor names a field inside an entry (brief.yaml#rules.nil_collapse).
+    // Only the leading segment is checkable from a top-level key scan — and that
+    // is the segment a rename breaks, so checking it is the whole point.
+    const top = key.split(".")[0];
+    if (!assetKeys.get(file).has(top)) err(where, `${file}#${key} — no top-level key "${top}" in that file`);
   }
 }
 
@@ -316,6 +322,18 @@ if (preflight) {
   keys.delete("emit_format");
   for (const k of expectedKeys) if (!keys.has(k)) err(rel(preflight), `no pre-flight entry for "${k}"`);
   for (const k of keys) if (!expectedKeys.has(k)) warn(rel(preflight), `entry "${k}" matches no agent or mode file`);
+}
+
+// brief.yaml is the same shape of registry: one entry per agent or mode, plus a
+// shared `rules` block. A mode without an entry emits against no budget at all,
+// and guard.brief.mjs then fails open on it silently — exactly the drift the
+// pre-flight and self-check parity checks above exist to catch.
+const brief = assetFiles.find((p) => basename(p) === "brief.yaml");
+if (brief) {
+  const keys = yamlTopKeys(read(brief));
+  keys.delete("rules");
+  for (const k of expectedKeys) if (!keys.has(k)) err(rel(brief), `no output-brief entry for "${k}"`);
+  for (const k of keys) if (!expectedKeys.has(k)) warn(rel(brief), `entry "${k}" matches no agent or mode file`);
 }
 
 const selfcheck = assetFiles.find((p) => basename(p) === "selfcheck.yaml");

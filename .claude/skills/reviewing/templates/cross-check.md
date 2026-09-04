@@ -91,24 +91,9 @@ Verdict is binary:
 
 ## Output format
 
-```
-## Cross-check: <plan-short-title> ↔ <adr-short-title>
+The block itself is specified in `agents/assets/instructions/reviewer/crosscheck.md` `## Output format`, governed by `agents/assets/brief.yaml#reviewer-crosscheck`. That is the single copy — this file supplies the checks and the severity rules, not a second block spec.
 
-**Date:** YYYY-MM-DD
-**Inputs:** ADR `artifacts/adr/NNNNN-<title>.md`, plan `artifacts/plans/<title>.md`, cited reports/SDRs/charters: <comma-separated paths or `none`>
-
-| ID    | Check                  | Severity | Location                                  | Summary                                                          | Recommendation                                        |
-|-------|------------------------|----------|-------------------------------------------|------------------------------------------------------------------|-------------------------------------------------------|
-| X-001 | terminology            | minor    | adr#glossary "session token" vs plan "bearer token" | Same concept named two ways across artifacts.                    | Pick one; update the other; record under glossary.    |
-| X-002 | decision-coverage      | critical | adr#D-002 (pessimistic locking)            | No plan phase implements this decision.                          | Add a phase or downgrade D-002 to "future work".      |
-| X-003 | reverse-coverage       | major    | plan#Phase 4                               | Phase implements caching; no ADR decision authorises it.         | Either add an ADR decision or drop the phase.         |
-| X-004 | driver-finding         | major    | report#R-007 (token logged plaintext)      | Critical finding from the cited report; no plan phase resolves it. | Add resolving phase or mark out-of-scope in ADR.       |
-| X-005 | reference-integrity    | critical | plan#Phase 2 cites "auth-audit#R-099"      | Referenced ID does not exist in the named report.                | Fix the reference or remove it.                        |
-
-**Verdict:** ALIGNED | DRIFT DETECTED
-```
-
-`X-###` IDs are scoped to the pass — they live in the conversation channel only, never in artifacts. Zero-padded to 3 digits, dense within a single pass; new pass starts at `X-001` again.
+What this file adds: `X-###` IDs are scoped to the pass. They live in the conversation channel only, never in artifacts, are zero-padded to 3 digits and dense within one pass, and a new pass starts again at `X-001`.
 
 ---
 
@@ -116,32 +101,38 @@ Verdict is binary:
 
 ### Good — ALIGNED
 
+Nothing is wrong, so the block is four lines and writes no per-review file.
+
 ```
-## Cross-check: event-store ↔ event-store
+## Cross-check: event-store
 
-**Date:** 2026-05-24
-**Inputs:** ADR `artifacts/adr/00007-event-store.md`, plan `artifacts/plans/event-store.md`, cited reports/SDRs/charters: `artifacts/reports/event-throughput-audit.md`
+The record's decisions and phases agree; no drift found.
 
-| ID    | Check                  | Severity | Location | Summary | Recommendation |
-|-------|------------------------|----------|----------|---------|----------------|
-| _None_ |                       |          |          |         |                |
+**Scope:** full · design record · record `artifacts/plans/00007-event-store.md`
+**Findings:** none
 
-**Verdict:** ALIGNED
+ALIGNED
 ```
 
 ### Bad — DRIFT DETECTED (terminology + decision-coverage)
 
+Critical and major rows render inline: they are the reason the pass ran, and a verdict whose evidence sits in another file is not checkable.
+
 ```
-## Cross-check: payments-rewrite ↔ payments-rewrite
+## Cross-check: payments-rewrite
 
-**Date:** 2026-05-24
-**Inputs:** ADR `artifacts/adr/00012-payments-rewrite.md`, plan `artifacts/plans/payments-rewrite.md`, cited reports/SDRs/charters: `artifacts/strategy/decisions/00003-payments-strategy.md`
+Drift: D-003 mandates idempotent retries and no phase implements them.
 
-| ID    | Check              | Severity | Location                                              | Summary                                                         | Recommendation                                              |
-|-------|--------------------|----------|-------------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------------------|
-| X-001 | terminology        | minor    | adr "merchant" vs plan "vendor"                       | Same role named two ways across artifacts.                       | Use "merchant" everywhere; update plan; add glossary entry. |
-| X-002 | decision-coverage  | critical | adr#D-003 (idempotent retries)                        | No plan phase implements idempotent retry behaviour.             | Add Phase 4 or remove D-003 from the ADR.                   |
-| X-003 | driver-finding     | major    | sdr#TF-002 (regional clearing requirement)            | [TACTICAL DESIGN NEEDED] item from the parent SDR is unresolved. | Either add a phase or split into a follow-up ADR/plan pair. |
+**Scope:** full · legacy pair · plan `artifacts/plans/payments-rewrite.md` + ADR `artifacts/adr/00012-payments-rewrite.md`
+**Findings:** 1 critical, 1 major, 1 minor
 
-**Verdict:** DRIFT DETECTED
+| ID    | Check              | Severity | Location                                   | Summary                                                          | Recommendation                                              |
+|-------|--------------------|----------|--------------------------------------------|------------------------------------------------------------------|-------------------------------------------------------------|
+| X-001 | decision-coverage  | critical | adr#D-003 (idempotent retries)             | No plan phase implements idempotent retry behaviour.             | Add Phase 4 or remove D-003 from the ADR.                   |
+| X-002 | driver-finding     | major    | sdr#TF-002 (regional clearing requirement) | [TACTICAL DESIGN NEEDED] item from the parent SDR is unresolved.  | Either add a phase or split into a follow-up ADR/plan pair. |
+| X-003 | terminology        | minor    | adr "merchant" vs plan "vendor"            | Same role named two ways across artifacts.                       | Use "merchant" everywhere; update plan; add glossary entry. |
+
+Full: .claude/agent-memory/reviewer/review-payments-rewrite-crosscheck-2026-05-24.md — full table
+
+DRIFT DETECTED
 ```

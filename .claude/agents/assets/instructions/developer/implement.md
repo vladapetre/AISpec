@@ -57,51 +57,61 @@ When the gate holds, before step 5:
 
 ## Output format
 
-Emit before requesting review. Always render every block; use `_None_` for empty lists.
+Governed by `assets/brief.yaml#developer-implement` — read that key before emitting. Fields whose value would be `_None_` are not rendered; they are named once on the `Nil:` line. The `always:` fields render every phase regardless.
 
 ```
 ## Phase N Complete — <title from the plan>
 
-**Plan:** <plan filename> — <N> phases total, <M> complete after this phase
-**Commit range:** <first..last of this phase's commits> | uncommitted (working tree)
+<one sentence: what this phase now does that it did not before — brief.yaml answer_first>
 
-**Changes made:**
-- files modified or created
-
-**Decisions made:**
-- ambiguities resolved and the reading chosen (with one-line reason) | _None_
-
-**Pushed back on (structural only):**
-- design issues raised to the architect because they're structural, not craft | _None_
-
+**Plan:** <plan filename> · phase N of M · commits <first..last> | uncommitted (working tree)
+**Changes:** <n> files — `<path>`, `<path>`, `<path>` [, +<k> more in the progress file]
 **Tests:** passed | failed (list) | no test suite detected — authored: <N unit, M arch> | none [| <kind> — unlocked by <who>]
 **Linter:** passed | failed (list) | no linter detected
 **Verification:** <command driven> → <observed result, trimmed> (covers T-N.x, T-N.y) | no drivable surface — <reason> | not drivable in this environment — <blocker, surfaced>
 
+**Decisions made:**
+- <ambiguity resolved, the reading chosen, and the one-line reason>
+
+**Pushed back on (structural only):**
+- <design issue raised to the architect because it is structural, not craft>
+
 **[IRREVERSIBLE] steps executed:**
-- list | _None_
+- <step>
 
 **Deviations from plan:**
-- deviation and reason | _None_
+- <deviation and reason>
+
+Nil: <fields omitted this phase, in output order>
+Full: .claude/agent-memory/developer/plan-<short-title>.md
 
 ---
 Requesting approval from: USER
 **Run offer:** phases <N+1>–<M> are run-eligible (reversible, no security path, no schema change, no checkpoint inside) — reply `approved through <M>` to run them without per-phase stops | _None — <first blocking reason>_
-(reviewer runs cumulatively at end-of-plan; also at mid-plan checkpoints — the midpoint phase of a ≥6-phase plan, or any irreversible/security-path phase — and ad-hoc on request)
 ```
+
+Field rules:
+- **`**Verification:**` is exempt from every collapse**, populated or not. CLAUDE.md `## Implementation Review` makes it the phase gate rather than the test run, and `guard.verdict.mjs` checks its claim against observed drive evidence. The same holds for `**Tests:**` and `**Linter:**`: "no linter detected" is information the user acts on.
+- **`**Plan:**` is machine_consumed** — the reviewer's pre-flight resolves the plan path, the phase number, and the commit range off this one line. Compress it, never drop it.
+- The four list blocks (`Decisions made`, `Pushed back on`, `[IRREVERSIBLE] steps executed`, `Deviations from plan`) render only when they have entries. An empty phase names all four on the `Nil:` line and costs one line instead of eight.
+- Over five changed files: name five and count the rest. The full list is in the progress file, which step 11 writes anyway.
+- The standing note about when the reviewer runs (cumulatively at end-of-plan, at mid-plan checkpoints, ad-hoc on request) is contract, not news. It lives in CLAUDE.md `## Implementation Review` and no longer repeats on every phase.
 
 At end-of-plan, after the final phase's user approval, emit instead:
 
 ```
 ## All Phases Complete — <plan short-title>
 
-**Plan:** <plan filename> — all <N> phases complete
-**Commit range:** <first..last>
+<one sentence: what the plan delivered>
+
+**Plan:** <plan filename> — all <N> phases complete · commits <first..last>
 **Files changed (union):** <list>
 
 ---
 Requesting cumulative review from: REVIEWER
 ```
+
+The union list is machine_consumed by the cumulative reviewer and renders in full however long it runs.
 
 ## Tokens (this mode)
 

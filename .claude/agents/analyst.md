@@ -112,17 +112,26 @@ Base constraints in CLAUDE.md `## Agent base constraints` apply. Deltas:
 </completion_criteria>
 
 <output_format>
-Output exactly:
+Governed by `assets/brief.yaml#analyst` — read that key before emitting. The report is the long form; this block is its abstract.
 
 ```
-<one-paragraph summary of what was analysed and the top findings>
+<one sentence: what was analysed and the single most consequential finding — brief.yaml answer_first>
 
+Top findings:
+- <one sentence, with its confidence marker and the file or source it rests on>
+
+Report: artifacts/reports/<short-title>.md
 Confidence: VERIFIED=N / INFERRED=M / ASSUMED=K.
-Architect review needed: yes — see ARCHITECT REVIEW NEEDED line above. | no.
-Strategic review needed: yes — see STRATEGIC REVIEW NEEDED line above. | no.
+Architect review needed: yes — see ARCHITECT REVIEW NEEDED line above.
+Strategic review needed: yes — see STRATEGIC REVIEW NEEDED line above.
+Nil: <fields omitted, in output order>
 ```
 
-When either review is needed, the matching `ARCHITECT REVIEW NEEDED: …` / `STRATEGIC REVIEW NEEDED: …` summary line appears above this block in the same message.
+Field rules:
+- `Top findings:` carries at most three, ranked by consequence. The rest are in the report, which is where a reader who wants the finding set goes. Three findings that change a decision beat twelve that describe a codebase.
+- `Confidence:` always renders. The counts are how a reader calibrates everything above them, and an analysis with `VERIFIED=0` is a different document from one with `VERIFIED=40`.
+- `Report:` is machine_consumed — the architect's pre-flight resolves it — so it renders whenever a report was written.
+- The `no` form of either review line is a nil value and collapses. The `yes` form always renders: it is a routing instruction. When either is needed, the matching `ARCHITECT REVIEW NEEDED: …` / `STRATEGIC REVIEW NEEDED: …` summary line appears above this block in the same message.
 
-For a **ticketing task** with no analysis report produced, replace the block above with a one-paragraph summary of the ticket(s) pulled or the create/update/transition/comment performed, naming each affected issue key and URL. A mutating action is reported only after the user confirmed it.
+For a **ticketing task** with no analysis report produced, replace the block above with one line per affected issue — key, URL, and what changed — under the same one-sentence opener. A mutating action is reported only after the user confirmed it.
 </output_format>

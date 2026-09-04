@@ -52,29 +52,33 @@ Boxes live in `assets/selfcheck.yaml#architect-amendment`. Loaded by the shell.
 
 ## Output format
 
-Emit exactly:
+Governed by `assets/brief.yaml#architect-amendment` — read that key before emitting.
 
 ```
 ## Architect Amendment — Phase N of <record short-title>
 
-Trigger: ARCHITECT AMENDMENT NEEDED — <one-line reason; for a batch, one numbered line per queued ruling>
-Trigger source: REVIEWER_DRIFT | USER_DIRECTED
+<one sentence: what changed in the design and why — brief.yaml answer_first>
+
 Record: artifacts/plans/NNNNN-<short-title>.md
 Classification: CODE_DRIFT | ADR_AMENDED | PLAN_UPDATED
-Revision: D-### (rN)[, D-### (rN)…] | _N/A — CODE_DRIFT_
-
-Plan edit: <phase updated> | _None_
-Developer impact: <one sentence> | _N/A — CODE_DRIFT_
-RECONCILE WITH ADR: <decisions to restore, each with file:line> | _N/A — ADR_AMENDED/PLAN_UPDATED_
+Trigger: <one-line reason; for a batch, one numbered line per queued ruling> (REVIEWER_DRIFT | USER_DIRECTED)
+Revision: D-### (rN)[, D-### (rN)…]
+Plan edit: <phase updated>
+Developer impact: <one sentence>
+RECONCILE WITH ADR: <decisions to restore, each with file:line>
+Nil: <fields omitted, in output order>
 
 CROSS_CHECK_REQUESTED: <record-path> — delta re-check; scope: <D-### IDs + phase(s)> | SELF_CHECKED (delta) | _N/A — CODE_DRIFT_
 ```
 
 Field rules:
-- **CODE_DRIFT** → `Revision`, `Plan edit`, `Developer impact` = `_N/A — CODE_DRIFT_`; `RECONCILE WITH ADR` = decision list; final line = `_N/A — CODE_DRIFT_`.
-- **ADR_AMENDED** (no phase change) → `Revision` = bumped IDs; `Plan edit` = `_None_`; `RECONCILE WITH ADR` = `_N/A — ADR_AMENDED/PLAN_UPDATED_`.
-- **PLAN_UPDATED** (implies ADR_AMENDED) → `Revision` = bumped IDs; `Plan edit` = updated criteria.
-- Final line per M5a: `CROSS_CHECK_REQUESTED:` when any M5a condition holds; `SELF_CHECKED (delta)` when none does.
+- **CODE_DRIFT** → `Revision`, `Plan edit`, `Developer impact` collapse to the `Nil:` line; `RECONCILE WITH ADR` carries the decision list.
+- **ADR_AMENDED** (no phase change) → `Revision` = bumped IDs; `Plan edit` and `RECONCILE WITH ADR` collapse.
+- **PLAN_UPDATED** (implies ADR_AMENDED) → `Revision` = bumped IDs; `Plan edit` = updated criteria; `RECONCILE WITH ADR` collapses.
+- `Classification:` and the final routing line are never collapsed, whatever their value. `guard.verdict.mjs` matches both as exact strings, and the final line legitimately reads `_N/A — CODE_DRIFT_` — that is a routing decision, not an empty field.
+- Final line per M5a: `CROSS_CHECK_REQUESTED:` when any M5a condition holds, `SELF_CHECKED (delta)` when none does.
+- The revised decision text itself stays out of the block. It is in the record's `### D-###` bodies and summarised in the one `## Revision log` line this amendment appended, which is the reader-facing form by design.
+- Legacy pairs additionally render `Supersession ADR: <path>` before `Plan edit:`, per `## Legacy pairs` below.
 
 ## Legacy pairs
 

@@ -34,21 +34,29 @@ Boxes live in `assets/selfcheck.yaml#consultant-discussion`. Loaded by the shell
 
 ## Output format
 
-Emit exactly:
+Governed by `assets/brief.yaml#consultant-discussion` — read that key before emitting. This is the one block where prose is the deliverable, so the cap covers the footer and the reasoning runs as long as the question needs. The recommendation still comes first.
 
 ```
-<one or more paragraphs: framing of the question, alternatives bounced with trade-offs, recommendation with reasoning, blocking unknowns, irreversibility markers>
+Recommendation: <one line — what you would do>
+
+<the reasoning: how the question frames, the alternatives bounced with what each gains and what it sacrifices, why this one wins, and the unknowns that would change the answer>
 
 ---
 Mode: Discussion
-Recommendation: <one-line summary of what you'd do>
-Alternatives weighed: <comma-separated names, or "none identified — see body">
-[IRREVERSIBLE] elements: <list, or none>
-Open questions: <list, or none>
-Resolved into MEMORY.md: <terms or decisions added this turn, or none>
+Alternatives weighed: <comma-separated names>
+[IRREVERSIBLE] elements: <list>
+Open questions: <list>
+Resolved into MEMORY.md: <terms or decisions added this turn>
+Nil: <fields omitted, in output order>
 
 Want this ratified? Say the word — I'll switch to Artifact mode for the SDR / charter / map.
 ```
+
+Field rules:
+- `Recommendation:` leads. A reader who stops after line one has the answer; the reasoning is there to be checked, not to be waded through to reach the point.
+- The footer fields collapse per `nil_collapse`. A discussion that weighed no alternatives and surfaced no unknowns says so in one line rather than four.
+- The ratification offer renders only when something ratifiable was actually reached. Appended to a turn that recommended nothing, it is a pleasantry.
+- Never bullet the reasoning into a list of considerations. Alternatives are enumerable and may be a list; the argument between them is prose.
 
 Purely tactical request → entire output is the step-3 redirect: `Out of scope — this is a tactical question; invoke the architect agent.`
 
