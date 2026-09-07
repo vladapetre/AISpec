@@ -1,0 +1,125 @@
+// Hooks are run as processes on synthetic payloads and transcripts, the way Claude Code runs them.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { createWork, deriveState } from "../../.claude/lib/work.mjs";
+
+const HOOKS = resolve(".claude/hooks");
+
+function run(hook, payload, root) {
+  const out = execFileSync("node", [join(HOOKS, hook)], { input: JSON.stringify(payload), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: root } });
+  return out.trim() ? JSON.parse(out) : null;
+}
+
+function transcript(root, entries) {
+  const p = join(root, "transcript.jsonl");
+  const t0 = Date.parse("2026-09-07T10:00:00Z");
+  writeFileSync(p, entries.map((e, i) => JSON.stringify({ timestamp: new Date(t0 + i * 1000).toISOString(), ...e })).join("\n") + "\n");
+  return p;
+}
+const user = (text) => ({ type: "user", message: { role: "user", content: text } });
+const assistant = (content) => ({ type: "assistant", message: { role: "assistant", model: "claude-opus-5", usage: { input_tokens: 10, output_tokens: 20, cache_read_input_tokens: 1000, cache_creation_input_tokens: 100 }, content } });
+const tool = (name, input) => ({ type: "tool_use", id: "t", name, input });
+
+function project() {
+  const root = mkdtempSync(join(tmpdir(), "harness-hooks-"));
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  execFileSync("git", ["-C", root, "init", "-q"]);
+  const s = createWork({ lane: "order", title: "Csv export", root });
+  writeFileSync(join(root, "work", s.id, "order.md"), "---\nlane: order\nphases:\n  - n: 1\n    files: [src/a.ts]\n---\n# O\n\n## Decisions\n### D-001: Keep it\n**Decision:** x\n\n## Phase 1: A\n\n- **T-1.1** a\n- **T-1.2** b\n- **T-1.3** c\n\n## Revision log\n");
+  return { root, id: s.id };
+}
+
+test("route.verdict applies PHASE DONE from a developer block and reports the next action", () => {
+  const { root, id } = project();
+  const tp = transcript(root, [user(`work: ${id}\nphase: 1\nartifact: work/${id}/order.md`), assistant([{ type: "text", text: `## Phase 1 of ${id}: A\n\nDone.\n\nFiles: src/a.ts\nTests: passed\n\nPHASE DONE` }])]);
+  const out = run("route.verdict.mjs", { hook_event_name: "SubagentStop", session_id: "s1", transcript_path: tp, cwd: root, agent_type: "developer" }, root);
+  assert.match(out.hookSpecificOutput.additionalContext, /PHASE DONE applied/);
+  assert.match(out.hookSpecificOutput.additionalContext, /approve_phase by user/);
+  assert.equal(deriveState(id, root).phases[0].done, true);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("guard.block bounces a contract block without a token and passes one with it", () => {
+  const { root, id } = project();
+  const bad = transcript(root, [user("x"), assistant([{ type: "text", text: `## Phase 1 of ${id}: A\n\nDone.\n\nI think this is approved.` }])]);
+  const b = run("guard.block.mjs", { hook_event_name: "SubagentStop", transcript_path: bad, cwd: root }, root);
+  assert.equal(b.decision, "block");
+  assert.match(b.reason, /verdict token/);
+  const good = transcript(root, [user("x"), assistant([{ type: "text", text: `## Phase 1 of ${id}: A\n\nDone.\n\nPHASE DONE` }])]);
+  assert.equal(run("guard.block.mjs", { hook_event_name: "SubagentStop", transcript_path: good, cwd: root }, root), null);
+  const plain = transcript(root, [user("x"), assistant([{ type: "text", text: "just a chat reply" }])]);
+  assert.equal(run("guard.block.mjs", { hook_event_name: "Stop", transcript_path: plain, cwd: root }, root), null);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("guard.scope denies kernel-owned writes and unread edits, allows the rest", () => {
+  const { root, id } = project();
+  mkdirSync(join(root, "src"), { recursive: true });
+  writeFileSync(join(root, "src", "a.ts"), "x");
+  const tp = transcript(root, [user("x"), assistant([tool("Read", { file_path: join(root, "src", "a.ts") })])]);
+  const base = { hook_event_name: "PreToolUse", transcript_path: tp, cwd: root };
+  const denied = run("guard.scope.mjs", { ...base, tool_name: "Write", tool_input: { file_path: join(root, "work", id, "state.yaml") } }, root);
+  assert.equal(denied.hookSpecificOutput.permissionDecision, "deny");
+  const unread = run("guard.scope.mjs", { ...base, tool_name: "Edit", tool_input: { file_path: join(root, "src", "b.ts") } }, root);
+  assert.match(unread.hookSpecificOutput.permissionDecisionReason, /read .* before editing/);
+  assert.equal(run("guard.scope.mjs", { ...base, tool_name: "Edit", tool_input: { file_path: join(root, "src", "a.ts") } }, root), null);
+  assert.equal(run("guard.scope.mjs", { ...base, tool_name: "Write", tool_input: { file_path: join(root, "src", "new.ts") } }, root), null);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("lint.schema reports structural problems and the revision protocol", () => {
+  const { root, id } = project();
+  const p = join(root, "work", id, "order.md");
+  execFileSync("git", ["-C", root, "add", "-A"], { stdio: "ignore" });
+  execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "base"], { stdio: "ignore" });
+  writeFileSync(p, readFileSync(p, "utf8").replace("**Decision:** x", "**Decision:** y").replace("## Phase 1: A", "## Phase 2: A"));
+  const out = run("lint.schema.mjs", { hook_event_name: "PostToolUse", tool_name: "Edit", tool_input: { file_path: p }, cwd: root }, root);
+  const ctx = out.hookSpecificOutput.additionalContext;
+  assert.match(ctx, /phase headings must run 1, 2, 3/);
+  assert.match(ctx, /D-001 body changed without bumping/);
+  assert.match(ctx, /Revision log/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("emit.ledger appends a v2 row and observe.drive tags commands with the open item", () => {
+  const { root, id } = project();
+  const tp = transcript(root, [user(`work: ${id}\nphase: 1`), assistant([tool("Read", { file_path: "a" }), tool("Read", { file_path: "a" }), tool("Edit", { file_path: "src/a.ts" })]), assistant([{ type: "text", text: `## Phase 1 of ${id}: A\n\nok\n\nPHASE DONE` }])]);
+  run("emit.ledger.mjs", { hook_event_name: "SubagentStop", session_id: "s1", transcript_path: tp, cwd: root, agent_type: "developer" }, root);
+  const rows = readFileSync(join(root, ".claude", "ledger", "ledger.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].v, 2);
+  assert.equal(rows[0].agent, "developer");
+  assert.equal(rows[0].verdict, "PHASE DONE");
+  assert.equal(rows[0].work_id, id);
+  assert.equal(rows[0].rereads, 1);
+  assert.equal(rows[0].usage.cache_read_input_tokens, 2000);
+
+  run("observe.drive.mjs", { hook_event_name: "PostToolUse", tool_name: "Bash", tool_input: { command: "curl -s http://127.0.0.1:8080/health" }, cwd: root, session_id: "s1" }, root);
+  const drives = readFileSync(join(root, ".claude", "ledger", "drive-log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(drives[0].kind, "drive");
+  assert.equal(drives[0].work_id, id);
+  assert.equal(drives[0].phase, 1);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("monitor.context speaks up after six look-around calls", () => {
+  const { root } = project();
+  const six = Array.from({ length: 6 }, () => tool("Read", { file_path: "x" }));
+  const tp = transcript(root, [user("x"), assistant(six)]);
+  const out = run("monitor.context.mjs", { hook_event_name: "PostToolUse", tool_name: "Read", transcript_path: tp, cwd: root }, root);
+  assert.match(out.hookSpecificOutput.additionalContext, /6 consecutive/);
+  const five = transcript(root, [user("x"), assistant(six.slice(1))]);
+  assert.equal(run("monitor.context.mjs", { hook_event_name: "PostToolUse", tool_name: "Read", transcript_path: five, cwd: root }, root), null);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("inject.state lists open items", () => {
+  const { root, id } = project();
+  const out = run("inject.state.mjs", { hook_event_name: "SessionStart", cwd: root }, root);
+  assert.match(out.hookSpecificOutput.additionalContext, new RegExp(`${id} · order · open`));
+  rmSync(root, { recursive: true, force: true });
+});

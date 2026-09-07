@@ -39,7 +39,7 @@ import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
-// Every invocation appends one line to .claude/telemetry/guard-bash.log
+// Every invocation appends one line to .claude/ledger/guard-bash.log
 // (anchored to this script's location, NOT the spawn cwd, so it also proves
 // the hook ran when spawned from an unexpected directory). This is the
 // evidence trail for "why did command X prompt/allow/deny": no log entry at
@@ -47,7 +47,7 @@ import { fileURLToPath } from "url";
 let RAW_FOR_TRACE = "";
 function trace(outcome) {
   try {
-    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "telemetry");
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "ledger");
     mkdirSync(dir, { recursive: true });
     appendFileSync(
       join(dir, "guard-bash.log"),
@@ -144,16 +144,16 @@ const WRITE_REDIRECT_OPS = new Set([">", ">>", "&>", "&>>"]);
 
 // The one write target this guard does auto-allow: the build/test log sink
 // that `implement.md` step 7 MANDATES
-// (`<test-command> > .claude/state/phase-<N>.log 2>&1`). Without this, the
+// (`<test-command> > .claude/ledger/phase-<N>.log 2>&1`). Without this, the
 // contract tells the developer to use a command shape the guard refuses to
 // classify, so every phase's test run, build run and log digest falls through
 // to a permission prompt and waits for a human click.
 //
-// Safe because the sink is a dead-end: a `.log` file inside a `.claude/state`
+// Safe because the sink is a dead-end: a `.log` file inside a `.claude/ledger`
 // directory is written by the toolkit, read by `logdigest.mjs`, and executed
 // by nothing. The path must be literal (no `..`, no glob, no variable), so a
 // redirect cannot walk out of the sink into source or config.
-const LOG_SINK_DIR = ".claude/state";
+const LOG_SINK_DIR = ".claude/ledger";
 
 function isSanctionedLogSink(target) {
   if (typeof target !== "string" || !target) return false;
@@ -714,7 +714,7 @@ async function main() {
     //
     // Variable expansion is checked against the RAW command, not the parsed
     // target: the tokenizer resolves `$FOO` before we ever see it, so
-    // `> .claude/state/$FOO.log` reaches isSanctionedLogSink already looking
+    // `> .claude/ledger/$FOO.log` reaches isSanctionedLogSink already looking
     // like a literal sink path while the shell writes somewhere else. `$?` is
     // exempt - it is a status expansion, and `echo "exit=$?"` is part of the
     // command shape implement.md step 7 mandates.
@@ -733,7 +733,7 @@ async function main() {
   if (classifications.every((c) => c === "safe")) {
     return decide(
       "allow",
-      "guard.bash: all sub-commands are read-only/inspection commands, with no hidden execution and no write redirection outside the sanctioned .claude/state log sink."
+      "guard.bash: all sub-commands are read-only/inspection commands, with no hidden execution and no write redirection outside the sanctioned .claude/ledger log sink."
     );
   }
 

@@ -1,82 +1,21 @@
-# Hook enforcement layer
+# Hooks
 
-The hooks in this directory mechanically enforce contracts that used to be prompt
-discipline. They are wired in `.claude/settings.json`.
+Wired in `.claude/settings.json`. `guard.*` deny or bounce, `lint.*` and `monitor.*` feed text back, `observe.*` and `emit.*` record, `inject.*` add context. Every hook exits 0 on its own failure except where a deny is the point; a hook must start in under 200 ms cold (`test/budgets.test.mjs`).
 
-This file is a **maintainer's reference** — like `agents/assets/mast.yaml`, it is not
-loaded at runtime. Consult it when authoring, wiring, or debugging a hook. The one
-runtime-relevant rule (a blocked call is the harness working — fix the violation, do
-not retry variants) stays in CLAUDE.md `## Hook enforcement layer`.
+| Hook | Event | Does |
+|---|---|---|
+| `inject.state.mjs` | SessionStart | open work items with their next action, plus `.claude/MEMORY.md` |
+| `guard.scope.mjs` | PreToolUse Write, Edit | denies writes to kernel-owned files (`work/*/state.yaml`, `phases/`, `verdicts.jsonl`, `.claude/ledger/`); denies an Edit on a file this transcript never read |
+| `guard.bash.mjs` | PreToolUse Bash | the command evaluator kept from the previous harness: read-only commands allowed, destructive roots denied, compound and redirected commands prompt |
+| `lint.schema.mjs` | PostToolUse Write, Edit under `work/` | order and design artifacts: frontmatter, phase headings, decision ids, caps, placeholders, revision protocol against git HEAD |
+| `observe.drive.mjs` | PostToolUse Bash | appends drive or inspect rows to `.claude/ledger/drive-log.jsonl` with the open work item and phase; `harness verify` reads them |
+| `monitor.context.mjs` | PostToolUse Read, Grep, Glob, WebFetch, WebSearch | the stall detector: six look-around calls with no action get one line of context |
+| `guard.block.mjs` | Stop, SubagentStop | a turn with a contract heading must end with an exact verdict token and stay within 40 lines |
+| `route.verdict.mjs` | Stop, SubagentStop | applies the verdict to the work item with the kernel and hands back `harness next` as context |
+| `emit.ledger.mjs` | Stop, SubagentStop | one v2 ledger row per turn (`bench/schema/ledger-v2.schema.json`) |
 
-## Naming convention
+Libraries: `lib/transcript.mjs` (tail reads, spawn hints, tool statistics, read-before-edit lookup), `lib/turn-block.mjs` and `lib/drive-evidence.mjs` (kept from the previous harness for their tested parsers), `lib/project-root.mjs`, `vendor/shell-quote-parse.mjs` (for `guard.bash`).
 
-| Prefix | Behaviour |
-|---|---|
-| `guard.*` | Blocks the call or bounces the turn |
-| `lint.*` | Allows the call, feeds violations back as text |
-| `inject.*` | Adds context, never blocks |
+Standalone: `node .claude/hooks/<hook>.mjs < payload.json`. Tests: `test/hooks/`.
 
-## Registry
-
-| Hook | Event | Matcher | Enforces |
-|---|---|---|---|
-| `inject.project-memory.mjs` | SessionStart | — | Injects `.claude/MEMORY.md` (shared glossary + decision log) into the session. Fails silently (`exit 0`) — acceptable, since a missing glossary degrades quality but breaks no contract |
-| `inject.orchestration.mjs` | SessionStart | — | Injects `agents/assets/instructions/lead/orchestration.md` (spawn table, relay discipline, workflow launchers) into the **main session only**, keeping ~5 KB teammates cannot act on out of their context. Fails **loud**: `SessionStart` cannot block and its stderr never reaches Claude, so every error path still exits 0 and injects a warning telling the lead to Read the file directly and report the breakage |
-| `inject.prose.mjs` | **SubagentStart** | — | Injects the shared writing rules (dash ban, prose over bullets, plain English) into **every named teammate** at spawn, extracting the span between the `shared` markers in `output-styles/custom.md`. The output style itself is a main-thread prompt mode teammates never receive, so without this hook the tone rules would stop at the session boundary. Fails **silently** (`exit 0`) — a missing prose rule costs an em dash, not a contract. Opt an agent out via its `SKIP` set |
-| `guard.write.mjs` | PreToolUse | `Write\|Edit` | Only registered `artifacts/` directories are writable; agent-memory accepts only registered file kinds (CLAUDE.md `## Agent memory layout`) |
-| `guard.bash.mjs` | PreToolUse | `Bash` | Real command evaluation instead of prefix matching: compound commands checked per segment; read-only/inspection commands auto-allowed; destructive roots (`rm`, `sudo`, `git push/reset/…`) denied; meta-commands (`xargs`, `eval`, `sh -c`), hidden execution (`$(…)`, backticks), and write redirects fall through to the normal permission prompt. `npm run` scripts are resolved via `package.json` and classified by what they actually execute. Requires `shell-quote` (falls through silently if absent — see `vendor/`) |
-| `lint.write.mjs` | PostToolUse | `Write\|Edit` | Memory caps (150-line file, 2-line/50-word entries), `.claude/MEMORY.md` decision-entry size, plan anchor/stamp integrity via `plan-status.mjs` |
-| `lint.contract.mjs` | — (standalone) | — | Cross-layer contract invariants: asset `#key` refs resolve, section anchors cited in CLAUDE.md resolve (and the deprecated bold-pointer form is rejected), token registry parity in all three directions, dispatch/mode/pre-flight/self-check parity, referenced templates and `.claude/` paths exist, hooks are wired, and no permission entry is machine-absolute. Not a hook — a repo-wide sweep like `lint.write.mjs --all` |
-| `guard.verdict.mjs` | Stop + **SubagentStop** | — | Review / amendment / phase blocks must close with their exact contract lines (verdict tokens, `Classification:`, routing/approval lines) before the turn may end |
-| `guard.brief.mjs` | Stop + **SubagentStop** | — | The output-brief contract (`agents/assets/brief.yaml`): no field rendered as an empty placeholder (`_None_`, `(none)`, `_N/A_`) when the key's `always:` list does not exempt it, and no block far past its per-key line budget. Runs after `guard.verdict.mjs`, so a block is judged legal before it is judged long |
-| `emit.metrics.mjs` | Stop + **SubagentStop** | — | Telemetry: appends the emitted block/verdict/classification to `.claude/telemetry/ledger.jsonl` (gitignored), plus per-session token usage on lead turns |
-| `lib/turn-block.mjs` | — (library) | — | Not a hook. Shared by the two above: locates the turn's contract block and classifies it. One copy, so the two cannot drift apart |
-| `observe.bash.mjs` | PostToolUse | `Bash` | Records every executed command to `.claude/state/drive-log.jsonl` (gitignored) with a drive/inspect classification and, for drives, a tree hash. Never blocks — it runs after the tool |
-| `lib/project-root.mjs` | — (library) | — | Not a hook. Resolves the project root and repo-relative paths for every hook that policies or reads one. `CLAUDE_PROJECT_DIR`, else walk up for `.claude/`, else cwd |
-| `lib/drive-evidence.mjs` | — (library) | — | Not a hook. The drive/inspect classifier, tree hashing, the evidence log, and `**Verification:**` claim parsing. Shared by `observe.bash.mjs`, `guard.verdict.mjs`, `emit.metrics.mjs` |
-
-**Verification is observed, not trusted.** `implement.md` step 7a already required runtime evidence ("a command you ran and output you saw"), but `guard.verdict` only checked the `**Verification:**` field was non-empty — so `**Verification:** ran the flow, looked fine` passed. It was the one place the harness accepted a claim for a fact that opens a gate. `observe.bash.mjs` now records what actually ran, and the agent cannot write that log.
-
-Three properties, all deliberate:
-
-- **The classifier is three-way, and that is a correction.** The first version had only INSPECT and DRIVE, with everything unrecognised counting as a drive. But the developer runs the test suite *and* commits every phase by mandate — and neither `npm test` nor `git commit` matched an inspection pattern, so both logged as drives, `drivesForCurrentPhase()` was never empty, and the gate could not fire. The rule it enforces is `implement.md` step 7a's opening line, "a green suite is not verification"; the machine was accepting a green suite as the evidence for it. NEUTRAL (build/test/lint/format plus version-control bookkeeping) is now neither evidence nor error. Everything still unrecognised remains a DRIVE — the broad bias is intact for genuinely unknown commands, because a false block halts real work while a false pass only preserves the old behaviour.
-- **Only unambiguous cases block**: the field claims a drive but omits the mandated `<command driven> → <observed result>` form, or it claims a drive and no drive-class command was observed for that phase. The first is decidable from the text alone and catches `**Verification:** ran the flow, looked fine` without consulting the log. The two honest exemption forms pass with no evidence — making the exemption the only way past without a drive is the point, since the user then sees it stated.
-- **Two signals are measured, not enforced (yet).** `emit.metrics` records `drive_fresh` — whether the last observed drive ran against the *current* tree — and `claim_matched`, whether the command named in the field resembles one actually observed. `claim_matched` stays advisory on purpose: a developer may legitimately paraphrase ("booted the API and hit /orders"), and blocking on a fuzzy string match would halt real work to punish wording. Both become candidates for blocking once the ledger gives a false-positive rate. A drive followed by an unverified source fix is exactly the defect worth catching, but excluding every legitimate post-drive edit is guesswork until there are numbers. Markdown, `artifacts/`, `agent-memory/`, `state/` and `telemetry/` are already excluded from the tree hash, since a phase legitimately ends by stamping a plan and writing memory. Flip it to blocking once the ledger says the false-positive rate is acceptable.
-
-**Paths are anchored to the project root, never the session cwd.** This repo is an umbrella with nested git repos and a populated `.worktrees/`, so sessions routinely start in a subdirectory — and cwd-anchoring broke every path rule there. `guard.write.mjs` computed `../../artifacts/scope-changes/x.md`, read the leading `..` as "outside the project", and **failed open for exactly the writes it exists to stop**; `lint.write.mjs` silently skipped the memory caps and plan-anchor check; both `inject.*` hooks looked for `.claude/…` under the subdirectory and found nothing. Anchoring at the root makes a path resolve identically wherever the session started.
-
-`guard.bash.mjs` is the deliberate exception: it stays cwd-relative, because a shell command genuinely executes in the session cwd.
-
-**Why the two Stop hooks are wired to both events.** A named teammate ends its turn with one `SendMessage` carrying its `<output_format>` block verbatim, and the lead is forbidden from re-quoting teammate output — so the block only ever exists inside the *subagent's* transcript, in a tool input. Wired to `Stop` alone, both hooks read the lead's final text and saw no teammate block at all: the verdict contract was effectively unenforced, and the ledger recorded **1 gate event in 633 lines** against 131 ADRs on disk. `SubagentStop` is where teammate contracts actually live.
-
-Two properties worth preserving if these are edited:
-
-- **`SendMessage` payloads are read on teammate turns only** (`lib/turn-block.mjs`, `includeToolPayloads`). The lead relays requests through `SendMessage` too, and a forwarded amendment request can carry a block header — judging the lead against someone else's contract would invent violations and inflate gate counts.
-- **Teammate telemetry rows carry no `usage`/`turns`.** `report.mjs` treats the last line per session as that session's cumulative total, and teammates share the session id; recording usage on those rows would overwrite it. It also keeps the added per-teammate cost to a single bounded tail read.
-
-**Why `guard.brief` bounces conservatively.** Every `## Output format` used to mandate constant length ("always render every block; use `_None_` for empty lists"), so a two-file phase cost the reader the same ~25 lines as a twelve-file one and a clean review still rendered four empty severity headings. `brief.yaml` inverts that, and this hook is its backstop — but a false bounce costs a whole turn and teaches an agent to pad the block to get past the gate, which is the opposite of the goal. So it flags only literal placeholders, never a judgement call like `Strategic review needed: no`; it exempts Critical/Major finding lines, table rows, and each key's `always:` fields from the count; and it bounces on length only well past the soft budget, where the block has plainly ignored the contract rather than run a few lines long carrying real findings.
-
-## Standalone invocations
-
-```sh
-node .claude/hooks/lint.contract.mjs      # cross-layer contract invariants (exit 1 on error)
-node .claude/hooks/lint.write.mjs --all   # lint every memory + plan file in the repo
-node .claude/telemetry/report.mjs         # gate hit rates, amendment mix, token spend
-```
-
-Tune carve-outs and cadences from the telemetry numbers, not from feel.
-
-**Run `lint.contract.mjs` after any edit that moves a rule between layers.** The
-contract is stated across CLAUDE.md, five agent shells, nine mode files, nine
-assets, six skills, and these hooks; the audit that motivated it found a
-`**Security paths:**` pointer that had been dead for months behind an inline
-fallback list that happened to agree. Its warnings are advisory by design — an
-uncited CLAUDE.md section is a candidate for that file's own admission test, not
-a defect, and the token-shape scan cannot tell a protocol token from a field
-value (`NOT_TOKENS` carries the known non-tokens). Errors are not advisory.
-
-## Relationship to `selfcheck.yaml`
-
-The matching `agents/assets/selfcheck.yaml` boxes remain in place. The hook is the
-backstop; the self-check is the habit. Removing a self-check box because a hook covers
-it loses the agent-side reasoning that prevents the violation in the first place.
+A blocked call or a bounced turn is the harness working. Fix the violation; do not retry variants.

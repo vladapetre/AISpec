@@ -23,3 +23,6 @@ bench/.runs/
 bench/results/spend.log
 bench/fixture/node_modules/
 bench/results/smoke*.json
+
+# harness ledger (hooks write it; harness cost reads it)
+.claude/ledger/
