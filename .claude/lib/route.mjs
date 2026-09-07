@@ -1,0 +1,106 @@
+// What a verdict means for the state machine. Called by the route.verdict hook on every agent stop
+// and by the lane skills. Exact-match tokens only; near misses are recorded but change nothing.
+import { appendVerdict, deriveState, hasMarker, projectRoot, readState, setMarker, writeState } from "./work.mjs";
+import { next } from "./next.mjs";
+
+export const VERDICTS = Object.freeze({
+  // reviewer
+  APPROVED: { agent: "reviewer", effect: "phase_reviewed" },
+  "CHANGES REQUIRED": { agent: "reviewer", effect: "rejection" },
+  ALIGNED: { agent: "reviewer", effect: "crosscheck_ok" },
+  "DRIFT DETECTED": { agent: "reviewer", effect: "drift" },
+  // developer
+  "PHASE DONE": { agent: "developer", effect: "phase_done" },
+  "PHASE STALLED": { agent: "developer", effect: "stall" },
+  // architect
+  "ARTIFACT WRITTEN": { agent: "architect", effect: "artifact" },
+  "AMENDED": { agent: "architect", effect: "amended" },
+  // analyst
+  "REPORT WRITTEN": { agent: "analyst", effect: "artifact" },
+  // user
+  approved: { agent: "user", effect: "phase_approved" },
+  rejected: { agent: "user", effect: "rejection" },
+});
+
+const TOKEN_RE = new RegExp(`^\\s*(${Object.keys(VERDICTS).map((k) => k.replace(/ /g, "\\s+")).join("|")})\\b`, "m");
+
+/** Finds the first verdict token that starts a line in a block of text. */
+export function findVerdict(text) {
+  const m = String(text ?? "").match(TOKEN_RE);
+  if (!m) return null;
+  return m[1].replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Applies a verdict to a work item and returns the next action.
+ * @param {object} o
+ * @param {string} o.id
+ * @param {string} o.verdict     exact token from VERDICTS
+ * @param {string} o.agent       who emitted it (checked against the token's owner)
+ * @param {number} [o.phase]
+ * @param {string} [o.scope]     "cumulative" | "checkpoint" | "crosscheck"
+ * @param {number} [o.through]   for `approved`: last phase of a granted run
+ */
+export function route(o) {
+  const root = o.root ?? projectRoot();
+  const spec = VERDICTS[o.verdict];
+  if (!spec) throw new Error(`unknown verdict "${o.verdict}"; exact tokens: ${Object.keys(VERDICTS).join(", ")}`);
+  if (spec.agent !== o.agent && !(spec.agent === "user" && o.agent === "lead")) throw new Error(`"${o.verdict}" may only come from ${spec.agent}, not ${o.agent}`);
+
+  const s = deriveState(o.id, root);
+  const phase = o.phase ?? s.current_phase ?? null;
+  const applied = [];
+
+  switch (spec.effect) {
+    case "phase_done":
+      if (phase == null) throw new Error("PHASE DONE needs a phase");
+      setMarker(o.id, phase, "done", root);
+      applied.push(`phases/${phase}.done`);
+      break;
+    case "phase_approved": {
+      if (phase == null) throw new Error("approved needs a phase");
+      if (!hasMarker(o.id, phase, "done", root)) throw new Error(`phase ${phase} is not done; cannot approve`);
+      setMarker(o.id, phase, "approved", root);
+      applied.push(`phases/${phase}.approved`);
+      if (o.through && o.through > phase) {
+        const st = readState(o.id, root);
+        st.run_through = o.through;
+        writeState(st, root);
+        applied.push(`run_through=${o.through}`);
+      }
+      break;
+    }
+    case "phase_reviewed":
+      if (o.scope === "cumulative") {
+        for (const p of s.phases) if (!p.reviewed) setMarker(o.id, p.n, "reviewed", root);
+        applied.push("all phases reviewed");
+      } else if (phase != null) {
+        setMarker(o.id, phase, "reviewed", root);
+        applied.push(`phases/${phase}.reviewed`);
+      }
+      break;
+    case "rejection": {
+      const st = readState(o.id, root);
+      delete st.run_through;
+      writeState(st, root);
+      applied.push("run grant cleared");
+      break;
+    }
+    case "drift":
+    case "stall": {
+      const st = readState(o.id, root);
+      st.status = "blocked";
+      st.blocked_reason = o.reason ?? `${o.verdict} on phase ${phase ?? "?"}`;
+      writeState(st, root);
+      applied.push(`status=blocked (${st.blocked_reason})`);
+      break;
+    }
+    case "crosscheck_ok":
+    case "artifact":
+    case "amended":
+      break;
+  }
+
+  appendVerdict(o.id, { agent: o.agent, verdict: o.verdict, phase, scope: o.scope ?? null, through: o.through ?? null }, root);
+  return { id: o.id, verdict: o.verdict, phase, applied, next: next(o.id, root) };
+}
