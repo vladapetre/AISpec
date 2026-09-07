@@ -1,0 +1,21 @@
+{
+  "name": "ledgerlite",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Small invoicing service used as the benchmark fixture: HTTP API over a JSON file store.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "start": "node --loader ts-node/esm src/main.ts",
+    "cli": "node --loader ts-node/esm src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "shell-quote": "1.8.1",
+    "ts-node": "10.9.2",
+    "typescript": "5.4.5",
+    "vitest": "1.6.0"
+  }
+}

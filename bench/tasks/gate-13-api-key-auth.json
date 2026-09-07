@@ -1,0 +1,16 @@
+{
+  "id": "gate-13-api-key-auth",
+  "lane": "design",
+  "title": "API key authentication (security path)",
+  "prompt": "Every endpoint except GET /health must require an API key. Add an authentication layer under src/auth/: read the expected key from config (`auth.apiKey`, overridable by the API_KEY environment variable), compare it in constant time against the `x-api-key` request header, and answer 401 `{ error: { message: \"unauthorized\" } }` when it is missing or wrong. Wire it in front of the router so handlers stay unaware of it, keep GET /health open, add the config default, and unit test allowed, missing, wrong-key and health cases. Note that this touches a security path, so treat it accordingly.",
+  "budget_usd": 20,
+  "max_stops": 8,
+  "checks": {
+    "files_exist": ["src/auth/*.ts"],
+    "grep": [
+      { "path": "src/auth/*.ts", "pattern": "timingSafeEqual", "expect": true },
+      { "path": "src/config.ts", "pattern": "apiKey", "expect": true }
+    ],
+    "forbidden_paths_touched": ["src/storage/**", "src/domain/**", "data/invoices.json"]
+  }
+}

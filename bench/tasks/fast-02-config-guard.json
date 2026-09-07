@@ -1,0 +1,12 @@
+{
+  "id": "fast-02-config-guard",
+  "lane": "fast",
+  "title": "Config loader crashes on a partial config file",
+  "prompt": "loadConfig() throws `Cannot read properties of undefined (reading 'port')` when data/config.json has no `server` block. It should fall back to DEFAULT_CONFIG for any missing block or field, the same way it already does for listing, tax and storage. Fix the loader and cover the empty-object case with a unit test.",
+  "budget_usd": 6,
+  "max_stops": 3,
+  "checks": {
+    "grep": [{ "path": "src/config.ts", "pattern": "raw\\.server!", "expect": false }],
+    "forbidden_paths_touched": ["src/http/**", "src/domain/**"]
+  }
+}

@@ -1,0 +1,143 @@
+// HARD graders only: hidden tests, file assertions, grep assertions, report shape.
+// No LLM judge here; pass/fail is reproducible from the repository the run left behind.
+import { cpSync, existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { listFiles } from "./fixture.mjs";
+
+function runVitest(repo, extraArgs = []) {
+  const outFile = join(repo, ".bench-vitest.json");
+  try {
+    execFileSync("npx", ["vitest", "run", "--reporter=json", `--outputFile=${outFile}`, ...extraArgs], {
+      cwd: repo,
+      stdio: "ignore",
+      shell: true,
+      timeout: 180_000,
+    });
+  } catch {
+    // vitest exits non-zero on failures; the JSON file still tells us what happened
+  }
+  if (!existsSync(outFile)) return { passed: 0, failed: 0, total: 0, error: "no vitest output" };
+  const j = JSON.parse(readFileSync(outFile, "utf8"));
+  return { passed: j.numPassedTests ?? 0, failed: j.numFailedTests ?? 0, total: j.numTotalTests ?? 0, error: null };
+}
+
+function globMatch(pattern, path) {
+  const re = new RegExp(
+    "^" +
+      pattern
+        .replaceAll("\\", "/")
+        .replace(/[.+^${}()|[\]]/g, "\\$&")
+        .replace(/\*\*\//g, "(?:.*/)?")
+        .replace(/\*\*/g, ".*")
+        .replace(/\*/g, "[^/]*") +
+      "$",
+  );
+  return re.test(path.replaceAll("\\", "/"));
+}
+
+export function filesMatching(repo, pattern) {
+  return listFiles(repo).filter((f) => globMatch(pattern, f));
+}
+
+/**
+ * @param {object} o
+ * @param {string} o.repo      repository after the run
+ * @param {object} o.task      task definition (bench/tasks/<id>.json)
+ * @param {string} o.hiddenDir bench/hidden/<task.id>
+ * @param {object} o.adapter   harness adapter (for reportFiles)
+ */
+export function grade({ repo, task, hiddenDir, adapter, base = "HEAD" }) {
+  const checks = [];
+  const ok = (name, pass, detail = "") => checks.push({ name, ok: !!pass, detail });
+
+  // 1. The fixture's own suite still passes (the agent may have added tests; they count too).
+  const own = runVitest(repo);
+  ok("own_suite_green", own.failed === 0 && own.total > 0 && !own.error, `${own.passed}/${own.total} passed${own.error ? ", " + own.error : ""}`);
+
+  // 2. Hidden tests, if the task ships any.
+  let hidden = null;
+  if (existsSync(hiddenDir) && readdirSync(hiddenDir).length) {
+    const target = join(repo, "test", "hidden");
+    cpSync(hiddenDir, target, { recursive: true });
+    hidden = runVitest(repo, ["test/hidden"]);
+    ok("hidden_tests_green", hidden.failed === 0 && hidden.total > 0 && !hidden.error, `${hidden.passed}/${hidden.total} passed${hidden.error ? ", " + hidden.error : ""}`);
+  }
+
+  // 3. Declarative checks.
+  for (const pattern of task.checks?.files_exist ?? []) {
+    const hits = filesMatching(repo, pattern);
+    ok(`exists:${pattern}`, hits.length > 0, hits.slice(0, 3).join(", "));
+  }
+  for (const pattern of task.checks?.files_absent ?? []) {
+    const hits = filesMatching(repo, pattern);
+    ok(`absent:${pattern}`, hits.length === 0, hits.slice(0, 3).join(", "));
+  }
+  for (const g of task.checks?.grep ?? []) {
+    const files = filesMatching(repo, g.path);
+    const re = new RegExp(g.pattern, g.flags ?? "m");
+    const found = files.some((f) => re.test(readFileSync(join(repo, f), "utf8")));
+    const expect = g.expect ?? true;
+    ok(`grep:${g.path}:${g.pattern}`, found === expect, `${files.length} file(s) scanned`);
+  }
+  if (task.checks?.forbidden_paths_touched) {
+    const all = changedFiles(repo, base).filter((f) => !f.startsWith("test/hidden/") && !f.startsWith(".claude/") && f !== ".bench-vitest.json");
+    for (const pattern of task.checks.forbidden_paths_touched) {
+      const hits = all.filter((f) => globMatch(pattern, f));
+      ok(`untouched:${pattern}`, hits.length === 0, hits.join(", "));
+    }
+  }
+
+  // 4. Research tasks: a report exists, carries the required headings, and every cited repo path exists.
+  if (task.checks?.report) {
+    const files = adapter.reportFiles(repo);
+    ok("report_exists", files.length > 0, files.join(", "));
+    if (files.length) {
+      const text = files.map((f) => readFileSync(join(repo, f), "utf8")).join("\n");
+      for (const heading of task.checks.report.headings ?? []) {
+        ok(`report_heading:${heading}`, new RegExp(`^#+\\s*${heading}`, "mi").test(text));
+      }
+      const cited = [...text.matchAll(/`((?:src|test|data)\/[\w./-]+)`/g)].map((m) => m[1]);
+      const missing = cited.filter((p) => !existsSync(join(repo, p.split(":")[0])));
+      ok("report_cited_paths_exist", cited.length > 0 && missing.length === 0, missing.length ? `missing: ${missing.slice(0, 3).join(", ")}` : `${cited.length} citations`);
+      for (const term of task.checks.report.mentions ?? []) {
+        ok(`report_mentions:${term}`, new RegExp(term, "i").test(text));
+      }
+    }
+  }
+
+  const pass = checks.every((c) => c.ok);
+  return { pass, own, hidden, checks };
+}
+
+/** Files the agent changed since `base` (the harness-install commit), committed or not, plus untracked. */
+export function changedFiles(repo, base = "HEAD") {
+  const diffed = execFileSync("git", ["diff", "--name-only", base], { cwd: repo }).toString().split(/\r?\n/);
+  const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], { cwd: repo }).toString().split(/\r?\n/);
+  return [...new Set([...diffed, ...untracked].map((l) => l.trim()).filter(Boolean))];
+}
+
+export function linesAdded(repo, base = "HEAD") {
+  try {
+    const out = execFileSync("git", ["diff", "--numstat", base], { cwd: repo }).toString();
+    let added = 0;
+    for (const line of out.split(/\r?\n/)) {
+      const m = line.match(/^(\d+)\t(\d+)\t(.+)$/);
+      if (!m) continue;
+      if (m[3].startsWith("artifacts/") || m[3].startsWith("work/") || m[3].startsWith(".claude/")) continue;
+      added += Number(m[1]);
+    }
+    // untracked files are not in `git diff HEAD`; count their lines too
+    const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], { cwd: repo }).toString().split(/\r?\n/).filter(Boolean);
+    for (const f of untracked) {
+      if (f.startsWith("artifacts/") || f.startsWith("work/") || f.startsWith(".claude/") || f.startsWith("test/hidden/")) continue;
+      const p = join(repo, f);
+      if (statSync(p).isFile()) added += readFileSync(p, "utf8").split(/\r?\n/).length;
+    }
+    return added;
+  } catch {
+    return null;
+  }
+}
+
+export { relative };

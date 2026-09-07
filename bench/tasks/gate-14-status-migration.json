@@ -1,0 +1,15 @@
+{
+  "id": "gate-14-status-migration",
+  "lane": "design",
+  "title": "Invoice status with a data migration",
+  "prompt": "Invoices need a lifecycle: add a `status` field with the values `draft`, `issued`, `paid`. New invoices are created as `draft`. Add POST /invoices/:id/issue and POST /invoices/:id/pay that move draft to issued and issued to paid, answering 409 on any other transition. Existing records in data/invoices.json have no status and must be treated as `issued`: write a migration script under scripts/ that rewrites the file once (idempotent), run it against data/invoices.json, and make the repository tolerate unmigrated records by defaulting them to `issued` when reading. Tests for the transitions, the read default and the migration.",
+  "budget_usd": 22,
+  "max_stops": 10,
+  "checks": {
+    "files_exist": ["scripts/*migrat*"],
+    "grep": [
+      { "path": "data/invoices.json", "pattern": "\"status\": \"issued\"", "expect": true },
+      { "path": "src/http/handlers.ts", "pattern": "/invoices/:id/(issue|pay)", "expect": true }
+    ]
+  }
+}

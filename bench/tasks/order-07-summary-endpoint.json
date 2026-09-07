@@ -1,0 +1,12 @@
+{
+  "id": "order-07-summary-endpoint",
+  "lane": "order",
+  "title": "Add GET /invoices/:id/summary",
+  "prompt": "Add an endpoint GET /invoices/:id/summary that returns `{ id, customer, currency, lineCount, totalCents, total }` where `total` is the formatted amount (for example \"107.00 EUR\"). Unknown ids return the same 404 shape as GET /invoices/:id. Add unit tests for the happy path and the 404. Follow the existing handler style; do not add a framework.",
+  "budget_usd": 12,
+  "max_stops": 6,
+  "checks": {
+    "grep": [{ "path": "src/http/handlers.ts", "pattern": "/invoices/:id/summary", "expect": true }],
+    "forbidden_paths_touched": ["src/storage/**", "data/**"]
+  }
+}

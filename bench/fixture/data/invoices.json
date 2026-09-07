@@ -1,0 +1,62 @@
+{
+  "invoices": [
+    {
+      "id": "INV-1001",
+      "customer": "Acme Bakery",
+      "currency": "EUR",
+      "createdAt": "2026-08-01T09:00:00.000Z",
+      "lines": [
+        { "description": "Flour, 25kg", "quantity": 4, "unitPriceCents": 1899 },
+        { "description": "Yeast, 1kg", "quantity": 2, "unitPriceCents": 650 }
+      ]
+    },
+    {
+      "id": "INV-1002",
+      "customer": "Northwind Traders",
+      "currency": "EUR",
+      "createdAt": "2026-08-03T14:30:00.000Z",
+      "lines": [
+        { "description": "Consulting, hourly", "quantity": 12, "unitPriceCents": 9500 }
+      ]
+    },
+    {
+      "id": "INV-1003",
+      "customer": "Acme Bakery",
+      "currency": "EUR",
+      "createdAt": "2026-08-10T08:15:00.000Z",
+      "lines": [
+        { "description": "Oven maintenance", "quantity": 1, "unitPriceCents": 24900 },
+        { "description": "Replacement thermostat", "quantity": 1, "unitPriceCents": 4599 },
+        { "description": "Call-out fee", "quantity": 1, "unitPriceCents": 5000 }
+      ]
+    },
+    {
+      "id": "INV-1004",
+      "customer": "Blue Harbour Cafe",
+      "currency": "GBP",
+      "createdAt": "2026-08-12T11:45:00.000Z",
+      "lines": [
+        { "description": "Espresso beans, 1kg", "quantity": 10, "unitPriceCents": 2199 }
+      ]
+    },
+    {
+      "id": "INV-1005",
+      "customer": "Northwind Traders",
+      "currency": "EUR",
+      "createdAt": "2026-08-20T16:00:00.000Z",
+      "lines": [
+        { "description": "Consulting, hourly", "quantity": 8, "unitPriceCents": 9500 },
+        { "description": "Travel", "quantity": 1, "unitPriceCents": 12050 }
+      ]
+    },
+    {
+      "id": "INV-1006",
+      "customer": "Blue Harbour Cafe",
+      "currency": "GBP",
+      "createdAt": "2026-08-28T10:00:00.000Z",
+      "lines": [
+        { "description": "Oat milk, 1L", "quantity": 48, "unitPriceCents": 189 }
+      ]
+    }
+  ]
+}

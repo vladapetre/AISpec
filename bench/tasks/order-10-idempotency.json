@@ -1,0 +1,12 @@
+{
+  "id": "order-10-idempotency",
+  "lane": "order",
+  "title": "Idempotency-Key on POST /invoices",
+  "prompt": "Clients retry POST /invoices after timeouts and end up with duplicate invoices. Support an optional `Idempotency-Key` request header: the first request with a given key creates the invoice and remembers the key with the invoice id; a repeat with the same key returns the same invoice (status 200 instead of 201) without creating another; the same key with a different body returns 409 with `{ error: { message } }`. An in-memory store injected through the router's dependencies is enough; no persistence. Keep the key store as its own small module and unit test the three behaviours through the router.",
+  "budget_usd": 14,
+  "max_stops": 6,
+  "checks": {
+    "grep": [{ "path": "src/http/**/*.ts", "pattern": "idempotency-key", "flags": "mi", "expect": true }],
+    "forbidden_paths_touched": ["src/storage/jsonRepository.ts", "data/**"]
+  }
+}

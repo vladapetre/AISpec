@@ -1,0 +1,12 @@
+{
+  "id": "order-09-csv-export",
+  "lane": "order",
+  "title": "CSV export of all invoices",
+  "prompt": "Accounting wants a CSV of all invoices. Add GET /invoices.csv returning `text/csv; charset=utf-8` with the header `id,customer,currency,totalCents,createdAt` and one row per invoice, newest first, totals computed with the configured tax rate. Quote any field containing a comma or a double quote per RFC 4180. Put the CSV formatting in its own module (no I/O in it) with unit tests, and test the route as well.",
+  "budget_usd": 14,
+  "max_stops": 6,
+  "checks": {
+    "grep": [{ "path": "src/http/handlers.ts", "pattern": "invoices\\.csv", "expect": true }],
+    "forbidden_paths_touched": ["src/storage/**", "data/**"]
+  }
+}

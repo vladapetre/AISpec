@@ -1,0 +1,12 @@
+{
+  "id": "order-08-validation",
+  "lane": "order",
+  "title": "Validate POST /invoices bodies",
+  "prompt": "POST /invoices accepts anything, so a body without a customer or with a negative quantity is stored and later blows up in the totals. Add request validation: customer is a non-empty string, currency is a three-letter uppercase code, lines is a non-empty array, each line has a non-empty description, an integer quantity >= 0 and an integer unitPriceCents >= 0. On failure respond 400 with `{ error: { field, message } }` naming the first offending field (for example `lines[0].quantity`). Put the validation in its own module under src/http/ and unit test it directly as well as through the router.",
+  "budget_usd": 14,
+  "max_stops": 6,
+  "checks": {
+    "files_exist": ["src/http/valid*.ts"],
+    "forbidden_paths_touched": ["src/storage/**", "src/domain/**", "data/**"]
+  }
+}

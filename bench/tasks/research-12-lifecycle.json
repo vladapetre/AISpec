@@ -1,0 +1,16 @@
+{
+  "id": "research-12-lifecycle",
+  "lane": "research",
+  "title": "Request lifecycle map",
+  "prompt": "Map the life of a POST /invoices request from the socket to the JSON file: which module parses the body, how routing matches the path, where the invoice id is allocated, how it is written to disk, and what the response contains. Write it as a report with a numbered sequence and cite each file and function. Note anything that would break under two concurrent requests. No code changes.",
+  "budget_usd": 8,
+  "max_stops": 3,
+  "answer": "No preference; write the report with what you have.",
+  "checks": {
+    "report": {
+      "headings": ["(Summary|Executive Summary|Overview|Answer)"],
+      "mentions": ["readBody|server\\.ts", "Router|router\\.ts", "nextId", "writeFileSync|save", "concurren"]
+    },
+    "forbidden_paths_touched": ["src/**", "test/**", "data/**"]
+  }
+}

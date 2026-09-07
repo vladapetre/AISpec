@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aispec.local/schema/bench-result.json",
+  "title": "Benchmark results file",
+  "type": "object",
+  "required": ["manifest", "records"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "required": ["harness", "fixture_hash", "claude_version", "runs_per_task", "started"],
+      "properties": {
+        "harness": { "type": "string" },
+        "harness_root": { "type": "string" },
+        "harness_commit": { "type": ["string", "null"] },
+        "harness_dirty": { "type": "boolean" },
+        "fixture_hash": { "type": "string" },
+        "claude_version": { "type": ["string", "null"] },
+        "node_version": { "type": "string" },
+        "effort_level": { "type": ["string", "null"] },
+        "permission_mode": { "type": "string" },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } },
+        "runs_per_task": { "type": "integer" },
+        "started": { "type": "string" }
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task", "lane_expected", "harness", "run", "fixture_sha", "cost_usd", "usage", "wall_ms", "stops", "terminal", "pass", "signals", "grade"],
+        "properties": {
+          "task": { "type": "string" },
+          "lane_expected": { "enum": ["fast", "order", "design", "research"] },
+          "harness": { "type": "string" },
+          "run": { "type": "integer" },
+          "fixture_sha": { "type": "string" },
+          "session_ids": { "type": "array", "items": { "type": "string" } },
+          "stops": { "type": "integer" },
+          "gates": { "type": "array", "items": { "type": "string" } },
+          "denials": { "type": "integer" },
+          "turns": { "type": "integer" },
+          "cost_usd": { "type": "number" },
+          "usage": { "type": "object" },
+          "cache_hit_ratio": { "type": ["number", "null"] },
+          "tokens_total": { "type": "integer" },
+          "api_ms": { "type": "integer" },
+          "wall_ms": { "type": "integer" },
+          "tool_calls": { "type": "integer" },
+          "tool_counts": { "type": "object" },
+          "reads": { "type": "integer" },
+          "unique_reads": { "type": "integer" },
+          "rereads": { "type": "integer" },
+          "subagents": { "type": "integer" },
+          "first_write_ms": { "type": ["integer", "null"] },
+          "first_tool_ms": { "type": ["integer", "null"] },
+          "first_reviewable_ms": { "type": ["integer", "null"] },
+          "model": { "type": ["string", "null"] },
+          "terminal": { "enum": ["completed", "gate_limit", "budget", "error", "stalled", "bound"] },
+          "changed_files": { "type": "array", "items": { "type": "string" } },
+          "lines_added": { "type": ["integer", "null"] },
+          "signals": {
+            "type": "object",
+            "required": ["lane", "verdicts", "route"],
+            "properties": {
+              "lane": { "type": "string" },
+              "verdicts": { "type": "array", "items": { "type": "string" } },
+              "route": { "type": "string" }
+            }
+          },
+          "grade": {
+            "type": "object",
+            "required": ["pass", "checks"],
+            "properties": {
+              "pass": { "type": "boolean" },
+              "own": { "type": "object" },
+              "hidden": { "type": ["object", "null"] },
+              "checks": { "type": "array", "items": { "type": "object", "required": ["name", "ok"] } }
+            }
+          },
+          "pass": { "type": "boolean" },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

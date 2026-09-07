@@ -1,0 +1,16 @@
+{
+  "id": "fast-03-rename",
+  "lane": "fast",
+  "title": "Rename applyStuff",
+  "prompt": "`applyStuff` in src/domain/pricing.ts computes the line subtotal and the volume discount, and the name says nothing. Rename it to something that describes what it returns, update every caller and test, and change nothing else.",
+  "budget_usd": 5,
+  "max_stops": 3,
+  "checks": {
+    "grep": [
+      { "path": "src/**/*.ts", "pattern": "applyStuff", "expect": false },
+      { "path": "test/**/*.ts", "pattern": "applyStuff", "expect": false },
+      { "path": "src/domain/pricing.ts", "pattern": "minLines: 25, percent: 10", "expect": true }
+    ],
+    "forbidden_paths_touched": ["src/http/**", "src/storage/**", "data/**"]
+  }
+}

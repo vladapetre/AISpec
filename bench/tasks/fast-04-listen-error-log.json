@@ -1,0 +1,16 @@
+{
+  "id": "fast-04-listen-error-log",
+  "lane": "fast",
+  "title": "Log why the server failed to start",
+  "prompt": "When the port is already taken the service exits with code 1 and prints nothing, which makes it hard to diagnose. In src/http/server.ts, log the error to stderr before exiting: for EADDRINUSE say which host and port were busy, for any other error print its message. Keep the exit code.",
+  "budget_usd": 5,
+  "max_stops": 3,
+  "checks": {
+    "grep": [
+      { "path": "src/http/server.ts", "pattern": "EADDRINUSE", "expect": true },
+      { "path": "src/http/server.ts", "pattern": "console\\.error", "expect": true },
+      { "path": "src/http/server.ts", "pattern": "process\\.exit\\(1\\)", "expect": true }
+    ],
+    "forbidden_paths_touched": ["src/domain/**", "src/storage/**", "src/http/handlers.ts", "src/http/router.ts"]
+  }
+}

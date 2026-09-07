@@ -1,0 +1,16 @@
+{
+  "id": "research-11-pricing",
+  "lane": "research",
+  "title": "How are totals computed?",
+  "prompt": "Before we touch pricing I need to understand it. Write a short report answering: how is an invoice total computed from its lines, where is the volume discount applied and with which thresholds, where is tax applied (before or after the discount), and where does rounding happen. Cite the exact files and functions. No code changes.",
+  "budget_usd": 8,
+  "max_stops": 3,
+  "answer": "No preference; write the report with what you have.",
+  "checks": {
+    "report": {
+      "headings": ["(Summary|Executive Summary|Overview|Answer)"],
+      "mentions": ["percentOf", "taxOn|tax", "discount", "floor|round|truncat"]
+    },
+    "forbidden_paths_touched": ["src/**", "test/**", "data/**"]
+  }
+}

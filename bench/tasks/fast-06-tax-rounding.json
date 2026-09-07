@@ -1,0 +1,12 @@
+{
+  "id": "fast-06-tax-rounding",
+  "lane": "fast",
+  "title": "Tax rounds down instead of half up",
+  "prompt": "An invoice of 19.99 EUR at 7% tax shows 1.39 tax; the correct amount is 1.40 (139.93 cents rounds half up to 140). The percentage helper in src/domain/money.ts truncates. Make it round half up to the nearest cent, add a test with the 1999 cents case, and make sure the discount ladder still passes its tests.",
+  "budget_usd": 6,
+  "max_stops": 3,
+  "checks": {
+    "grep": [{ "path": "src/domain/money.ts", "pattern": "Math\\.floor\\(\\(amount \\* ratePercent\\)", "expect": false }],
+    "forbidden_paths_touched": ["src/http/**", "src/storage/**", "data/**"]
+  }
+}

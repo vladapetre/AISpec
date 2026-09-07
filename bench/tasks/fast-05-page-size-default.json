@@ -1,0 +1,15 @@
+{
+  "id": "fast-05-page-size-default",
+  "lane": "fast",
+  "title": "Default page size becomes 25",
+  "prompt": "Change the default page size for GET /invoices from 20 to 25. It is set in two places (the code default and data/config.json); both must agree, and the existing tests must still pass.",
+  "budget_usd": 5,
+  "max_stops": 3,
+  "checks": {
+    "grep": [
+      { "path": "src/config.ts", "pattern": "defaultPageSize: 25", "expect": true },
+      { "path": "data/config.json", "pattern": "\"defaultPageSize\": 25", "expect": true }
+    ],
+    "forbidden_paths_touched": ["src/domain/**", "src/storage/**", "src/http/**"]
+  }
+}

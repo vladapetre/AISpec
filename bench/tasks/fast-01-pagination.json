@@ -1,0 +1,12 @@
+{
+  "id": "fast-01-pagination",
+  "lane": "fast",
+  "title": "Fix the page offset on GET /invoices",
+  "prompt": "GET /invoices?page=1&size=2 skips the two newest invoices and page=0 returns them. Pages are meant to start at 1, so page=1 should return the first `size` items. Fix the offset in the list handler and add a unit test for page 1 and page 2. Keep the change small.",
+  "budget_usd": 6,
+  "max_stops": 3,
+  "checks": {
+    "grep": [{ "path": "src/http/handlers.ts", "pattern": "page \\* size, \\(page \\+ 1\\) \\* size", "expect": false }],
+    "forbidden_paths_touched": ["src/domain/**", "src/storage/**"]
+  }
+}

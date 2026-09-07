@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aispec.local/schema/ledger-v2.json",
+  "title": "Harness ledger row (v2)",
+  "description": "One row per Stop or SubagentStop, appended by the emit.ledger hook. Everything the free telemetry metrics need, nothing else.",
+  "type": "object",
+  "required": ["v", "ts", "session", "event", "agent", "duration_ms"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 2 },
+    "ts": { "type": "string", "format": "date-time" },
+    "session": { "type": "string" },
+    "event": { "enum": ["stop", "subagent_stop", "gate", "bounce", "block"] },
+    "agent": { "type": "string", "description": "lead | analyst | architect | developer | reviewer | <custom>" },
+    "lane": { "enum": ["fast", "order", "design", "research", null] },
+    "work_id": { "type": ["string", "null"] },
+    "phase": { "type": ["integer", "null"] },
+    "model": { "type": ["string", "null"] },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "verdict": { "type": ["string", "null"], "description": "closed vocabulary from tokens.verdicts" },
+    "gate_kind": { "enum": ["approval", "ask", "irreversible", "stall", "bound", null] },
+    "tool_calls": { "type": "integer", "minimum": 0 },
+    "reads": { "type": "integer", "minimum": 0 },
+    "rereads": { "type": "integer", "minimum": 0 },
+    "bounces": { "type": "integer", "minimum": 0, "description": "Stop-hook bounces on this turn" },
+    "blocks": { "type": "integer", "minimum": 0, "description": "guard.* PreToolUse denials on this turn" },
+    "first_reviewable_ms": { "type": ["integer", "null"], "description": "ms from work-item start to first artifact write or first gate; set once per work item" },
+    "usage": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": { "type": "integer" },
+        "cache_read_input_tokens": { "type": "integer" },
+        "cache_creation_input_tokens": { "type": "integer" },
+        "output_tokens": { "type": "integer" }
+      }
+    },
+    "cost_usd": { "type": ["number", "null"] },
+    "lines_added": { "type": ["integer", "null"], "description": "set on approved phases only; denominator of tokens per accepted line" }
+  }
+}
