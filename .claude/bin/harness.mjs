@@ -14,9 +14,12 @@
 //   harness review-summary <id> [--base <commit>]
 //   harness cost [--session <id>] [--work <id>]
 //   harness find-verdict --text "<block>"
+//   harness drive --hit "GET /path" [--hit "POST /path <json>"]... [--start "<cmd>"] [--port N] [--wait /path]
+//   harness drive --run "<cli command>"
 //
 import { readFileSync } from "node:fs";
 import { admit } from "../lib/admit.mjs";
+import { drive, renderDrive } from "../lib/drive.mjs";
 import { createWork, deriveState, listWork, projectRoot, readState, writeState } from "../lib/work.mjs";
 import { next } from "../lib/next.mjs";
 import { preflight } from "../lib/preflight.mjs";
@@ -33,8 +36,8 @@ function parse(argv) {
     if (a.startsWith("--")) {
       const key = a.slice(2);
       const nxt = argv[i + 1];
-      if (nxt === undefined || nxt.startsWith("--")) opt[key] = true;
-      else opt[key] = argv[++i];
+      const val = nxt === undefined || nxt.startsWith("--") ? true : argv[++i];
+      opt[key] = key in opt ? [].concat(opt[key], val) : val; // a repeated flag collects (--hit a --hit b)
     } else pos.push(a);
   }
   return { pos, opt };
@@ -51,7 +54,7 @@ function readRequest(opt) {
   throw new Error("admit needs --text or --request <file|->");
 }
 
-function main(argv) {
+async function main(argv) {
   const { pos, opt } = parse(argv);
   const [verb, ...rest] = pos;
   const root = opt.root ?? projectRoot();
@@ -139,14 +142,31 @@ function main(argv) {
       out({ verdict: findVerdict(opt.text ?? readFileSync(0, "utf8")) }, opt, (v) => v.verdict ?? "");
       return 0;
     }
+    case "drive": {
+      // Starts the app (or runs a CLI command), exercises it, stops it, and logs the evidence itself.
+      const r = await drive({
+        root,
+        run: opt.run === true ? undefined : opt.run,
+        start: opt.start === true ? undefined : opt.start,
+        hits: opt.hit === undefined ? [] : [].concat(opt.hit),
+        port: opt.port,
+        wait: opt.wait,
+        timeoutMs: opt.timeout ? Number(opt.timeout) * 1000 : undefined,
+        id: opt.work,
+        phase: opt.phase,
+      });
+      out(r, opt, renderDrive);
+      return r.ok ? 0 : 2;
+    }
     default:
-      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state next preflight verify route cost find-verdict`);
+      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive`);
   }
 }
 
-try {
-  process.exit(main(process.argv.slice(2)));
-} catch (err) {
-  console.error(`harness: ${err.message}`);
-  process.exit(1);
-}
+main(process.argv.slice(2)).then(
+  (code) => process.exit(code),
+  (err) => {
+    console.error(`harness: ${err.message}`);
+    process.exit(1);
+  },
+);

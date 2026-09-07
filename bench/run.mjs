@@ -13,6 +13,7 @@ import { buildTemplate, materializeRun } from "./lib/fixture.mjs";
 import { runClaude } from "./lib/claude.mjs";
 import { grade, changedFiles, linesAdded } from "./lib/grade.mjs";
 import { addUsage, cacheHitRatio, totalTokens, round } from "./lib/metrics.mjs";
+import { nextPort, killListeners } from "./lib/ports.mjs";
 
 const BENCH = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(BENCH, "..");
@@ -148,11 +149,16 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
   let prompt = task.prompt;
   let resume = null;
   const maxStops = task.max_stops ?? 8;
+  // The fixture honours PORT, so every run's servers bind their own port: no fight over 8080 with a
+  // leftover from an earlier run, and whatever is still listening when the run ends is ours to kill.
+  const port = nextPort();
+  record.port = port;
   for (let step = 0; step <= maxStops; step++) {
     const r = await runClaude({
       cwd: repo,
       prompt,
       resume,
+      env: { PORT: String(port) },
       permissionMode: "acceptEdits",
       allowedTools: adapter.allowedTools,
       maxBudgetUsd: args.budget ?? task.budget_usd ?? 10,
@@ -209,6 +215,9 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
     log(`    gate ${record.stops} (${g.kind}) → "${g.reply}"`);
   }
   record.wall_ms = Date.now() - t0;
+  const orphans = killListeners(port);
+  if (orphans.length) log(`    killed ${orphans.length} server process(es) left listening on :${port}`);
+  record.orphans = orphans.length;
   record.prompts = existsSync(promptLog) ? readFileSync(promptLog, "utf8").split(/\r?\n/).filter(Boolean).length : 0;
   record.cache_hit_ratio = round(cacheHitRatio(record.usage), 4);
   record.tokens_total = totalTokens(record.usage);

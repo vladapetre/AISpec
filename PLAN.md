@@ -86,6 +86,7 @@ Agents are shells of ≤120 lines. Procedure lives in step files loaded one at a
 - `state get|advance|block|stamp <work-id>` → the only way state changes; Zod-validated.
 - `next <work-id>` → the single next action and who does it.
 - `verify <work-id> <phase>` → must_haves checked against the tree and the drive log.
+- `drive --hit "GET /path" | --run "<cmd>"` → starts the app on a free port, hits it, stops it, writes the evidence row. Zero permission prompts.
 - `route <verdict>` → what a verdict means for the state machine (used by the SubagentStop hook).
 - `cost` → session cost, cache hit ratio, tokens per accepted line, from the ledger.
 
@@ -174,13 +175,13 @@ Each phase is one or more commits on `rework`, benchmarks re-run at the end of e
 | Phase | State | Evidence |
 |---|---|---|
 | 0 bench | landed (1316d88) | `bench/` runner, LedgerLite fixture, 14 tasks, 10 hidden test sets; `selfcheck.mjs` proves every hidden set fails on the untouched fixture; trunk baseline: 6 fast tasks recorded, 8 heavier tasks pending re-run after the session-limit failures |
-| 1 kernel | landed (4bc24a2) | `harness` CLI: admit, new, list, state, set, next, preflight, verify, route, review-summary, cost, find-verdict; 23 kernel tests |
+| 1 kernel | landed (4bc24a2) | `harness` CLI: admit, new, list, state, set, next, preflight, verify, route, review-summary, cost, find-verdict, drive; 28 kernel tests |
 | 2 contract | landed (d8d4f90) | CLAUDE.md 1.5 KB; 4 rules; 4 agents ≤120 lines; 14 skills with step files; budgets test green |
 | 3 hooks | landed (c563f09) | 9 hooks, 7 hook tests, all under 200 ms cold; ledger v2 rows verified in a bench run |
 | 4 UX | landed with 3 | gate packets in the lane skills, `/resuming`, `/inspecting`, `statusline.mjs`; notifications are in the step files |
 | 5 bench head-to-head | in progress | rework smoke on `fast-01`: PASS, $1.69 vs trunk $2.15, cache 96%, TTFR 70 s vs 49 s; full comparison waits on the trunk baseline re-run |
 
-Decisions taken during the build, beyond the plan: the kernel carries no runtime dependency (`yaml-lite` instead of a YAML package) so it can be copied into any host project; `harness set` and `harness review-summary` were added because the lane skills needed them; `guard.bash` and the drive-evidence classifier are kept from trunk because they were tested and correct; the bench routes permission prompts to an auto-approving MCP tool and counts them as interruptions instead of letting headless mode deny them.
+Decisions taken during the build, beyond the plan: `harness drive` was added after the first rework smoke run spent 5 of its 7 permission prompts and about 60 s hunting a port collision with an orphaned fixture server (the bench now gives every run its own PORT and kills leftovers); the kernel carries no runtime dependency (`yaml-lite` instead of a YAML package) so it can be copied into any host project; `harness set` and `harness review-summary` were added because the lane skills needed them; `guard.bash` and the drive-evidence classifier are kept from trunk because they were tested and correct; the bench routes permission prompts to an auto-approving MCP tool and counts them as interruptions instead of letting headless mode deny them.
 
 ## 5. Decisions I need from you
 

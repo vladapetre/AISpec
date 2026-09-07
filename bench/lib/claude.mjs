@@ -58,7 +58,7 @@ export function runClaude(o) {
   return new Promise((resolve) => {
     const child = spawn(resolveClaude(), args, {
       cwd: o.cwd,
-      env: { ...process.env, CLAUDE_PROJECT_DIR: o.cwd },
+      env: { ...process.env, CLAUDE_PROJECT_DIR: o.cwd, ...(o.env ?? {}) },
       stdio: ["pipe", "pipe", "pipe"],
       shell: process.platform === "win32" && /\.cmd$/i.test(resolveClaude()),
       windowsHide: true,

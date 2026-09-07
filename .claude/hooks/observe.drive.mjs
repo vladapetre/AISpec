@@ -35,7 +35,8 @@ try {
       ts: new Date().toISOString(),
       session: data.session_id ?? null,
       agent: data.agent_type ?? null,
-      kind: isDriveCommand(cmd) ? "drive" : "inspect",
+      // Kernel calls are bookkeeping, never evidence; `harness drive` writes its own evidence row.
+      kind: /\bharness\.mjs\b/.test(cmd) ? "inspect" : isDriveCommand(cmd) ? "drive" : "inspect",
       command: cmd.replace(/\s+/g, " ").slice(0, 200),
       work_id,
       phase,
