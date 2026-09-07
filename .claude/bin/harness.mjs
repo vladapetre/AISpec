@@ -57,7 +57,13 @@ function main(argv) {
   const root = opt.root ?? projectRoot();
   switch (verb) {
     case "admit": {
-      const r = admit(readRequest(opt), { root, touched: opt.touched ? String(opt.touched).split(",").filter(Boolean) : [] });
+      // Skills inject this line with $ARGUMENTS; an empty request must not be an error, it must say so.
+      const text = opt.text === true || opt.text === "" || (!opt.text && !opt.request) ? "" : readRequest(opt);
+      if (!text.trim()) {
+        out({ lane: null, reasons: ["no request text given"], signals: {} }, opt, () => "lane: (none) · re-run with the request text: harness admit --text \"<request>\"");
+        return 0;
+      }
+      const r = admit(text, { root, touched: opt.touched ? String(opt.touched).split(",").filter(Boolean) : [] });
       out(r, opt, (v) => `lane: ${v.lane} (${v.reasons.join("; ")})`);
       return 0;
     }
