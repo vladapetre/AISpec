@@ -47,7 +47,8 @@ try {
     work_id,
     phase: heading?.[2] ? Number(heading[2]) : hints.phase ?? null,
     model: readTurn(data).model ?? null,
-    duration_ms: span.durationMs ?? 0,
+    // turnSpan reads a 512 KB tail; a long turn falls back to the whole transcript span
+    duration_ms: span.durationMs ?? (stats.first_ts !== null && stats.last_ts !== null ? stats.last_ts - stats.first_ts : 0),
     verdict: verdict ?? null,
     gate_kind: gate ? (/\[i\] confirm/.test(text) ? "irreversible" : /\[c\] continue/.test(text) ? "stall" : "approval") : null,
     tool_calls: stats.tool_calls,

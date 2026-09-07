@@ -28,3 +28,11 @@ harness trunk@18adac4 · fixture 126e6405aec0 · claude 2.1.263 (Claude Code) ·
   research-12-lifecycle run 1/1 [research] …
     FAIL · error · $0.00 · 4s · stops 0 · turns 1 · tools 0 · TTFR 4s · route direct:- · You've hit your session limit · resets 2:20pm (Europe/Bucharest)
 done · 14 record(s) in D:\workspace\github\AISpec\.worktrees\rework\bench\results\baseline-trunk.json · this invocation spent $12.16
+harness trunk@18adac4 · fixture 126e6405aec0 · claude 2.1.263 (Claude Code) · 14 task(s) × 1
+  fast-01-pagination run 1: already recorded, skipping
+  fast-02-config-guard run 1: already recorded, skipping
+  fast-03-rename run 1: already recorded, skipping
+  fast-04-listen-error-log run 1: already recorded, skipping
+  fast-05-page-size-default run 1: already recorded, skipping
+  fast-06-tax-rounding run 1: already recorded, skipping
+  gate-13-api-key-auth run 1/1 [design] …

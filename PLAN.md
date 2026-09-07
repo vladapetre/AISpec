@@ -169,7 +169,20 @@ Each phase is one or more commits on `rework`, benchmarks re-run at the end of e
 | 4 | UX: status line, gate packets, `/next` `/status` `/resume`, notifications | one stop per gate on every golden order/design task |
 | 5 | Full bench run new vs trunk; tune thresholds from the numbers; README | report published; every metric in 2.7 has before/after |
 
-## 4. Decisions I need from you
+## 4. Status (updated 2026-09-07)
+
+| Phase | State | Evidence |
+|---|---|---|
+| 0 bench | landed (1316d88) | `bench/` runner, LedgerLite fixture, 14 tasks, 10 hidden test sets; `selfcheck.mjs` proves every hidden set fails on the untouched fixture; trunk baseline: 6 fast tasks recorded, 8 heavier tasks pending re-run after the session-limit failures |
+| 1 kernel | landed (4bc24a2) | `harness` CLI: admit, new, list, state, set, next, preflight, verify, route, review-summary, cost, find-verdict; 23 kernel tests |
+| 2 contract | landed (d8d4f90) | CLAUDE.md 1.5 KB; 4 rules; 4 agents ≤120 lines; 14 skills with step files; budgets test green |
+| 3 hooks | landed (c563f09) | 9 hooks, 7 hook tests, all under 200 ms cold; ledger v2 rows verified in a bench run |
+| 4 UX | landed with 3 | gate packets in the lane skills, `/resuming`, `/inspecting`, `statusline.mjs`; notifications are in the step files |
+| 5 bench head-to-head | in progress | rework smoke on `fast-01`: PASS, $1.69 vs trunk $2.15, cache 96%, TTFR 70 s vs 49 s; full comparison waits on the trunk baseline re-run |
+
+Decisions taken during the build, beyond the plan: the kernel carries no runtime dependency (`yaml-lite` instead of a YAML package) so it can be copied into any host project; `harness set` and `harness review-summary` were added because the lane skills needed them; `guard.bash` and the drive-evidence classifier are kept from trunk because they were tested and correct; the bench routes permission prompts to an auto-approving MCP tool and counts them as interruptions instead of letting headless mode deny them.
+
+## 5. Decisions I need from you
 
 1. **Fixture repo for the bench.** Recommended: a small TypeScript service I create inside `bench/fixture/` (fast to run, portable). Alternative: a slice of the .NET host project (closer to real work, slower and needs dotnet on the bench machine).
 2. **Consultant folded into a main-session skill.** Recommended for latency. Alternative: keep it as a fifth agent.
