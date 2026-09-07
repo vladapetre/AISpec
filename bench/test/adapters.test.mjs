@@ -11,6 +11,8 @@ test("trunk gate detection sees the lead's own wording, not only the developer b
   assert.equal(trunk.gate("## Expedited — fix\n\nDone. Files: a", {}).isGate, false);
   assert.equal(trunk.gate("## Phase 3 Stalled — cannot satisfy T-3.2", {}).isGate, false);
   assert.equal(trunk.gate("Result: ASK: which port should the server use?", { answer: "8090" }).reply, "8090");
+  const prose = "Still waiting on your decision about the Phase 2 runtime drive. Nothing has changed since my last message: grant the drive, allowlist `npm start` and `curl`, or gate Phase 2 on tests alone.";
+  assert.deepEqual(trunk.gate(prose, {}), { isGate: true, kind: "ask", reply: "Proceed with your recommended option; do not ask again unless blocked." });
 });
 
 test("rework gate detection reads bracket options and lane headings", () => {

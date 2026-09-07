@@ -32,6 +32,8 @@ const GATES = [
   { kind: "approval", re: /\bReply\s+`?approved`?|waiting for your\s+`?approved`?|awaiting\s+(your\s+)?`?approved`?|reply\s+`?approved`?\s+(or|,)|\bapproved through\b/i },
   { kind: "approval", re: /^## Phase \d+ Complete/m },
   { kind: "ask", re: /^\s*Result:\s*ASK:/m },
+  // the lead asking in prose (seen live: "Still waiting on your decision about the Phase 2 runtime drive")
+  { kind: "ask", re: /\bwaiting (on|for) your (decision|answer|reply|input|go-ahead)\b|\bwhich (do|would) you prefer\b|\byour decision\b.*\?/i },
   { kind: "paused", re: /^\s*PAUSED\b/m },
   { kind: "irreversible", re: /\[IRREVERSIBLE\][^\n]*\b(confirm|confirmation)\b/i },
   { kind: "stalled", re: /^## Phase \d+ Stalled/m },
