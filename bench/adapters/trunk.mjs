@@ -28,6 +28,9 @@ export function install(repo, harnessRoot) {
 
 const GATES = [
   { kind: "approval", re: /Requesting approval from:\s*USER/ },
+  // the team lead's own wording at a phase gate (the developer block is not re-quoted)
+  { kind: "approval", re: /\bReply\s+`?approved`?|waiting for your\s+`?approved`?|awaiting\s+(your\s+)?`?approved`?|reply\s+`?approved`?\s+(or|,)|\bapproved through\b/i },
+  { kind: "approval", re: /^## Phase \d+ Complete/m },
   { kind: "ask", re: /^\s*Result:\s*ASK:/m },
   { kind: "paused", re: /^\s*PAUSED\b/m },
   { kind: "irreversible", re: /\[IRREVERSIBLE\][^\n]*\b(confirm|confirmation)\b/i },
