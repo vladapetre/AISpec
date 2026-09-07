@@ -1,99 +1,68 @@
-# Template: Strategic Decision Record (SDR)
-
-**Artifact path:** `artifacts/strategy/decisions/NNNNN-<derived-short-title>.md`
-
-NNNNN is a zero-padded 5-digit integer, incremented from the highest existing SDR number in `artifacts/strategy/decisions/`. If no SDRs exist yet, start at `00001`. SDR numbering is **independent** of tactical ADR numbering; do not share counters.
-
-Re-scan `artifacts/strategy/decisions/` for the highest number **immediately before writing the file**. If the target filename already exists when you go to write it, increment and retry up to 3 times. After 3 collisions, stop and surface the conflict to the user.
-
+---
+kind: sdr
+title: "[REPLACE: decision as a noun phrase]"
+date: "[REPLACE: YYYY-MM-DD]"
+audience: stakeholder
+sources: []
+# sources: every report, charter, ticket or URL the decision draws on, one quoted string each
+confidence: high
+# confidence: high | medium | low
 ---
 
-## Caps and overflow
+# SDR-[REPLACE: NNNNN]: [REPLACE: title]
 
-Mirrors the tactical-ADR caps with strategic-specific framing:
+<!-- location: this work item's directory, or artifacts/<kind>/NNNNN-<short-title>.md. NNNNN is a zero-padded 5-digit sequence, independent of any tactical ADR counter; scripts/filename.mjs derives it. Re-derive immediately before writing; on a collision retry up to 3 times, then stop and surface it. -->
+<!-- cap: at most 400 lines excluding fenced code. Past 400, split into two SDRs linked by Supersedes lines. -->
+<!-- IDs: D-### for sub-decisions (only when one SDR truly holds several decisions; prefer one per SDR), RISK-### under Consequences, TF-### under Tactical follow-up. Zero-padded, encounter order, never renumbered after publication; withdraw with [withdrawn] and keep the ID. Cross-artifact reference: <short-title>#TF-003. Severity tags: critical | major | minor | pre-existing -->
 
-| Field | Cap | Overflow path |
-|---|---|---|
-| Total body | **≤400 lines** (excluding fenced code blocks) | Past 400, split the decision into two SDRs linked by `**Supersedes / supersedes:**` headers, or move the deep portfolio reasoning to a sibling strategy note under `artifacts/strategy/notes/`. |
-| `## Consequences` per side (`Gains` / `Costs` / `Risks`) | **≤7 bullets per side** | Past 7, the decision is unsettled: consolidate or move the long tail to a sibling note with `(more in <note>.md)` on the last bullet. |
-| `## Alternatives Considered` | **≤5 alternatives** | Past 5, the exploration belongs in an analyst report: link the report under `## Context`. |
-| `## Tactical follow-up` | **≤10 `[TACTICAL DESIGN NEEDED]` items** | Past 10, the SDR is doing too much: split the decision into multiple SDRs, each with its own tactical follow-up list. |
-
----
-
-## Identifiers
-
-The SDR slug (`SDR-NNNNN`) is the primary identifier. For risks, tactical-follow-up items, and (rarely) multiple sub-decisions inside one SDR, the typed-ID convention applies.
-
-- **D-###**: sub-decisions inside an SDR. Use only when the SDR genuinely captures more than one strategic decision; prefer one decision per SDR.
-- **RISK-###**: entries under `## Consequences > Risks`.
-- **TF-###**: entries under `## Tactical follow-up`. The architect cites these in the tactical ADRs that resolve them.
-- Numbering: zero-padded to 3 digits, encounter order, dense at first write, sparse after edits.
-- **Stability:** never re-number after publication. To withdraw an entry, append `[withdrawn]` and leave the ID in place. The architect's tactical ADRs cite these IDs in `## Context`; a re-numbered `TF-###` silently breaks those references and is a critical violation.
-- Cross-artifact references use the form `<sdr-short-title>#<ID>` (e.g. `regional-expansion#TF-003`). The short-title is the SDR filename without the numeric prefix and `.md` extension.
-- Severity tags follow the report.md severity table (`critical | major | minor | pre-existing`) and sit in square brackets after the ID.
-
----
-
-## File template
-
-```
-# SDR-NNNNN: Title
-
-**Status:** Proposed | Ratified | Superseded by SDR-XXXXX
-**Date:** YYYY-MM-DD
-**Affected contexts:** comma-separated context names (must each have a charter)
+**Status:** [REPLACE: Proposed | Ratified | Superseded by SDR-NNNNN]
+**Affected contexts:** [REPLACE: context names; each must have a charter]
 
 ## Context
-What forced this strategic decision. State the business driver in plain language. 2 to 4 sentences. Cite the constraint, deadline, stakeholder ask, or competitive pressure that made this a strategic choice rather than a tactical one.
+<!-- required -->
+<!-- 2 to 4 sentences. State the business driver in plain language: the constraint, deadline, stakeholder ask or competitive pressure that makes this strategic rather than tactical. -->
+[REPLACE: what forced this decision]
 
 ## Decision
-One paragraph. The chosen direction and why it serves the business. Frame the choice in strategic terms (which subdomain to invest in, which boundary to draw, which relationship pattern to adopt, which capability to build/buy/outsource), not in implementation terms.
+<!-- required -->
+<!-- one paragraph. The chosen direction in strategic terms (which subdomain to invest in, which boundary to draw, which relationship pattern, build / buy / outsource), never in implementation terms. -->
+[REPLACE: the decision and why it serves the business]
 
-## Subdomain & investment implications
-**Subdomain affected:** name + Core | Supporting | Generic.
-**Investment shift:** what changes about where engineering effort goes. State both the increase and the decrease; strategic decisions reallocate, they do not only add.
+### D-001 [REPLACE: sub-decision title]
+<!-- optional: the SDR captures more than one strategic decision -->
+[REPLACE: one paragraph]
+
+## Subdomain and investment implications
+<!-- required -->
+**Subdomain affected:** [REPLACE: name, Core | Supporting | Generic]
+**Investment shift:** [REPLACE: where effort increases and where it decreases; name both]
 
 ## Consequences
-**Gains:** 2 to 4 bullets stating what improves at the business / portfolio level.
-**Costs:** 2 to 4 bullets stating what gets harder, more expensive, or more constrained.
-**Risks:** 2 to 4 bullets, each led by `**RISK-###** [<severity>]`, each stating what could go wrong plus one mitigation.
+<!-- required -->
+<!-- 2 to 4 bullets per side, at most 7. Past 7 the decision is unsettled: consolidate, or move the tail to a sibling note and cite it on the last bullet. -->
+**Gains:**
+- [REPLACE: what improves at the business or portfolio level]
+
+**Costs:**
+- [REPLACE: what gets harder, more expensive or more constrained]
+
+**Risks:**
+- **RISK-001** [[REPLACE: severity]] [REPLACE: what could go wrong]. Mitigation: [REPLACE: one mitigation]
 
 ## Context-map impact
-Which relationships on the context map change as a result. Reference the map by path: `artifacts/strategy/context-maps/<scope>.md`. If a new relationship is introduced or an existing one changes pattern (e.g., Conformist → Anticorruption Layer), name it explicitly. If the map needs a revision to reflect this SDR, say so under [TACTICAL DESIGN NEEDED] (see below).
+<!-- required -->
+<!-- name every relationship that changes, with its pattern before and after (Conformist to Anticorruption Layer). Cite the map by path. If the map needs a revision, add a TF item below. -->
+[REPLACE: relationships added or changed, or "No change to the context map."]
 
-## Alternatives Considered
-### Alternative: name
-Ruled out because: one sentence citing the business reason (not the implementation difficulty).
+## Alternatives considered
+<!-- required -->
+<!-- at most 5. Past 5, the exploration belongs in an analyst report: cite it under Context. -->
+### Alternative: [REPLACE: name]
+Ruled out because: [REPLACE: one sentence citing the business reason, not implementation difficulty]
 
 ## Tactical follow-up
-Items the architect agent must turn into tactical ADRs or plans. Each item is a bullet led by `**TF-###** [TACTICAL DESIGN NEEDED]`. If none, write `None.`
-```
+<!-- required -->
+<!-- at most 10 items the architect must turn into design records. Past 10, split the SDR. Write "None." when there are none. -->
+- **TF-001** [TACTICAL DESIGN NEEDED] [REPLACE: what the architect must design]
 
----
-
-## Memory format
-
-**Memory directory:** `.claude/agent-memory/consultant`
-**Index file:** `.claude/agent-memory/consultant/MEMORY.md`
-**Memory file path:** `.claude/agent-memory/consultant/sdr-NNNNN-<derived-short-title>.md`
-
-```
----
-name: sdr-NNNNN-<derived-short-title>
-description: <one sentence, used to judge relevance in future sessions>
-metadata:
-  type: project
----
-SDR-NNNNN chose <strategic direction> for <subdomain/contexts>.
-**Why:** <the business driver, not the technical reason>.
-**How to apply:** <what future strategic and tactical decisions this constrains>.
-**Tactical follow-up:** <one-line summary of any [TACTICAL DESIGN NEEDED] items, or "none">.
-**Artifacts:** artifacts/strategy/decisions/NNNNN-<derived-short-title>.md
-```
-
-**Index entry.** Append one line to `MEMORY.md`:
-
-```
-- [SDR-NNNNN: Title](sdr-NNNNN-<derived-short-title>.md): <one-line hook>
-```
+<!-- strip every [REPLACE] and every <!-- --> comment before writing -->

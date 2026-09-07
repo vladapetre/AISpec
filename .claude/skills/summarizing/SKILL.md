@@ -2,85 +2,42 @@
 name: summarizing
 disable-model-invocation: true
 description: >
-  Summarize the session's work into the repository's pull-request template,
-  hard-capped at 4000 characters, delivered as copy-paste-ready markdown. Finds
-  the PR template in the working repo — or, in an umbrella repository, in each
-  touched sub-repo — fills it from the feature branch's commits plus the
-  session's plan/ADR artifacts, ticks applicable checklist items, and verifies
-  the character count mechanically before delivering. User-invoked only
-  (`/summarizing`) — never triggered automatically, since the PR description
-  should be written when you decide the branch is done, not when a turn happens
-  to look final.
+  Summarize the session's work into the repository's pull-request template, at most 4000
+  characters, as copy-paste-ready Markdown: finds the template in the repo (or in each touched
+  sub-repo of an umbrella), fills it from the branch's commits and the work item's record and
+  verdicts, ticks the checklist items the evidence supports, and counts characters mechanically
+  before delivering. Use when the user says "write the PR description", "summarize this
+  branch", "PR body", or `/summarizing [branch or repo hint]`. User-invoked only: the PR
+  description is written when the user decides the branch is done.
+user-invocable: true
 ---
 
-# Skill: summarizing
+# Summarizing
 
-Turns a session's work into a pipeline-ready PR description: template-shaped, evidence-based, ≤4000 characters (hard limit — the pipeline software rejects longer bodies).
+Input: `$ARGUMENTS`, an optional branch, sub-repo path or work id. Empty: scope from the session's open work item; several unrelated branches → ask which.
 
-**Shape:** linear. Standalone via `/summarizing [branch or repo hint]`.
+## Repositories
 
----
+`.claude/branching/manifest.yaml` present → umbrella: candidates are its repos, kept when the session touched their feature branch (`harness state <id>` records `branch`; `git -C <repo> worktree list` confirms). No manifest → probe once for two or more nested repos under `src/`; otherwise the project root. One summary per touched repo, each independently under 4000 characters, labelled.
 
-## User input
+## Template, first match wins
 
-```text
-$ARGUMENTS
-```
+1. `.azuredevops/pull_request_template.md` (any case); 2. `.azuredevops/pull_request_template/*.md` (several → `default.md`, else ask); 3. `.github/PULL_REQUEST_TEMPLATE.md` or lowercase; 4. `.github/PULL_REQUEST_TEMPLATE/*.md` (same rule); 5. `PULL_REQUEST_TEMPLATE.md` at the root or under `docs/`; 6. none → the fallback skeleton `## Summary`, `## Changes`, `## Testing & Verification`, `## Risks / Rollback`, and say "no PR template found".
 
-Optional: a branch name, sub-repo path, or plan reference to scope the summary. Empty → scope from the current session (see step 2).
+Keep every heading and required checklist item; tick `- [x]` only what the evidence satisfies; never delete or invent items. Strip HTML comments. Fill placeholders (`{ticket}`, `[JIRA-ID]`) from the branch name or the work item; leave the unresolvable ones visibly unfilled.
 
----
+## Sources, in priority order
 
-## Repository resolution (umbrella-aware)
+1. Git, the ground truth: `git -C <repo> log <default>..HEAD --oneline` and `git -C <repo> diff <default>...HEAD --stat`. Uncommitted work is named as such, never claimed.
+2. The work item: `work/<id>/order.md` or `design.md` decisions, `verdicts.jsonl` (phase blocks carry tests, lint, verification; the reviewer's `APPROVED`), `report.md` hooks.
+3. The conversation, for user rulings and deferred items the files do not carry.
 
-1. `.claude/branching/manifest.yaml` exists → umbrella. Candidate repos = manifest entries; keep those whose feature branch/worktree the session touched (worktree paths recorded in the developer's per-plan progress file, or `git -C <repo> worktree list`).
-2. No manifest → probe once: ≥2 nested git repos under `src/` → umbrella (scan those); otherwise single repo (the project root).
-3. **One summary per touched repo** — a PR is per-repo. Multiple touched repos → produce one filled template per repo, each independently ≤4000 chars, clearly labelled.
+Write for the PR reviewer: what changed, why, how it was verified, what is deliberately out of scope. Cite verdicts factually ("cumulative review APPROVED, 12/12 criteria PASS"). Failed or skipped tests are stated.
 
-## Template discovery (per repo, first match wins)
+## Character limit, mechanical
 
-| Order | Location |
-|---|---|
-| 1 | `.azuredevops/pull_request_template.md` (any case) |
-| 2 | `.azuredevops/pull_request_template/*.md` — multiple → use `default.md`, else ask which |
-| 3 | `.github/PULL_REQUEST_TEMPLATE.md` / `.github/pull_request_template.md` |
-| 4 | `.github/PULL_REQUEST_TEMPLATE/*.md` — multiple → use `default.md`, else ask which |
-| 5 | `PULL_REQUEST_TEMPLATE.md` / `pull_request_template.md` at repo root or under `docs/` |
-| 6 | None found → use the fallback skeleton: `## Summary`, `## Changes`, `## Testing & Verification`, `## Risks / Rollback`, and note "no PR template found — used fallback structure" |
+Write the body to the scratchpad as `pr-summary-<repo>.md`; `tr -d '\r' < <file> | wc -m`. Over 4000: trim in order (a) prose in Changes bullets to one line each, (b) commit-list tails ("+N more"), (c) Risks and out-of-scope to one line each; never headings, required checklist items, the Summary paragraph, or verification evidence. Re-count until under.
 
-Template handling rules:
-- **Keep every heading and required checklist item** — the template is the pipeline's contract. Tick (`- [x]`) items the session's evidence actually satisfies; leave the rest unticked; never delete or invent checklist items.
-- **Strip HTML guidance comments** (`<!-- … -->`) — they are instructions to the author, and they eat the character budget.
-- Placeholder tokens (`{ticket}`, `[JIRA-ID]`, …) → fill from the plan/ADR/branch name (RC-#### style keys are usually in the branch or plan title); unresolvable → leave the placeholder visibly unfilled rather than guessing.
+## Deliver
 
-## Summary sources (priority order)
-
-1. **Git evidence (ground truth):** in each touched repo, `git -C <repo> log <default-branch>..HEAD --oneline` and `git -C <repo> diff <default-branch>...HEAD --stat` on the feature branch (default branch per the manifest, else `origin/HEAD`). Note uncommitted work explicitly — a PR body must not claim uncommitted changes.
-2. **Session artifacts:** the plan's phase summaries and `**Verification:**` fields, the governing ADR's decision bullets, reviewer verdicts (cross-check, cumulative), analyst report hooks. These supply the *why* and the test/verification evidence.
-3. **The conversation itself** — for context the artifacts don't carry (user rulings, deferred items).
-
-Write for the PR reviewer, not the pipeline: what changed, why, how it was verified, what is deliberately out of scope. Cite verdicts factually ("cumulative review APPROVED, 21/21 AC PASS") — never claim a verification that didn't happen; if tests failed or were skipped, say so.
-
-## Character-limit enforcement (mechanical, never eyeballed)
-
-1. Write the draft body to the scratchpad as `pr-summary-<repo>.md`.
-2. `wc -m <file>` → character count (counts characters, multibyte-safe). The count covers the PR **body only** — not the delivery fence.
-3. Over 4000 → trim in this priority order and re-count (loop until under): (a) prose detail in Changes bullets — keep one line per change; (b) commit-list tails ("+ N more commits"); (c) Risks/out-of-scope elaboration — keep one line each; (d) NEVER trim: template headings, required checklist items, the Summary paragraph, verification evidence.
-4. Record the final count; deliver only when ≤4000.
-
-## Steps (standalone invocation)
-
-1. Resolve scope: `$ARGUMENTS` hint wins; else the session's active plan/feature branch; genuinely ambiguous (multiple unrelated branches this session) → ask which.
-2. Resolve repos (umbrella-aware, above). No touched repo with commits → report "nothing to summarize on <branch>" and stop.
-3. Per repo: discover the template, gather the summary sources, fill the template.
-4. Enforce the 4000-character limit mechanically (above).
-5. Deliver each filled template in a fenced markdown block (` ```markdown … ``` `) so it copy-pastes raw, prefixed by one line: repo, branch, template used, final character count. The fenced block is the deliverable — no commentary inside it.
-
----
-
-## Bundled resources
-
-```
-.claude/skills/summarizing/
-  SKILL.md    this file
-```
+One line per repo: repo, branch, template used, final count. Then the filled template in a ```markdown fence with nothing else inside it.

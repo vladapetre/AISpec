@@ -12,6 +12,15 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, appendFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { frontmatter, parse, stringify } from "./yaml-lite.mjs";
+import { execFileSync } from "node:child_process";
+
+function gitHead(root) {
+  try {
+    return execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return null;
+  }
+}
 
 export const LANES = ["fast", "order", "design", "research"];
 export const STATUSES = ["open", "blocked", "done", "abandoned"];
@@ -86,7 +95,7 @@ export function validateState(s) {
     if (typeof s.created !== "string") errors.push("created missing");
     if (s.status === "blocked" && !s.blocked_reason) errors.push("blocked without blocked_reason");
     for (const k of Object.keys(s)) {
-      if (!["id", "lane", "title", "status", "created", "updated", "blocked_reason", "branch", "run_through", "source"].includes(k)) errors.push(`unknown field ${k}`);
+      if (!["id", "lane", "title", "status", "created", "updated", "blocked_reason", "branch", "run_through", "source", "base"].includes(k)) errors.push(`unknown field ${k}`);
     }
   }
   if (errors.length) throw new Error(`invalid state: ${errors.join("; ")}`);
@@ -99,6 +108,8 @@ export function createWork({ lane, title, id, source = null, root = projectRoot(
   if (existsSync(join(workDir(wid, root), "state.yaml"))) throw new Error(`work item ${wid} already exists`);
   const state = { id: wid, lane, title, status: "open", created: now.toISOString(), updated: now.toISOString() };
   if (source) state.source = source;
+  const base = gitHead(root);
+  if (base) state.base = base;
   writeState(state, root);
   mkdirSync(join(workDir(wid, root), "phases"), { recursive: true });
   return state;

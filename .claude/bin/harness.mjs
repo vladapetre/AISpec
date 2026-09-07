@@ -6,21 +6,24 @@
 //   harness new --lane <fast|order|design|research> --title "<title>" [--id <slug>] [--source <ref>]
 //   harness list
 //   harness state <id>
+//   harness set <id> status=<open|blocked|done|abandoned> [blocked_reason="<why>"] [branch=<name>] [title="<t>"]
 //   harness next <id>
 //   harness preflight <id>
 //   harness verify <id> <phase> [--no-tests]
 //   harness route <id> --verdict "<TOKEN>" --agent <name> [--phase N] [--scope cumulative|checkpoint|crosscheck] [--through N] [--reason "<why>"]
+//   harness review-summary <id> [--base <commit>]
 //   harness cost [--session <id>] [--work <id>]
 //   harness find-verdict --text "<block>"
 //
 import { readFileSync } from "node:fs";
 import { admit } from "../lib/admit.mjs";
-import { createWork, deriveState, listWork, projectRoot } from "../lib/work.mjs";
+import { createWork, deriveState, listWork, projectRoot, readState, writeState } from "../lib/work.mjs";
 import { next } from "../lib/next.mjs";
 import { preflight } from "../lib/preflight.mjs";
 import { verify } from "../lib/verify.mjs";
 import { route, findVerdict } from "../lib/route.mjs";
 import { cost } from "../lib/cost.mjs";
+import { reviewSummary } from "../lib/review.mjs";
 
 function parse(argv) {
   const pos = [];
@@ -77,6 +80,22 @@ function main(argv) {
       out(deriveState(rest[0], root), opt);
       return 0;
     }
+    case "set": {
+      // harness set <id> status=done | status=blocked blocked_reason="why" | branch=feat/x | title="..."
+      if (!rest[0] || rest.length < 2) throw new Error('set needs <id> and key=value pairs (status, blocked_reason, branch, title, run_through)');
+      const st = readState(rest[0], root);
+      for (const kv of rest.slice(1)) {
+        const m = kv.match(/^([a-z_]+)=(.*)$/);
+        if (!m) throw new Error(`bad assignment ${kv}`);
+        if (!["status", "blocked_reason", "branch", "title", "run_through"].includes(m[1])) throw new Error(`field ${m[1]} is not settable`);
+        if (m[2] === "") delete st[m[1]];
+        else st[m[1]] = m[1] === "run_through" ? Number(m[2]) : m[2];
+      }
+      if (st.status !== "blocked") delete st.blocked_reason;
+      writeState(st, root);
+      out({ ...st, next: next(st.id, root) }, opt, (v) => `${v.id}: status ${v.status}${v.blocked_reason ? " (" + v.blocked_reason + ")" : ""} · next: ${v.next.action}`);
+      return 0;
+    }
     case "next": {
       if (!rest[0]) throw new Error("next needs <id>");
       out(next(rest[0], root), opt, (v) => `${v.action} · ${v.actor ?? "-"}${v.phase ? ` · phase ${v.phase}` : ""} · ${v.detail}${v.options.length ? ` · ${v.options.join(" · ")}` : ""}`);
@@ -98,6 +117,12 @@ function main(argv) {
       if (!rest[0] || !opt.verdict || !opt.agent) throw new Error("route needs <id> --verdict <TOKEN> --agent <name>");
       const r = route({ id: rest[0], verdict: String(opt.verdict), agent: String(opt.agent), phase: opt.phase ? Number(opt.phase) : undefined, scope: opt.scope, through: opt.through ? Number(opt.through) : undefined, reason: opt.reason, root });
       out(r, opt, (v) => `${v.verdict} applied (${v.applied.join(", ") || "recorded"}) · next: ${v.next.action} by ${v.next.actor ?? "-"}${v.next.phase ? ` · phase ${v.next.phase}` : ""}`);
+      return 0;
+    }
+    case "review-summary": {
+      if (!rest[0]) throw new Error("review-summary needs <id>");
+      const r = reviewSummary(rest[0], { root, base: opt.base });
+      out(r, opt, (v) => `${v.size} · ${v.changed_files.length} file(s), +${v.lines_added}/-${v.lines_removed} · frameworks ${v.frameworks.join(",") || "-"} · concerns ${v.concerns.join(",") || "-"} · security ${v.security_path ? "yes" : "no"} · base ${v.base.slice(0, 8)}`);
       return 0;
     }
     case "cost": {

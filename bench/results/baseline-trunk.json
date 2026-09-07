@@ -1,0 +1,696 @@
+{
+  "manifest": {
+    "harness": "trunk",
+    "harness_root": "D:\\workspace\\github\\AISpec",
+    "harness_commit": "18adac4",
+    "harness_dirty": false,
+    "fixture_hash": "126e6405aec0",
+    "claude_version": "2.1.263 (Claude Code)",
+    "node_version": "v20.11.1",
+    "effort_level": "high",
+    "permission_mode": "acceptEdits",
+    "allowed_tools": [
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(echo *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git rev-parse*)",
+      "Bash(git ls-files*)",
+      "Bash(git blame*)"
+    ],
+    "runs_per_task": 1,
+    "started": "2026-09-07T10:25:40.166Z"
+  },
+  "records": [
+    {
+      "task": "fast-01-pagination",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:25:40.770Z",
+      "session_ids": [
+        "42891543-fe1d-4b37-a882-3673ddf1573b"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 1,
+      "turns": 34,
+      "cost_usd": 2.1484170000000002,
+      "usage": {
+        "input_tokens": 386,
+        "cache_read_input_tokens": 1128788,
+        "cache_creation_input_tokens": 71748,
+        "output_tokens": 8548
+      },
+      "api_ms": 149280,
+      "wall_ms": 250728,
+      "tool_calls": 33,
+      "tool_counts": {
+        "Read": 9,
+        "Grep": 4,
+        "Glob": 5,
+        "Edit": 2,
+        "Bash": 9,
+        "Write": 1,
+        "ToolSearch": 1,
+        "TaskStop": 2
+      },
+      "reads": 9,
+      "unique_reads": 9,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 48665,
+      "first_tool_ms": 11746,
+      "first_reviewable_ms": 48665,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "## Expedited — invoice list pagination offset\n\n`GET /invoices?page=1&size=2` now returns the two newest invoices; page N starts at item `(N-1) * size`.\n\n**Gate:** passed (no design decision · 1 repo, 2 files · no security path · reversible · no open plan)\n**Files changed:**\n- `src/http/handlers.ts` — offset is `(page - 1) * size` instead of `page * size`\n- `test/router.test.ts` — the size-limit test moves from `page=0` to `page=1`; two new unit tests assert page 1 returns INV-1005, INV-1004 and page 2 returns INV-1003, INV-1002 against the five-invoice seed\n\n**Decisions made:** `page=0` and negative pages are left unvalidated, as before. With the new offset, `page=0` yields a negative slice start and returns the last `size` items, which is odd but out of scope for this fix.\n**Tests:** `npm test` → 22 passed (5 files); `npm run lint` (tsc noEmit) → clean. Pre-existing failures: none\n**Verification:** booted `node --loader ts-node/esm src/main.ts` on port 18092 against `data/invoices.json` (6 invoices). `GET /invoices?page=1&size=2` → INV-1006, INV-1005; `GET /invoices?page=2&size=2` → INV-1004, INV-1003; `total: 6` on both.\n**Craft lint:** clean (0 errors, 0 candidates)\n**Not done:** validation of `page < 1`, and the README if it documents `page=0` anywhere. Nothing is committed; the diff above is in the working tree awaiting your approval.\n\nSeparately: want `page=0` (or anything below 1) to return a 400 next?"
+      ],
+      "error": null,
+      "prompts": 3,
+      "cache_hit_ratio": 0.9399,
+      "tokens_total": 1209470,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "src/http/handlers.ts",
+        "test/router.test.ts"
+      ],
+      "lines_added": 19,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 22,
+          "failed": 0,
+          "total": 22,
+          "error": null
+        },
+        "hidden": {
+          "passed": 3,
+          "failed": 0,
+          "total": 3,
+          "error": null
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "22/22 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "3/3 passed"
+          },
+          {
+            "name": "grep:src/http/handlers.ts:page \\* size, \\(page \\+ 1\\) \\* size",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:29:54.855Z",
+      "run_dir": null
+    },
+    {
+      "task": "fast-02-config-guard",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:29:55.405Z",
+      "session_ids": [
+        "23a5e0d5-15ee-452b-8460-1b42ca4b21c2"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 23,
+      "cost_usd": 1.6470002500000003,
+      "usage": {
+        "input_tokens": 194,
+        "cache_read_input_tokens": 537441,
+        "cache_creation_input_tokens": 61560,
+        "output_tokens": 5590
+      },
+      "api_ms": 89913,
+      "wall_ms": 97869,
+      "tool_calls": 22,
+      "tool_counts": {
+        "Read": 7,
+        "Grep": 3,
+        "Glob": 3,
+        "Edit": 1,
+        "Write": 1,
+        "Bash": 7
+      },
+      "reads": 7,
+      "unique_reads": 7,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 50236,
+      "first_tool_ms": 10356,
+      "first_reviewable_ms": 50236,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "## Expedited — config server-block fallback\n\n`loadConfig()` now returns `DEFAULT_CONFIG` values for a missing or partial `server` block instead of throwing, matching how `listing`, `tax` and `storage` were already handled.\n\n**Gate:** passed (no design decision · 1 repo, 2 files · no security path · reversible · no open plan)\n**Files changed:**\n- `src/config.ts` — `raw.server!.port` / `raw.server!.host` replaced with optional chaining plus `??` fallback to `DEFAULT_CONFIG.server`\n- `test/config.test.ts` — new: empty-object file yields `DEFAULT_CONFIG` exactly; partial `server` block fills only the missing field; explicit values win over defaults\n\n**Decisions made:** the test writes a temp `config.json` under `os.tmpdir()` the same way `repository.test.ts` does, since `loadConfig` takes a path and there is no separate pure merge step to test in isolation. Passed `{}` as `env` so a `PORT` in the shell cannot leak into the assertions.\n**Tests:** `npm test` → 6 files, 23 tests passed (3 new). `npm run lint` (tsc --noEmit) → clean. Pre-existing failures: none.\n**Verification:** `node --loader ts-node/esm -e \"…loadConfig('<tmp>/ledgerlite-empty-config.json', {})\"` against a file containing `{}` → `{\"server\":{\"port\":8080,\"host\":\"127.0.0.1\"},\"listing\":{…20/100},\"tax\":{\"ratePercent\":7},\"storage\":{\"file\":\"data/invoices.json\"}}`. The same call with `PORT=8123` in the env still overrides the port to 8123.\n**Craft lint:** clean (0 errors, 0 candidates over the working tree).\n**Not done:** `data/config.json` itself is unchanged and still carries a full `server` block. Nothing is committed; the diff is in the working tree waiting for your approval."
+      ],
+      "error": null,
+      "prompts": 2,
+      "cache_hit_ratio": 0.8969,
+      "tokens_total": 604785,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "src/config.ts",
+        "test/config.test.ts"
+      ],
+      "lines_added": 40,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 23,
+          "failed": 0,
+          "total": 23,
+          "error": null
+        },
+        "hidden": {
+          "passed": 3,
+          "failed": 0,
+          "total": 3,
+          "error": null
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "23/23 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "3/3 passed"
+          },
+          {
+            "name": "grep:src/config.ts:raw\\.server!",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/http/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:31:36.596Z",
+      "run_dir": null
+    },
+    {
+      "task": "fast-03-rename",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:31:37.538Z",
+      "session_ids": [
+        "2272e9f1-2834-42b8-a1c3-b4aaf80fc1bc"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 17,
+      "cost_usd": 1.34404625,
+      "usage": {
+        "input_tokens": 130,
+        "cache_read_input_tokens": 355025,
+        "cache_creation_input_tokens": 55452,
+        "output_tokens": 2899
+      },
+      "api_ms": 51660,
+      "wall_ms": 59074,
+      "tool_calls": 16,
+      "tool_counts": {
+        "Read": 5,
+        "Grep": 2,
+        "Glob": 2,
+        "Edit": 3,
+        "Bash": 4
+      },
+      "reads": 5,
+      "unique_reads": 5,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 32415,
+      "first_tool_ms": 11741,
+      "first_reviewable_ms": 32415,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "## Expedited — rename applyStuff\n\n`applyStuff` is now `subtotalAndDiscount`, named for the two values it returns; behaviour is unchanged.\n\n**Gate:** passed (no design decision · 1 repo, 3 files · no security path · reversible · no open plan)\n**Files changed:**\n- `src/domain/pricing.ts` — function declaration renamed\n- `src/domain/invoice.ts` — import and the call in `computeTotals` updated\n- `test/pricing.test.ts` — import and three call sites updated\n\n**Decisions made:** chose `subtotalAndDiscount` over a verb form like `computeSubtotalAndDiscount`, matching the noun style of the sibling functions `lineSubtotal` and `taxOn`.\n**Tests:** `npx vitest run` → 5 files, 20 tests passed. Pre-existing failures: none. `tsc --noEmit` → clean.\n**Verification:** no drivable surface. A pure function rename has no runtime wiring; the type check proves every reference resolves, and a repo-wide search finds no remaining `applyStuff`.\n**Craft lint:** clean, 0 errors, 0 candidates\nNil: Not done\n\nThe diff is uncommitted in the working tree, seven lines changed across the three files. Approve it and I commit, or tell me a different name."
+      ],
+      "error": null,
+      "prompts": 0,
+      "cache_hit_ratio": 0.8646,
+      "tokens_total": 413506,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "src/domain/invoice.ts",
+        "src/domain/pricing.ts",
+        "test/pricing.test.ts"
+      ],
+      "lines_added": 7,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 20,
+          "failed": 0,
+          "total": 20,
+          "error": null
+        },
+        "hidden": null,
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "20/20 passed"
+          },
+          {
+            "name": "grep:src/**/*.ts:applyStuff",
+            "ok": true,
+            "detail": "10 file(s) scanned"
+          },
+          {
+            "name": "grep:test/**/*.ts:applyStuff",
+            "ok": true,
+            "detail": "5 file(s) scanned"
+          },
+          {
+            "name": "grep:src/domain/pricing.ts:minLines: 25, percent: 10",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/http/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:32:38.288Z",
+      "run_dir": null
+    },
+    {
+      "task": "fast-04-listen-error-log",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:32:38.930Z",
+      "session_ids": [
+        "f1758a0d-1ffd-431e-9450-549c6ea04535"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 14,
+      "cost_usd": 1.36308425,
+      "usage": {
+        "input_tokens": 194,
+        "cache_read_input_tokens": 518017,
+        "cache_creation_input_tokens": 54142,
+        "output_tokens": 2976
+      },
+      "api_ms": 76268,
+      "wall_ms": 88228,
+      "tool_calls": 13,
+      "tool_counts": {
+        "Read": 4,
+        "Glob": 3,
+        "Grep": 1,
+        "Edit": 1,
+        "Bash": 4
+      },
+      "reads": 4,
+      "unique_reads": 4,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 37499,
+      "first_tool_ms": 12277,
+      "first_reviewable_ms": 37499,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "## Expedited — listen error log\n\nA busy port now prints `ledgerlite: address already in use: <host>:<port>` to stderr before the exit; any other listen error prints `ledgerlite: failed to start: <message>`. Exit code stays 1.\n\n**Gate:** passed (no design decision · 1 repo, 1 file · no security path · reversible · no open plan)\n**Files changed:**\n- `src/http/server.ts` — the `error` handler now receives the error, branches on `code === \"EADDRINUSE\"`, and writes one line to `console.error` before `process.exit(1)`\n\n```diff\n-  server.on(\"error\", () => {\n+  server.on(\"error\", (err: NodeJS.ErrnoException) => {\n+    if (err.code === \"EADDRINUSE\") {\n+      console.error(`ledgerlite: address already in use: ${host}:${port}`);\n+    } else {\n+      console.error(`ledgerlite: failed to start: ${err.message}`);\n+    }\n     process.exit(1);\n   });\n```\n\n**Decisions made:** Messages carry a `ledgerlite:` prefix to match the existing startup line's naming. The EADDRINUSE branch uses the `host` and `port` passed to `serve`, not `err.address`, since those are the values the operator configured.\n**Tests:** `npm run lint` → clean. `npm test` → 5 files, 20 tests passed. Pre-existing failures: none.\n**Verification:** Bound a blocker on `127.0.0.1:63943`, then ran `npm start` against that port → exit code 1, stdout empty, stderr `ledgerlite: address already in use: 127.0.0.1:63943`.\n**Craft lint:** clean (0 errors, 0 candidates).\nNil: Not done\n\nThe diff is uncommitted in the working tree. Say the word and I commit it."
+      ],
+      "error": null,
+      "prompts": 0,
+      "cache_hit_ratio": 0.9051,
+      "tokens_total": 575329,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "src/http/server.ts"
+      ],
+      "lines_added": 6,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 20,
+          "failed": 0,
+          "total": 20,
+          "error": null
+        },
+        "hidden": null,
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "20/20 passed"
+          },
+          {
+            "name": "grep:src/http/server.ts:EADDRINUSE",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/http/server.ts:console\\.error",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/http/server.ts:process\\.exit\\(1\\)",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/http/handlers.ts",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/http/router.ts",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:34:08.914Z",
+      "run_dir": null
+    },
+    {
+      "task": "fast-05-page-size-default",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:34:09.509Z",
+      "session_ids": [
+        "fa28e520-2712-4eb7-9e73-4fd00f3fb371"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 1,
+      "turns": 18,
+      "cost_usd": 1.550511,
+      "usage": {
+        "input_tokens": 194,
+        "cache_read_input_tokens": 542724,
+        "cache_creation_input_tokens": 59922,
+        "output_tokens": 4289
+      },
+      "api_ms": 73198,
+      "wall_ms": 82186,
+      "tool_calls": 17,
+      "tool_counts": {
+        "Read": 6,
+        "Grep": 1,
+        "Bash": 6,
+        "Glob": 2,
+        "Edit": 2
+      },
+      "reads": 6,
+      "unique_reads": 6,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 35772,
+      "first_tool_ms": 10727,
+      "first_reviewable_ms": 35772,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "The change is done and verified. The two files are staged (unstaged reset is blocked by the bash guard, so they stay staged for your review; nothing is committed).\n\n## Expedited — invoices default page size 25\n\n`GET /invoices` with no `size` parameter now returns 25 items per page instead of 20.\n\n**Gate:** passed (no design decision · 1 repo, 2 files · no security path · reversible · no open plan)\n**Files changed:**\n- `src/config.ts` — `DEFAULT_CONFIG.listing.defaultPageSize` 20 to 25\n- `data/config.json` — `listing.defaultPageSize` 20 to 25\n\n**Decisions made:** Left `README.md` untouched. Its `/invoices?page=1&size=20` row shows an explicit `size` query parameter, not the default, so it is still accurate.\n**Tests:** `npm test` → 5 files, 20 tests passed. `npm run lint` (tsc --noEmit) → clean. Pre-existing failures: none\n**Verification:** started the server on port 8099 and fetched `GET /invoices` with no `size` → `{\"page\":1,\"size\":25,\"total\":6,\"items\":0}`. The size reflects the new default from `data/config.json`.\n**Craft lint:** clean, 0 errors, 0 candidates\n**Not done:** the drive shows `items: 0` because the handler defaults `page` to 1 but slices zero-based (`page * size`), so page 1 with 6 invoices is empty. Pre-existing, unrelated to this change. Want that fixed next?\n\nDiff for approval:\n\n```diff\n--- a/data/config.json\n-  \"listing\": { \"defaultPageSize\": 20, \"maxPageSize\": 100 },\n+  \"listing\": { \"defaultPageSize\": 25, \"maxPageSize\": 100 },\n--- a/src/config.ts\n-  listing: { defaultPageSize: 20, maxPageSize: 100 },\n+  listing: { defaultPageSize: 25, maxPageSize: 100 },\n```"
+      ],
+      "error": null,
+      "prompts": 1,
+      "cache_hit_ratio": 0.9003,
+      "tokens_total": 607129,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "data/config.json",
+        "src/config.ts"
+      ],
+      "lines_added": 2,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 20,
+          "failed": 0,
+          "total": 20,
+          "error": null
+        },
+        "hidden": {
+          "passed": 2,
+          "failed": 0,
+          "total": 2,
+          "error": null
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "20/20 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "2/2 passed"
+          },
+          {
+            "name": "grep:src/config.ts:defaultPageSize: 25",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:data/config.json:\"defaultPageSize\": 25",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/http/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:35:34.856Z",
+      "run_dir": null
+    },
+    {
+      "task": "fast-06-tax-rounding",
+      "lane_expected": "fast",
+      "harness": "trunk",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-07T10:35:35.518Z",
+      "session_ids": [
+        "e64a0386-8313-4f50-9434-435da4dfc2b4"
+      ],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 19,
+      "cost_usd": 1.4988592499999998,
+      "usage": {
+        "input_tokens": 130,
+        "cache_read_input_tokens": 360357,
+        "cache_creation_input_tokens": 59236,
+        "output_tokens": 4455
+      },
+      "api_ms": 77509,
+      "wall_ms": 86945,
+      "tool_calls": 18,
+      "tool_counts": {
+        "Read": 7,
+        "Glob": 4,
+        "Grep": 1,
+        "Edit": 2,
+        "Bash": 4
+      },
+      "reads": 7,
+      "unique_reads": 7,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": 45951,
+      "first_tool_ms": 10878,
+      "first_reviewable_ms": 45951,
+      "model": "claude-fable-5-1",
+      "terminal": "completed",
+      "texts": [
+        "## Expedited — tax rounding half up\n\nPercentages in `percentOf` now round half up to the nearest cent instead of truncating, so a 19.99 EUR invoice at 7% carries 1.40 tax and a 21.39 total.\n\n**Gate:** passed (no design decision · 1 repo, 2 files · no security path · reversible · no open plan)\n**Files changed:**\n- `src/domain/money.ts` — `Math.floor` replaced with `Math.round` in `percentOf`; doc comment states the rounding rule with the 1999 cents example\n- `test/money.test.ts` — new test covering 1999 at 7% (139.93 to 140), the exact half case 1010 at 5% (50.5 to 51), and a round-down case 1001 at 7% (70.07 to 70)\n\n**Decisions made:** `Math.round` rounds an exact half toward positive infinity, which is \"half up\" in the literal sense. For negative amounts (a credit note) that means -50.5 becomes -50, not -51. Nothing in the code base passes negative amounts today, so this was left as is.\n**Tests:** `npm test` → 5 files, 21 tests passed (money 5, pricing 6 including the three discount ladder cases at 9, 10 and 25 lines). `npm run lint` (tsc --noEmit) → clean. Pre-existing failures: none\n**Verification:** `computeTotals` driven through ts-node with a single 1999 cent line at 7% → `taxCents: 140, totalCents: 2139`. `npm run cli -- show INV-1001` on the real data file → net 88.96 EUR now shows 6.23 tax (622.72 rounded up; the old code gave 6.22), total 95.19 EUR.\n**Craft lint:** `lint.craft.mjs --range HEAD` → clean, 0 errors, 0 candidates\n**Not done:** The discount ladder also runs through `percentOf`, so a discount on a subtotal that is not a whole multiple now rounds half up too. The existing ladder tests use exact multiples and still pass. No commit was made.\nNil: none\n\nThe diff is two files and eight added lines. Waiting for your approval before anything is called done."
+      ],
+      "error": null,
+      "prompts": 1,
+      "cache_hit_ratio": 0.8586,
+      "tokens_total": 424178,
+      "base_sha": "453dfdd78501a6f8d6b2e2355a28cfb62b8762c4",
+      "changed_files": [
+        "src/domain/money.ts",
+        "test/money.test.ts"
+      ],
+      "lines_added": 8,
+      "signals": {
+        "lane": "expedited",
+        "verdicts": [],
+        "route": "expedited:-"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 21,
+          "failed": 0,
+          "total": 21,
+          "error": null
+        },
+        "hidden": {
+          "passed": 4,
+          "failed": 0,
+          "total": 4,
+          "error": null
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "21/21 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "4/4 passed"
+          },
+          {
+            "name": "grep:src/domain/money.ts:Math\\.floor\\(\\(amount \\* ratePercent\\)",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/http/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-07T10:37:05.979Z",
+      "run_dir": null
+    }
+  ]
+}

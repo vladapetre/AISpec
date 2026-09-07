@@ -46,6 +46,16 @@ test("the CLI walks a work item end to end and speaks JSON", () => {
 
   const c = run(root, ["cost"]);
   assert.equal(c.rows, 0);
+
+  const blocked = run(root, ["set", created.id, "status=blocked", "blocked_reason=waiting on PO"]);
+  assert.equal(blocked.next.action, "resolve_block");
+  const reopened = run(root, ["set", created.id, "status=open"]);
+  assert.equal(reopened.blocked_reason, undefined);
+  assert.throws(() => execFileSync("node", [BIN, "set", created.id, "lane=design", "--root", root], { stdio: "pipe" }), /not settable/);
+
+  const rs = run(root, ["review-summary", created.id, "--base", "HEAD"]);
+  assert.equal(rs.size, "small");
+  assert.deepEqual(rs.changed_files, []);
   rmSync(root, { recursive: true, force: true });
 });
 

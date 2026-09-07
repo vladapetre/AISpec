@@ -1,101 +1,51 @@
-# Template: Context Map
-
-**Artifact path:** `artifacts/strategy/context-maps/<scope>.md`
-
-`<scope>` is the derived short title of the scope this map covers. Default scope name is `current` when the map covers the whole system. Use a scoped name (e.g. `payments-subsystem`) only when the map intentionally covers a subset and a `current.md` already exists for the whole system.
-
-One map per scope. If a map for the scope already exists, **update it in place** and append a `## Revision history` entry.
-
+---
+kind: context-map
+title: "[REPLACE: scope]"
+date: "[REPLACE: YYYY-MM-DD]"
+audience: stakeholder
+sources: []
+# sources: every charter, SDR, report or URL the map draws on, one quoted string each
+confidence: high
+# confidence: high | medium | low
 ---
 
-## Caps and overflow
+# Context Map: [REPLACE: Scope]
 
-| Field | Cap | Overflow path |
-|---|---|---|
-| `## Relationships` table rows | **≤25 relationships** | Past 25 the map stops being scannable: split into scoped sub-maps (e.g. `payments-subsystem.md`, `identity-subsystem.md`) and keep `current.md` as the inter-subsystem overview. |
-| `## Contexts in scope` | **≤20 contexts** | Past 20, do the same split. A single map showing 20+ contexts hides the actual integration topology. |
-| `## Diagram` ASCII / Mermaid node count | **≤20 nodes**, matches the contexts cap | Past 20, the diagram is illegible: produce per-subsystem diagrams. |
+<!-- location: this work item's directory, or artifacts/<kind>/<scope>.md. Scope is "current" when the map covers the whole system; use a scoped name (payments-subsystem) only for a deliberate subset when current.md already exists. -->
+<!-- one map per scope. When one exists, update it in place: bump Revision and add a Revision history line. -->
+<!-- IDs: REL-###, zero-padded, encounter order in the table, never renumbered after publication. Withdraw by setting Pattern to Separate Ways with [withdrawn] appended, or remove the row and never reuse the number. Cross-artifact reference: <scope>#REL-004 -->
 
----
-
-## Identifiers
-
-Relationship rows carry stable IDs so SDRs, charters, and the cross-check pass can cite a specific edge in the map without paraphrasing "the Identity → Billing edge".
-
-- **REL-###**: one ID per relationship row. The row's `ID` column shows the value.
-- Numbering: zero-padded to 3 digits, encounter order in the table, dense at first write, sparse after edits.
-- **Stability:** never re-number after the map is published. To withdraw a relationship, set its `Pattern` to `Separate Ways` (or remove the row entirely) and either keep the ID with `[withdrawn]` appended or, if removed, never reuse the number. Re-numbering an `REL-###` cited by an SDR is a critical violation.
-- Cross-artifact references use the form `<scope>#REL-###` (e.g. `current#REL-004`). The scope matches the map filename without `.md`.
-
----
-
-## File template
-
-```
-# Context Map: <Scope>
-
-**Status:** Draft | Ratified
-**Revision:** N
-**Date:** YYYY-MM-DD
+**Status:** [REPLACE: Draft | Ratified]
+**Revision:** [REPLACE: N]
 
 ## Contexts in scope
-Bulleted list of every bounded context shown on this map. Each must link to its charter: `- **<Context Name>**: see [[charter-<context-name>]]`. A context appearing on the map without a charter is invalid: write the charter first or remove the context.
+<!-- required -->
+<!-- at most 20. Each links its charter; a context with no charter is invalid, so write the charter first or drop the context. Past 20, split into scoped sub-maps and keep current.md as the overview. -->
+- **[REPLACE: Context Name]**: see [[charter-[REPLACE: context-name]]]
 
 ## Relationships
-One row per directed relationship. Direction is **upstream → downstream** (the downstream context depends on the upstream).
+<!-- required -->
+<!-- at most 25 rows, one per directed relationship, upstream to downstream (the downstream depends on the upstream). Past 25, split into scoped sub-maps. -->
+<!-- Pattern is exactly one of: Partnership (succeed or fail together), Customer-Supplier (downstream influences upstream's backlog), Conformist (downstream accepts upstream's model as is), Anticorruption Layer (downstream translates at its boundary), Open Host Service (upstream publishes a stable protocol for many), Published Language (shared versioned interchange format), Shared Kernel (small jointly owned model), Separate Ways (no integration), Big Ball of Mud (boundary unclear or violated; flag as tech debt). Any other pattern: stop and surface it to the user; never invent one. -->
 
-| ID       | Upstream | Downstream | Pattern | Integration | Notes |
-|----------|----------|------------|---------|-------------|-------|
-| REL-001  | <name>   | <name>     | <pattern> | <sync REST / async event / shared DB / file drop / etc.> | one-sentence why |
-
-**Allowed `Pattern` values** (use exactly one, spelled exactly as listed):
-- `Partnership`: two teams succeed or fail together; coordinated planning.
-- `Customer-Supplier`: downstream has influence over upstream's backlog.
-- `Conformist`: downstream accepts upstream's model as-is, no influence.
-- `Anticorruption Layer`: downstream translates upstream's model at its boundary.
-- `Open Host Service`: upstream publishes a stable protocol for many downstreams.
-- `Published Language`: shared, versioned interchange format between contexts.
-- `Shared Kernel`: small shared model both contexts jointly own.
-- `Separate Ways`: no integration; duplication accepted.
-- `Big Ball of Mud`: boundary is unclear or violated; flag as tech debt.
-
-If a relationship uses a pattern not on this list, **stop** and surface to the user; do not invent a new pattern.
+| ID      | Upstream        | Downstream      | Pattern            | Integration                                             | Notes                       |
+|---------|-----------------|-----------------|--------------------|---------------------------------------------------------|-----------------------------|
+| REL-001 | [REPLACE: name] | [REPLACE: name] | [REPLACE: pattern] | [REPLACE: sync REST, async event, shared DB, file drop] | [REPLACE: one-sentence why] |
 
 ## Diagram
-ASCII or Mermaid block showing contexts as nodes and relationships as labelled edges. Direction matches the table above (arrow points downstream).
+<!-- required -->
+<!-- ASCII or Mermaid. Contexts as nodes, relationships as labelled edges, arrows pointing downstream to match the table. At most 20 nodes; past that, one diagram per subsystem. -->
+```
+[REPLACE: diagram]
+```
 
 ## Notable absences
-List contexts that **could** plausibly relate to one another but intentionally don't, and why (e.g. "Identity and Billing share no kernel; deliberate, to keep PCI scope minimal").
+<!-- optional: two contexts could plausibly relate but intentionally do not -->
+<!-- one bullet per absent relationship with the reason ("Identity and Billing share no kernel, to keep PCI scope minimal") -->
+- [REPLACE: context A] and [REPLACE: context B]: [REPLACE: why they stay apart]
 
 ## Revision history
-- vN (YYYY-MM-DD): one-sentence summary.
-```
+<!-- required -->
+- v[REPLACE: N] ([REPLACE: YYYY-MM-DD]): [REPLACE: one-sentence summary]
 
----
-
-## Memory format
-
-**Memory directory:** `.claude/agent-memory/consultant`
-**Index file:** `.claude/agent-memory/consultant/MEMORY.md`
-**Memory file path:** `.claude/agent-memory/consultant/context-map-<scope>.md`
-
-One memory file per map. Update in place on revision.
-
-```
----
-name: context-map-<scope>
-description: <one sentence, used to judge relevance in future sessions>
-metadata:
-  type: project
----
-Context map **<scope>**: N contexts, M relationships.
-**Notable patterns:** <e.g., "Identity is Open Host Service for 3 downstreams; Billing uses ACL against legacy CRM">.
-**Watch items:** <any Big Ball of Mud or Shared Kernel rows, these are fragile>.
-**Artifacts:** artifacts/strategy/context-maps/<scope>.md
-```
-
-**Index entry.** Append one line to `MEMORY.md` (or replace on revision):
-
-```
-- [Context Map: <Scope>](context-map-<scope>.md): N contexts, <one-line hook>
-```
+<!-- strip every [REPLACE] and every <!-- --> comment before writing -->

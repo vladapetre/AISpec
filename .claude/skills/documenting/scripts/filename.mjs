@@ -20,9 +20,25 @@ function die(msg) {
 
 const TYPES = ['report', 'adr', 'plan', 'design', 'sdr', 'charter', 'context-map', 'glossary', 'progress', 'api'];
 
-const [type, subjectArg] = process.argv.slice(2);
-if (!type || !subjectArg) die(`usage: filename.mjs <${TYPES.join('|')}> "<subject>"`);
-if (!TYPES.includes(type)) die(`type must be one of ${TYPES.join(', ')}`);
+// Accept both forms: `filename.mjs <type> "<subject>"` and `filename.mjs --kind <type> ["<subject>"] [--work <id>]`.
+// Work-item artifacts (order, design) have fixed names inside the work directory and need no subject.
+const argv = process.argv.slice(2);
+const opts = {};
+const positional = [];
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] === '--kind' || argv[i] === '--work') opts[argv[i].slice(2)] = argv[++i];
+  else positional.push(argv[i]);
+}
+if (opts.kind === 'order' || opts.kind === 'design' || positional[0] === 'order') {
+  const kind = opts.kind ?? positional[0];
+  if (!opts.work) die(`--kind ${kind} needs --work <id>`);
+  process.stdout.write(`work/${opts.work}/${kind}.md\n`);
+  process.exit(0);
+}
+const type = opts.kind ?? positional[0];
+const subjectArg = opts.kind ? positional[0] : positional[1];
+if (!type || !subjectArg) die(`usage: filename.mjs <${TYPES.join('|')}> "<subject>"  |  filename.mjs --kind <type> "<subject>" [--work <id>]`);
+if (!TYPES.includes(type)) die(`type must be one of ${TYPES.join(', ')}, order, design`);
 
 let subject = subjectArg;
 
