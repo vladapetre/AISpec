@@ -228,6 +228,19 @@ function normalizeRoot(token) {
   return base.replace(/\.exe$/i, "");
 }
 
+// Flags of the kernel CLI whose value is a shell command the kernel will execute.
+const WRAPPING_FLAGS = new Set(["--run", "--start", "--only"]);
+
+/** Command strings a `node …/harness.mjs` segment would execute on the agent's behalf. */
+function wrappedCommands(seg) {
+  if (normalizeRoot(seg[0]) !== "node" || !/harness\.mjs$/i.test(String(seg[1] ?? "").replace(/\\/g, "/"))) return [];
+  const out = [];
+  for (let i = 2; i < seg.length; i++) {
+    if (WRAPPING_FLAGS.has(seg[i]) && typeof seg[i + 1] === "string") out.push(seg[++i]);
+  }
+  return out;
+}
+
 /**
  * Split a shell-quote token stream into segments at chaining/piping
  * operators. Subshell grouping parens are dropped (treated as
@@ -695,6 +708,22 @@ async function main() {
   for (const seg of segments) {
     classifications.push(classifySegment(seg, effCwd));
     if (normalizeRoot(seg[0]) === "cd") effCwd = applyCd(seg, effCwd);
+    // A kernel verb that runs a command string on the agent's behalf (drive --run/--start,
+    // check --only) is a wrapper. Classify what it wraps, or the allow rule for harness.mjs
+    // becomes a bypass: `harness drive --run "rm -rf src"` must be judged as `rm -rf src`.
+    for (const inner of wrappedCommands(seg)) {
+      if (hasHiddenExecution(inner)) return fallThrough("wrapped-hidden-execution");
+      let innerTokens;
+      try {
+        innerTokens = parse(inner);
+      } catch {
+        return fallThrough("wrapped-unparsable");
+      }
+      const innerSegs = splitIntoSegments(innerTokens).segments;
+      if (innerSegs.some((s) => classifySegment(s, effCwd) === "deny")) {
+        return decide("deny", `guard.bash: the command wrapped in a harness verb (${inner.slice(0, 60)}) contains a destructive sub-command; run it directly so the permission prompt sees it.`);
+      }
+    }
   }
 
   if (classifications.includes("deny")) {

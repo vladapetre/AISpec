@@ -78,6 +78,7 @@ export function runClaude(o) {
       summary.events++;
       if (o.eventsPath) appendFileSync(o.eventsPath, JSON.stringify({ t: now - t0, ...ev }) + "\n");
       if (ev.type === "system" && ev.subtype === "init") summary.model = ev.model ?? null;
+      if (ev.type === "rate_limit_event") summary.rateLimits = (summary.rateLimits ?? 0) + 1; // API throttling is not harness latency
       if (ev.type === "assistant" && Array.isArray(ev.message?.content)) {
         for (const block of ev.message.content) {
           if (block.type !== "tool_use") continue;
@@ -114,7 +115,7 @@ export function runClaude(o) {
       }
     });
     child.stderr.on("data", (c) => (stderr += c.toString()));
-    child.on("close", (code) => {
+    child.on("close", (code, signal) => {
       if (timer) clearTimeout(timer);
       if (buf.trim()) {
         try {
@@ -124,6 +125,7 @@ export function runClaude(o) {
       resolve({
         result,
         exitCode: code,
+        signal: signal ?? null,
         stderr: stderr.slice(-4000),
         wallMs: Date.now() - started,
         summary: { ...summary, readPaths: undefined, uniqueReads: summary.readPaths.size },

@@ -5,7 +5,7 @@
 //   node bench/run.mjs --harness trunk --tasks all --runs 5 --out bench/results/trunk.json
 //   node bench/run.mjs --harness rework --tasks lane:fast,order-07 --runs 1 --keep
 //
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, cpSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -171,8 +171,9 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
       t0,
     });
     const res = r.result;
+    record.rate_limits = (record.rate_limits ?? 0) + (r.summary.rateLimits ?? 0);
     if (!res) {
-      record.error = `no result event (exit ${r.exitCode}): ${r.stderr.slice(-500)}`;
+      record.error = `no result event (exit ${r.exitCode}, signal ${r.signal ?? "none"}, ${r.summary.events} events): ${r.stderr.slice(-500)}`;
       record.terminal = "error";
       break;
     }
@@ -248,6 +249,12 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
   record.texts = record.texts.map((t) => t.slice(0, 4000));
   record.run_dir = args.keep ? runDir : null;
   if (!args.keep) {
+    // The repo is bulk; the event stream is small and is what every diagnosis so far needed.
+    try {
+      mkdirSync(join(BENCH, ".runs", "events"), { recursive: true });
+      cpSync(eventsPath, join(BENCH, ".runs", "events", `${runId}.jsonl`));
+      record.events = `bench/.runs/events/${runId}.jsonl`;
+    } catch {}
     try {
       rmSync(runDir, { recursive: true, force: true });
     } catch {}

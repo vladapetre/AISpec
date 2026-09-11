@@ -56,6 +56,11 @@ function touchesSecurity(paths, text, securityPaths) {
  * @param {string[]} [o.touched]  observed touch set for a recheck (paths written so far)
  * @returns {{lane: string, reasons: string[], signals: object}}
  */
+/** The project's security path prefixes: `.claude/harness.json` `security_paths`, else the defaults. */
+export function securityPaths(root = projectRoot()) {
+  return loadProjectConfig(root).security_paths ?? DEFAULT_SECURITY_PATHS;
+}
+
 export function admit(text, o = {}) {
   const root = o.root ?? projectRoot();
   const cfg = loadProjectConfig(root);

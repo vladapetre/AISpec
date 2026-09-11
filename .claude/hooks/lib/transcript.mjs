@@ -107,6 +107,9 @@ function norm(p) {
 export function agentName(data, path) {
   if (data?.agent_type) return String(data.agent_type);
   if (data?.agent_name) return String(data.agent_name);
+  // A Stop without an agent id is the lead's own turn. The transcript scan below would find the
+  // lead's Agent spawn (`subagent_type: architect`) and label the lead's turn "architect".
+  if (data?.hook_event_name === "Stop" && !data?.agent_id) return "lead";
   const text = readTail(path, 256 * 1024);
   const m = text.match(/"agent_type"\s*:\s*"([a-z-]+)"/) ?? text.match(/"subagent_type"\s*:\s*"([a-z-]+)"/);
   if (m) return m[1];

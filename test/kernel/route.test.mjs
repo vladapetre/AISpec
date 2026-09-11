@@ -44,6 +44,27 @@ test("developer done, user approved with a run grant, reviewer cumulative, close
   rmSync(root, { recursive: true, force: true });
 });
 
+test("a run grant never crosses a security path or an irreversible step; that phase takes its own gate", () => {
+  const root = mkdtempSync(join(tmpdir(), "harness-route-"));
+  mkdirSync(join(root, ".claude"));
+  const s = createWork({ lane: "design", title: "Auth", root });
+  writeFileSync(
+    join(root, "work", s.id, "design.md"),
+    "---\nlane: design\nphases:\n  - n: 1\n    files: [src/config.ts]\n  - n: 2\n    files: [src/auth/guard.ts]\n  - n: 3\n    files: [scripts/migrate.ts]\n---\n# D\n\n## Phase 1: Config\n\nt\n\n## Phase 2: Guard\n\nt\n\n## Phase 3: Migrate\n\n- **T-3.1** run the migration [IRREVERSIBLE]\n",
+  );
+  route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 1, root });
+  route({ id: s.id, verdict: "approved", agent: "user", phase: 1, through: 3, root });
+  let r = route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 2, root });
+  assert.ok(r.applied.some((a) => a.includes("run grant stops here") && a.includes("security path")), r.applied.join(" | "));
+  assert.deepEqual([r.next.action, r.next.phase], ["approve_phase", 2]);
+  assert.equal(deriveState(s.id, root).run_through, undefined, "the grant is spent; the user re-grants if they want");
+  route({ id: s.id, verdict: "approved", agent: "user", phase: 2, through: 3, root });
+  r = route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 3, root });
+  assert.ok(r.applied.some((a) => a.includes("irreversible")), r.applied.join(" | "));
+  assert.deepEqual([r.next.action, r.next.phase], ["approve_phase", 3]);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("wrong owner is refused, rejection clears the run grant, drift blocks", () => {
   const { root, id } = setup();
   assert.throws(() => route({ id, verdict: "APPROVED", agent: "developer", root }), /may only come from reviewer/);

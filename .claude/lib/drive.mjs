@@ -11,6 +11,7 @@ import { join } from "node:path";
 import net from "node:net";
 import { projectRoot, listWork, deriveState } from "./work.mjs";
 import { detectTooling } from "./preflight.mjs";
+import { assertNotDestructive } from "./unsafe.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -132,6 +133,8 @@ export async function drive(o = {}) {
   const row = { ts: new Date().toISOString(), kind: "drive", source: "harness drive", work_id: work.work_id, phase: work.phase };
 
   const before = modifiedTracked(root);
+  if (o.run) assertNotDestructive(o.run, "harness drive --run");
+  if (o.start) assertNotDestructive(o.start, "harness drive --start");
 
   if (o.run) {
     const t = Date.now();

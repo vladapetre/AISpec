@@ -1,7 +1,8 @@
 // What a verdict means for the state machine. Called by the route.verdict hook on every agent stop
 // and by the lane skills. Exact-match tokens only; near misses are recorded but change nothing.
-import { appendVerdict, deriveState, hasMarker, projectRoot, readState, setMarker, writeState } from "./work.mjs";
+import { appendVerdict, deriveState, hasMarker, projectRoot, readArtifact, readState, setMarker, writeState } from "./work.mjs";
 import { next } from "./next.mjs";
+import { securityPaths } from "./admit.mjs";
 
 export const VERDICTS = Object.freeze({
   // reviewer
@@ -41,6 +42,18 @@ export function findVerdict(text) {
  * @param {string} [o.scope]     "cumulative" | "checkpoint" | "crosscheck"
  * @param {number} [o.through]   for `approved`: last phase of a granted run
  */
+/** "a security path" | "an irreversible step" | null, from the phase's frontmatter files and body. */
+export function phaseNeedsOwnGate(id, phase, root) {
+  const art = readArtifact(id, root);
+  const entry = (Array.isArray(art.front?.phases) ? art.front.phases : []).find((p) => Number(p.n) === Number(phase));
+  const files = Array.isArray(entry?.files) ? entry.files.map(String) : [];
+  const prefixes = securityPaths(root).map((s) => s.replace(/\*\*$/, "").replace(/\/?$/, "/"));
+  if (files.some((f) => prefixes.some((s) => f.replace(/\\/g, "/").startsWith(s)))) return "a security path";
+  const section = art.body.match(new RegExp(`^## Phase ${Number(phase)}\\b[^\\n]*\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, "m"))?.[1] ?? "";
+  if (/\[IRREVERSIBLE\]/.test(section)) return "an irreversible step";
+  return null;
+}
+
 export function route(o) {
   const root = o.root ?? projectRoot();
   const spec = VERDICTS[o.verdict];
@@ -57,11 +70,20 @@ export function route(o) {
       setMarker(o.id, phase, "done", root);
       applied.push(`phases/${phase}.done`);
       // A run grant ("run through 3") is the user's approval of every phase it covers, given in
-      // advance: record it, so the lane does not stop again for a decision already taken.
+      // advance: record it, so the lane does not stop again for a decision already taken. The grant
+      // never crosses a security path or an irreversible step: those phases take their own gate,
+      // decided here in code, not left to the developer's reading of the step file.
       const st = readState(o.id, root);
       if (st.run_through && phase <= st.run_through && !hasMarker(o.id, phase, "approved", root)) {
-        setMarker(o.id, phase, "approved", root);
-        applied.push(`phases/${phase}.approved (run grant through ${st.run_through})`);
+        const gate = phaseNeedsOwnGate(o.id, phase, root);
+        if (gate) {
+          delete st.run_through;
+          writeState(st, root);
+          applied.push(`run grant stops here: phase ${phase} touches ${gate}; it takes its own approval`);
+        } else {
+          setMarker(o.id, phase, "approved", root);
+          applied.push(`phases/${phase}.approved (run grant through ${st.run_through})`);
+        }
       }
       break;
     }

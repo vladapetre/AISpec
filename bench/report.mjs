@@ -113,14 +113,27 @@ function suiteTable(a, b, only = null) {
   return [head, sep, ...rows].join("\n");
 }
 
-/** Regression rule: pass^k may not fall, and cost may not rise, by more than two SE of the baseline. */
-function check(a, b) {
+/**
+ * Regression rule, paired by task: for every task both sides ran, take candidate minus baseline;
+ * pass^k may not fall, and cost may not rise, by more than two standard errors of those paired
+ * differences. Pairing removes the between-task spread (a $1 fast task next to a $10 design task)
+ * that made the unpaired suite SE nearly meaningless at this sample size.
+ */
+export function pairedCheck(rowsA, rowsB) {
+  const pairs = rowsA.map((a) => [a, rowsB.find((b) => b.task === a.task)]).filter(([, b]) => b);
+  const deltas = (f) => pairs.map(([a, b]) => b[f] - a[f]).filter(Number.isFinite);
+  const summary = (f, floor) => {
+    const d = deltas(f);
+    return { n: d.length, mean: mean(d), se: stderr(d) || floor, worse: 0 };
+  };
+  const passk = summary("passk", 0.05);
+  const cost = summary("cost_mean", 0.5);
+  passk.worse = deltas("passk").filter((x) => x < 0).length;
+  cost.worse = deltas("cost_mean").filter((x) => x > 0).length;
   const fails = [];
-  const drop = a.passk.mean - b.passk.mean;
-  if (drop > 2 * (a.passk.se || 0.05)) fails.push(`pass^k fell by ${pct(drop)} (limit ${pct(2 * (a.passk.se || 0.05))})`);
-  const rise = b.cost_mean.mean - a.cost_mean.mean;
-  if (rise > 2 * (a.cost_mean.se || 0.5)) fails.push(`cost rose by $${fmt(rise)} (limit $${fmt(2 * (a.cost_mean.se || 0.5))})`);
-  return fails;
+  if (passk.n && -passk.mean > 2 * passk.se) fails.push(`pass^k fell by ${pct(-passk.mean)} on average over ${passk.n} paired task(s) (limit ${pct(2 * passk.se)})`);
+  if (cost.n && cost.mean > 2 * cost.se) fails.push(`cost rose by $${fmt(cost.mean)} on average over ${cost.n} paired task(s) (limit $${fmt(2 * cost.se)})`);
+  return { fails, passk, cost };
 }
 
 function main() {
@@ -169,14 +182,22 @@ function main() {
     out.push("");
     out.push(...failedRuns);
   }
+  if (rowSets[1]) {
+    const pc = pairedCheck(restrict(rowSets[0]), restrict(rowSets[1]));
+    out.push("", "## Paired deltas (candidate minus baseline, per task)", "");
+    out.push(`- pass^k: ${pc.passk.mean >= 0 ? "+" : ""}${pct(pc.passk.mean)} ±${pct(pc.passk.se)} over ${pc.passk.n} task(s); worse on ${pc.passk.worse}`);
+    out.push(`- cost: ${pc.cost.mean >= 0 ? "+" : ""}$${fmt(pc.cost.mean)} ±$${fmt(pc.cost.se)} over ${pc.cost.n} task(s); dearer on ${pc.cost.worse}`);
+    const rl = sets.map(({ data }) => data.records.reduce((n, r) => n + (r.rate_limits ?? 0), 0));
+    if (rl.some(Boolean)) out.push(`- rate-limit events seen: baseline ${rl[0]}, candidate ${rl[1]} (throttling, not harness latency)`);
+  }
   console.log(out.join("\n"));
-  if (doCheck && suites[1]) {
-    const fails = check(suites[0], suites[1]);
+  if (doCheck && rowSets[1]) {
+    const { fails } = pairedCheck(restrict(rowSets[0]), restrict(rowSets[1]));
     if (fails.length) {
       console.error("\nREGRESSION:\n" + fails.map((f) => "- " + f).join("\n"));
       process.exit(1);
     }
-    console.log("\nno regression beyond two standard errors");
+    console.log("\nno regression beyond two standard errors of the paired differences");
   }
 }
 

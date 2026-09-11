@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { projectRoot } from "./work.mjs";
 import { detectTooling } from "./preflight.mjs";
+import { assertNotDestructive } from "./unsafe.mjs";
 
 const ORDER = ["test", "lint", "build"];
 
@@ -21,6 +22,7 @@ export function check(o = {}) {
   const root = o.root ?? projectRoot();
   const tooling = detectTooling(root);
   const wanted = o.steps?.length ? o.steps : ["test", "lint"];
+  if (o.only) assertNotDestructive(o.only, "harness check --only");
   const plan = o.only ? [{ name: "command", command: o.only }] : ORDER.filter((s) => wanted.includes(s)).map((s) => ({ name: s, command: tooling[s] }));
   const dir = join(root, ".claude", "ledger");
   mkdirSync(dir, { recursive: true });
@@ -32,7 +34,9 @@ export function check(o = {}) {
       continue;
     }
     const t = Date.now();
-    const r = spawnSync(step.command, { cwd: root, shell: true, encoding: "utf8", timeout: Number(o.timeoutMs ?? 300_000), windowsHide: true, env: { ...process.env, CI: "1" } });
+    // No CI=1: under CI, Jest refuses to write new snapshots and fails instead, so a test that passes
+    // for the developer would fail here. Watch-mode runners are the project's problem, not ours.
+    const r = spawnSync(step.command, { cwd: root, shell: true, encoding: "utf8", timeout: Number(o.timeoutMs ?? 300_000), windowsHide: true });
     const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
     const log = join(dir, `check-${step.name}.log`);
     writeFileSync(log, out);

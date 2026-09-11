@@ -80,6 +80,32 @@ test("guard.scope denies kernel-owned writes and unread edits, allows the rest",
   rmSync(root, { recursive: true, force: true });
 });
 
+test("guard.bash judges the command a harness verb would run, so the allow rule is not a bypass", () => {
+  const { root } = project();
+  const decision = (command) => run("guard.bash.mjs", { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, cwd: root }, root)?.hookSpecificOutput?.permissionDecision ?? null;
+  assert.equal(decision('node .claude/bin/harness.mjs drive --run "rm -rf src"'), "deny");
+  assert.equal(decision('node .claude/bin/harness.mjs check --only "git push --force origin trunk"'), "deny");
+  assert.equal(decision('node .claude/bin/harness.mjs drive --start "sudo node server.mjs" --hit /health'), "deny");
+  assert.equal(decision('node .claude/bin/harness.mjs drive --run "npm run cli -- list"'), null, "a benign wrapped command still falls through to the allow rule");
+  assert.equal(decision("node .claude/bin/harness.mjs state x"), null);
+  // second layer: the kernel itself refuses, even if the hook were not installed
+  assert.throws(
+    () => execFileSync("node", [resolve(".claude/bin/harness.mjs"), "drive", "--run", "rm -rf src", "--root", root], { encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: root }, stdio: ["ignore", "pipe", "pipe"] }),
+    (err) => /refuses to run a destructive command/.test(err.stderr),
+  );
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("emit.ledger attributes a Stop without an agent id to the lead, not to the agent it spawned", () => {
+  const { root, id } = project();
+  const tp = transcript(root, [user("build it"), assistant([tool("Agent", { subagent_type: "architect", description: "Write the order" })]), assistant([{ type: "text", text: `▶ ${id} · phase 1/1 done\n[a] approve · [x] reject: <why>` }])]);
+  run("emit.ledger.mjs", { hook_event_name: "Stop", session_id: "s2", transcript_path: tp, cwd: root }, root);
+  const rows = readFileSync(join(root, ".claude", "ledger", "ledger.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(rows.at(-1).agent, "lead");
+  assert.equal(rows.at(-1).event, "gate");
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("lint.schema reports structural problems and the revision protocol", () => {
   const { root, id } = project();
   const p = join(root, "work", id, "order.md");
