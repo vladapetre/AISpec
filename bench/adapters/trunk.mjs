@@ -36,6 +36,8 @@ const GATES = [
   { kind: "ask", re: /\bwaiting (on|for) your (decision|answer|reply|input|go-ahead)\b|\bwhich (do|would) you prefer\b|\byour decision\b.*\?/i },
   { kind: "paused", re: /^\s*PAUSED\b/m },
   { kind: "irreversible", re: /\[IRREVERSIBLE\][^\n]*\b(confirm|confirmation)\b/i },
+  // the lead's own wording at an irreversible step (seen live: "needs your confirmation for the one irreversible step … Reply `confirmed`")
+  { kind: "irreversible", re: /\bReply\s+`?confirmed`?|\bneeds your confirmation\b|\byour confirmation (for|to|before)\b/i },
   { kind: "stalled", re: /^## Phase \d+ Stalled/m },
   { kind: "bound", re: /CYCLE BOUND REACHED:/ },
 ];

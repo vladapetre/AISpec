@@ -17,6 +17,8 @@ import { nextPort, killListeners } from "./lib/ports.mjs";
 
 const BENCH = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(BENCH, "..");
+/** Errors that mean the account, not the harness, ran out: session, usage and rate limits. */
+const QUOTA = /session limit|usage limit|rate limit|quota|overloaded/i;
 
 function parseArgs(argv) {
   const o = { harness: "trunk", tasks: "all", runs: 1, out: null, keep: false, dry: false, harnessRoot: null, budget: null, label: null };
@@ -218,7 +220,22 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
   const orphans = killListeners(port);
   if (orphans.length) log(`    killed ${orphans.length} server process(es) left listening on :${port}`);
   record.orphans = orphans.length;
-  record.prompts = existsSync(promptLog) ? readFileSync(promptLog, "utf8").split(/\r?\n/).filter(Boolean).length : 0;
+  // Keep what prompted, not only how often: the prompt count is a UX metric and its causes are the fix list.
+  record.prompt_log = existsSync(promptLog)
+    ? readFileSync(promptLog, "utf8")
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((l) => {
+          try {
+            const p = JSON.parse(l);
+            return { tool: p.tool, command: String(p.command ?? "").replace(/^cd "[^"]*" && /, "").slice(0, 200), decision: p.decision };
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+    : [];
+  record.prompts = record.prompt_log.length;
   record.cache_hit_ratio = round(cacheHitRatio(record.usage), 4);
   record.tokens_total = totalTokens(record.usage);
   record.base_sha = base;
@@ -271,6 +288,12 @@ async function main() {
       }
       log(`  ${task.id} run ${run}/${args.runs} [${task.lane}] …`);
       const rec = await runOnce({ task, run, adapter, harnessRoot, template, args, log });
+      if (QUOTA.test(rec.error ?? "")) {
+        // Not a measurement of the harness: record nothing, stop burning the task list, say when to resume.
+        log(`  ${task.id} run ${run}: quota exhausted (${rec.error.slice(0, 120)}); stopping. Re-run the same command later, it resumes.`);
+        process.exitCode = 3;
+        return;
+      }
       existing.records.push(rec);
       save();
       spent += rec.cost_usd;
