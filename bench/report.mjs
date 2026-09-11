@@ -81,7 +81,9 @@ function table(rows) {
   return [head, sep, ...body].join("\n");
 }
 
-function suiteTable(a, b) {
+const LANE_FIELDS = ["passk", "cost_mean", "wall_p50", "ttfr_p50", "stops", "denials", "rereads", "cache"];
+
+function suiteTable(a, b, only = null) {
   const fields = [
     ["pass1", "pass@1", pct],
     ["passk", "pass^k", pct],
@@ -98,7 +100,7 @@ function suiteTable(a, b) {
     ["rereads", "re-reads per task", (x) => fmt(x, 1)],
     ["cache", "cache hit ratio", pct],
     ["tokens_per_line", "tokens per added line", (x) => fmt(x, 0)],
-  ];
+  ].filter(([f]) => !only || only.includes(f));
   const head = b ? "| metric | baseline (±SE) | candidate (±SE) | delta |" : "| metric | value (±SE) |";
   const sep = b ? "|---|---|---|---|" : "|---|---|";
   const rows = fields.map(([f, label, F]) => {
@@ -129,7 +131,7 @@ function main() {
   if (!files.length) throw new Error("usage: report.mjs <baseline.json> [candidate.json] [--check] [--k=5]");
   const sets = files.map((f) => ({ file: f, data: load(f) }));
   const out = [];
-  const suites = [];
+  const rowSets = [];
   for (const { file, data } of sets) {
     const rows = [...byTask(data.records).entries()].map(([t, rs]) => taskRow(t, rs, k)).sort((x, y) => x.task.localeCompare(y.task));
     const m = data.manifest ?? {};
@@ -137,11 +139,29 @@ function main() {
     out.push("");
     out.push(table(rows));
     out.push("");
-    suites.push(suite(rows));
+    rowSets.push(rows);
   }
-  out.push("## Suite");
+  // A comparison is only fair on the tasks both sides ran: a candidate that has finished the fast lane
+  // is not compared against a baseline that also carries the design tasks.
+  let common = null;
+  if (rowSets[1]) {
+    const ids = new Set(rowSets[1].map((r) => r.task));
+    common = rowSets[0].filter((r) => ids.has(r.task)).map((r) => r.task);
+  }
+  const restrict = (rows) => (common ? rows.filter((r) => common.includes(r.task)) : rows);
+  const suites = rowSets.map((rows) => suite(restrict(rows)));
+  out.push(common ? `## Suite (${common.length} task(s) run by both)` : "## Suite");
   out.push("");
   out.push(suiteTable(suites[0], suites[1]));
+  if (common) {
+    const lanes = [...new Set(rowSets[0].filter((r) => common.includes(r.task)).map((r) => r.lane))];
+    for (const lane of lanes) {
+      const pick = (rows) => restrict(rows).filter((r) => r.lane === lane);
+      const n = pick(rowSets[0]).length;
+      out.push("", `### Lane ${lane} (${n} task(s))`, "");
+      out.push(suiteTable(suite(pick(rowSets[0])), suite(pick(rowSets[1])), LANE_FIELDS));
+    }
+  }
   const failedRuns = sets.flatMap(({ data }) => data.records.filter((r) => !r.pass).map((r) => `- ${r.harness} ${r.task} run ${r.run}: ${r.terminal}${r.error ? ", " + r.error.slice(0, 160) : ""}; failed checks: ${r.grade?.checks?.filter((c) => !c.ok).map((c) => c.name).join(", ") || "-"}`));
   if (failedRuns.length) {
     out.push("");
