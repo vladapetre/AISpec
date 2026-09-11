@@ -26,3 +26,4 @@ bench/results/smoke*.json
 
 # harness ledger (hooks write it; harness cost reads it)
 .claude/ledger/
+bench/results/probe*.json

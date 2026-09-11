@@ -59,7 +59,7 @@ export function grade({ repo, task, hiddenDir, adapter, base = "HEAD" }) {
   const ok = (name, pass, detail = "") => checks.push({ name, ok: !!pass, detail });
 
   // 1. The fixture's own suite still passes (the agent may have added tests; they count too).
-  const own = runVitest(repo);
+  const own = runVitest(repo, ["--exclude", "test/hidden/**"]); // a re-grade must not count an earlier hidden copy as the project's own suite
   ok("own_suite_green", own.failed === 0 && own.total > 0 && !own.error, `${own.passed}/${own.total} passed${own.error ? ", " + own.error : ""}`);
 
   // 2. Hidden tests, if the task ships any.

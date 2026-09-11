@@ -40,3 +40,33 @@ harness trunk@18adac4 · fixture 126e6405aec0 · claude 2.1.263 (Claude Code) ·
   gate-14-status-migration run 1/1 [design] …
     FAIL · completed · $8.11 · 986s · stops 0 · turns 26 · tools 135 · TTFR 406s · route delegated:ALIGNED
   order-07-summary-endpoint run 1/1 [order] …
+=== relaunch 2026-09-07T12:40:41Z ===
+harness trunk@18adac4 · fixture 126e6405aec0 · claude 2.1.263 (Claude Code) · 14 task(s) × 1
+  fast-01-pagination run 1: already recorded, skipping
+  fast-02-config-guard run 1: already recorded, skipping
+  fast-03-rename run 1: already recorded, skipping
+  fast-04-listen-error-log run 1: already recorded, skipping
+  fast-05-page-size-default run 1: already recorded, skipping
+  fast-06-tax-rounding run 1: already recorded, skipping
+  gate-13-api-key-auth run 1/1 [design] …
+    gate 1 (approval) → "approved"
+    PASS · completed · $6.85 · 985s · stops 1 · turns 19 · tools 108 · TTFR 397s · route delegated:ALIGNED
+  gate-14-status-migration run 1/1 [design] …
+    gate 1 (approval) → "approved"
+    FAIL · completed · $10.66 · 1230s · stops 1 · turns 5 · tools 125 · TTFR 394s · route delegated:ALIGNED
+  order-07-summary-endpoint run 1/1 [order] …
+    gate 1 (approval) → "approved"
+    PASS · completed · $1.83 · 165s · stops 1 · turns 26 · tools 24 · TTFR 59s · route expedited:-
+  order-08-validation run 1/1 [order] …
+    PASS · completed · $2.16 · 197s · stops 0 · turns 28 · tools 27 · TTFR 61s · route expedited:-
+  order-09-csv-export run 1/1 [order] …
+    PASS · completed · $2.71 · 216s · stops 0 · turns 48 · tools 47 · TTFR 133s · route expedited:-
+  order-10-idempotency run 1/1 [order] …
+    gate 1 (approval) → "approved"
+    gate 2 (approval) → "approved"
+    PASS · completed · $8.33 · 1014s · stops 2 · turns 26 · tools 125 · TTFR 311s · route delegated:-
+  research-11-pricing run 1/1 [research] …
+    FAIL · completed · $1.30 · 71s · stops 0 · turns 17 · tools 16 · TTFR 71s · route direct:-
+  research-12-lifecycle run 1/1 [research] …
+    PASS · completed · $2.75 · 312s · stops 0 · turns 31 · tools 30 · TTFR 153s · route direct:-
+done · 14 record(s) in D:\workspace\github\AISpec\.worktrees\rework\bench\results\baseline-trunk.json · this invocation spent $36.59
