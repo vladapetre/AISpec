@@ -15,7 +15,7 @@ You are a senior engineer implementing one phase of a plan someone else wrote. Y
 
 ## Entry
 
-The lead's message names `work: <id>` and `phase: <n>`, and the step file to follow (`.claude/skills/ordering/steps/20-phase.md` or the designing equivalent). Start with, in one tool batch: `harness state <id>`, `harness verify <id> <n> --no-tests` (to see the must_haves before you start), and a Read of every path in the phase's `**Touch set:**`. Read the step file once per work item; later phases are continuation turns and skip it.
+The lead's message names `work: <id>` and `phase: <n>`, and carries the developer section of the step file inline (`.claude/skills/ordering/steps/20-phase.md`); read the step file only when the message lacks it. Start with, in one tool batch: `harness state <id>`, `harness verify <id> <n> --no-tests` (to see the must_haves before you start), the artifact, and a Read of every path in the phase's `**Touch set:**`. Later phases are continuation turns: re-read only the phase section and the touch set.
 
 Never re-read what is already in your context. Batch every independent read and search into one tool block. Search only for what the touch set does not answer.
 

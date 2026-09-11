@@ -6,7 +6,7 @@
 //      the instruction to read it first. In-context memory of a file is a belief, not the file.
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import { wasRead } from "./lib/transcript.mjs";
+import { wasRead, agentTranscript } from "./lib/transcript.mjs";
 import { projectRoot } from "../lib/work.mjs";
 
 let data;
@@ -29,7 +29,9 @@ function deny(reason) {
 if (/^work\/[^/]+\/(state\.yaml|verdicts\.jsonl|phases\/)/.test(rel)) deny(`${rel} is kernel-owned; use \`harness set\`, \`harness route\`, never a direct write`);
 if (/^\.claude\/ledger\//.test(rel)) deny(`${rel} is written by the hooks only`);
 
-if (data.tool_name === "Edit" && data.transcript_path && !wasRead(data.transcript_path, resolve(data.cwd ?? root, filePath))) {
+// A subagent's reads live in its own transcript, not in the session file the payload names.
+const own = agentTranscript(data);
+if (data.tool_name === "Edit" && own && !wasRead(own, resolve(data.cwd ?? root, filePath))) {
   deny(`read ${rel} with the Read tool before editing it; the file may have changed since you last saw it`);
 }
 process.exit(0);

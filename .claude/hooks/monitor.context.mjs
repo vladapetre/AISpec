@@ -3,7 +3,7 @@
 // with no Edit, Write or Bash between them is analysis paralysis; the hook says so once, then again
 // every six more. Constants, not adjectives. Never blocks.
 import { readFileSync } from "node:fs";
-import { toolStats } from "./lib/transcript.mjs";
+import { toolStats, agentTranscript } from "./lib/transcript.mjs";
 
 const STALL_AFTER = 6;
 const LOOK = new Set(["Read", "Grep", "Glob", "WebFetch", "WebSearch"]);
@@ -17,7 +17,7 @@ try {
 if (!LOOK.has(data.tool_name) || !data.transcript_path) process.exit(0);
 
 try {
-  const names = toolStats(data.transcript_path).names;
+  const names = toolStats(agentTranscript(data)).names; // the streak is this agent's, not the session's
   let streak = 0;
   for (let i = names.length - 1; i >= 0 && LOOK.has(names[i]); i--) streak++;
   if (streak >= STALL_AFTER && streak % STALL_AFTER === 0) {

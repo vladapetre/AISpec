@@ -4,7 +4,7 @@
 // reviewable output. Never blocks, never fails loudly.
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { readTurn, turnSpan, toolStats, spawnHints, agentName, blockLines, isSubagentTurn } from "./lib/transcript.mjs";
+import { readTurn, turnSpan, toolStats, spawnHints, agentName, blockLines, isSubagentTurn, agentTranscript } from "./lib/transcript.mjs";
 import { findVerdict } from "../lib/route.mjs";
 import { projectRoot, listWork, readState } from "../lib/work.mjs";
 
@@ -15,16 +15,19 @@ try {
   process.exit(0);
 }
 try {
-  const path = data.transcript_path;
+  // Every payload names the main session file; a subagent's turns live in its own transcript
+  // (agent_transcript_path on SubagentStop). Stats and span come from the agent's file, spawn hints
+  // (which agent was asked to do what) from the lead's.
+  const main = data.transcript_path;
+  const path = agentTranscript(data);
   if (!path || !existsSync(path)) process.exit(0);
   const isSub = isSubagentTurn(data);
-  if (isSub && path.replace(/\\/g, "/").endsWith(`/${data.session_id}.jsonl`)) process.exit(0); // main transcript handed to a subagent event
 
   const root = projectRoot(data.cwd);
   const { text } = readTurn(data, { includeToolPayloads: true });
   const span = turnSpan(path);
   const stats = toolStats(path);
-  const hints = spawnHints(path);
+  const hints = spawnHints(main && existsSync(main) ? main : path);
   const verdict = findVerdict(blockLines(text).last);
   const heading = text.match(/^##\s+(Phase\s+(\d+)\s+of\s+([a-z0-9-]+)|Review:\s+([a-z0-9-]+)|(?:Order|Design|Amendment):\s+([a-z0-9-]+)|Report:\s+([a-z0-9-]+)|Expedited:\s+([a-z0-9-]+))/m);
   const work_id = heading?.[3] ?? heading?.[4] ?? heading?.[5] ?? heading?.[6] ?? heading?.[7] ?? hints.work_id ?? null;

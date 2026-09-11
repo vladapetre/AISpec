@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname, basename } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createWork, deriveState } from "../../.claude/lib/work.mjs";
 
@@ -68,6 +68,15 @@ test("guard.scope denies kernel-owned writes and unread edits, allows the rest",
   assert.match(unread.hookSpecificOutput.permissionDecisionReason, /read .* before editing/);
   assert.equal(run("guard.scope.mjs", { ...base, tool_name: "Edit", tool_input: { file_path: join(root, "src", "a.ts") } }, root), null);
   assert.equal(run("guard.scope.mjs", { ...base, tool_name: "Write", tool_input: { file_path: join(root, "src", "new.ts") } }, root), null);
+
+  // A subagent's payload names the main transcript but its reads live in <session>/subagents/agent-<id>.jsonl.
+  writeFileSync(join(root, "src", "c.ts"), "y");
+  const subDir = join(dirname(tp), basename(tp, ".jsonl"), "subagents");
+  mkdirSync(subDir, { recursive: true });
+  const sub = { ...base, agent_id: "a1", agent_type: "developer", tool_name: "Edit", tool_input: { file_path: join(root, "src", "c.ts") } };
+  assert.match(run("guard.scope.mjs", sub, root).hookSpecificOutput.permissionDecisionReason, /read .* before editing/, "unread anywhere: denied");
+  writeFileSync(join(subDir, "agent-a1.jsonl"), JSON.stringify(assistant([tool("Read", { file_path: join(root, "src", "c.ts") })])) + "\n");
+  assert.equal(run("guard.scope.mjs", sub, root), null, "read in its own transcript: allowed");
   rmSync(root, { recursive: true, force: true });
 });
 

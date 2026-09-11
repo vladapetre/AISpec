@@ -14,6 +14,25 @@
 // content-keyed heuristics" claim in their headers is structurally true instead
 // of a comment that drifts.
 import { openSync, fstatSync, readSync, closeSync, existsSync } from "node:fs";
+import { join, dirname, basename } from "node:path";
+
+/**
+ * The transcript that holds THIS agent's turns. Measured on Claude Code 2.1.268: every hook payload
+ * carries `transcript_path` = the main session file, even for a tool call inside a subagent; the
+ * subagent's own Reads, Edits and text live in `<dir>/<session>/subagents/agent-<agent_id>.jsonl`,
+ * which SubagentStop names as `agent_transcript_path` and PreToolUse only implies via `agent_id`.
+ * Checking a subagent's Edit against the main transcript denied 17 legitimate edits in one design run.
+ */
+export function agentTranscript(data) {
+  const main = data?.transcript_path ?? null;
+  const own = data?.agent_transcript_path;
+  if (own && existsSync(own)) return own;
+  if (data?.agent_id && main) {
+    const p = join(dirname(main), basename(main, ".jsonl"), "subagents", `agent-${data.agent_id}.jsonl`);
+    if (existsSync(p)) return p;
+  }
+  return main;
+}
 
 // --- Transcript reading ----------------------------------------------------
 // Scan the tail, not the whole file: a 200-turn transcript is megabytes, and the
@@ -146,7 +165,7 @@ export function readTurn(data, { includeToolPayloads = isSubagentTurn(data) } = 
   const candidates = [];
   let model = null;
 
-  const path = data?.transcript_path;
+  const path = agentTranscript(data);
   const entry = path && existsSync(path) ? lastAssistantEntry(path) : null;
   if (entry) {
     model = entry.message?.model ?? null;

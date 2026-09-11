@@ -5,14 +5,14 @@ node .claude/bin/harness.mjs new --lane design --title "<six-word title>"
 node .claude/bin/harness.mjs preflight <id> --human
 ```
 
-Preflight `fail` lines stop you; print them and ask. Spawn the architect once, named `architect`:
+Preflight `fail` lines stop you; print them and ask. Spawn the architect once, named `architect`, with this message followed by the Architect section below pasted verbatim (it is in your context already; pasting it saves the architect a round trip):
 
 ```
 work: <id>
 lane: design
 request: <the user's request, verbatim>
 preflight: <warn lines, or none>
-step: .claude/skills/designing/steps/10-design.md (architect section below)
+step: .claude/skills/designing/steps/10-design.md, architect section follows
 ```
 
 Wait for `ARTIFACT WRITTEN`, then continue to `steps/20-crosscheck.md` in the same turn.

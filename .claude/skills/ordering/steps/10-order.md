@@ -9,14 +9,14 @@ node .claude/bin/harness.mjs preflight <id> --human
 
 Preflight `fail` lines stop you here; print them and ask. `warn` lines are passed to the architect verbatim.
 
-Spawn the architect once, named `architect`, with this message and nothing else:
+Spawn the architect once, named `architect`, with this message followed by the Architect section below pasted verbatim (it is in your context already; pasting it saves the architect a round trip):
 
 ```
 work: <id>
 lane: order
 request: <the user's request, verbatim>
 preflight: <the warn lines, or none>
-step: .claude/skills/ordering/steps/10-order.md (architect section below)
+step: .claude/skills/ordering/steps/10-order.md, architect section follows
 ```
 
 Wait for `ARTIFACT WRITTEN`. The hook records it; `harness next <id>` now says `implement_phase`. Continue to `steps/20-phase.md` in the same turn. If the architect answers `exceeds order caps`, run `harness set <id> status=abandoned` and start `designing` with the same request.

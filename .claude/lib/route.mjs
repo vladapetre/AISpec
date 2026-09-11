@@ -52,11 +52,19 @@ export function route(o) {
   const applied = [];
 
   switch (spec.effect) {
-    case "phase_done":
+    case "phase_done": {
       if (phase == null) throw new Error("PHASE DONE needs a phase");
       setMarker(o.id, phase, "done", root);
       applied.push(`phases/${phase}.done`);
+      // A run grant ("run through 3") is the user's approval of every phase it covers, given in
+      // advance: record it, so the lane does not stop again for a decision already taken.
+      const st = readState(o.id, root);
+      if (st.run_through && phase <= st.run_through && !hasMarker(o.id, phase, "approved", root)) {
+        setMarker(o.id, phase, "approved", root);
+        applied.push(`phases/${phase}.approved (run grant through ${st.run_through})`);
+      }
       break;
+    }
     case "phase_approved": {
       if (phase == null) throw new Error("approved needs a phase");
       if (!hasMarker(o.id, phase, "done", root)) throw new Error(`phase ${phase} is not done; cannot approve`);

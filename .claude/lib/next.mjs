@@ -43,7 +43,8 @@ export function next(id, root) {
   if (!current) {
     const reviewed = s.phases.every((p) => p.reviewed) || s.verdicts.some((v) => v.verdict === "APPROVED" && v.scope === "cumulative");
     if (!reviewed) return { ...base, action: "review_cumulative", actor: "reviewer", phase: s.phase_count, detail: "all phases approved; one cumulative review remains" };
-    return { ...base, action: "close", actor: "lead", detail: "cumulative review passed", options: ["[c] close"] };
+    // No user decision here: the review passed, the lead closes and prints the closing block.
+    return { ...base, action: "close", actor: "lead", detail: "cumulative review passed; close and print the closing block" };
   }
 
   if (!current.done) {

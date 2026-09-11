@@ -2,13 +2,13 @@
 
 `harness next <id>` said `implement_phase` with `phase: n`. Spawn the developer once per work item, named `developer`; every later phase is a `SendMessage` to that same instance.
 
-First phase message:
+First phase message, followed by the Developer section below pasted verbatim (it is in your context; pasting it saves the developer a round trip):
 
 ```
 work: <id>
 phase: <n>
 artifact: work/<id>/order.md
-step: .claude/skills/ordering/steps/20-phase.md (developer section below)
+step: .claude/skills/ordering/steps/20-phase.md, developer section follows
 ```
 
 Later phases: `work: <id>` and `phase: <n>` only, plus `run through <m>` when the user granted a run.

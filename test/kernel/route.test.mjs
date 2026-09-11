@@ -31,10 +31,11 @@ test("developer done, user approved with a run grant, reviewer cumulative, close
   assert.deepEqual([r.next.action, r.next.phase], ["implement_phase", 2]);
   assert.equal(deriveState(id, root).run_through, 3);
 
-  route({ id, verdict: "PHASE DONE", agent: "developer", phase: 2, root });
-  route({ id, verdict: "approved", agent: "user", phase: 2, root });
-  route({ id, verdict: "PHASE DONE", agent: "developer", phase: 3, root });
-  r = route({ id, verdict: "approved", agent: "user", phase: 3, root });
+  // the grant covers phases 2 and 3: PHASE DONE approves them without another stop
+  r = route({ id, verdict: "PHASE DONE", agent: "developer", phase: 2, root });
+  assert.ok(r.applied.some((a) => a.includes("2.approved (run grant")));
+  assert.deepEqual([r.next.action, r.next.phase], ["implement_phase", 3]);
+  r = route({ id, verdict: "PHASE DONE", agent: "developer", phase: 3, root });
   assert.equal(r.next.action, "review_cumulative");
 
   r = route({ id, verdict: "APPROVED", agent: "reviewer", scope: "cumulative", root });

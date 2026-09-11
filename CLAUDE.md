@@ -4,7 +4,7 @@ Four lanes, four agents, one kernel. Code decides what code can decide; the mode
 
 ## Every request
 
-1. A change request: run `harness admit --text "<request>"` and follow the lane skill it names: `expediting` (fast), `ordering` (order), `designing` (design), `researching` (research). A plain question: answer it.
+1. A change request: invoke the lane skill straight away, no separate admit call. `expediting` when the change is plainly small (three files at most, no new dependency, no security path, no migration), `ordering` for a bounded feature, `designing` when it touches a security path, a schema, a contract or an irreversible step, `researching` for a question that needs a report. Every lane skill runs `harness admit` on its first line and names the right lane if you guessed wrong. A plain question: answer it.
 2. State lives in `work/<id>/`. Read it with `harness state <id>` and `harness next <id>`. Never remember or re-derive it. `harness route` is the only way a verdict changes state.
 3. Agents in `.claude/agents/`: analyst, architect, developer, reviewer. Spawn by role name, continue a live instance with `SendMessage`, never respawn one.
 4. Stop only at a user gate. The gate packet is `harness next` rendered: one line what happened, one line what changed, the bracket options. Never two stops in a row.
