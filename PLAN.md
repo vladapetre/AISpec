@@ -1,6 +1,6 @@
 # Rework plan: a harness built for speed, measured from day one
 
-Written 2026-09-07 on branch `rework`. Status: proposal, nothing implemented.
+Written 2026-09-07 on branch `rework`. Status: built, measured and tuned; see section 4 (updated 2026-09-11).
 
 ## 1. What the research says
 
