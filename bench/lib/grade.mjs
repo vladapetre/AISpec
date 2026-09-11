@@ -19,7 +19,14 @@ function runVitest(repo, extraArgs = []) {
   }
   if (!existsSync(outFile)) return { passed: 0, failed: 0, total: 0, error: "no vitest output" };
   const j = JSON.parse(readFileSync(outFile, "utf8"));
-  return { passed: j.numPassedTests ?? 0, failed: j.numFailedTests ?? 0, total: j.numTotalTests ?? 0, error: null };
+  // Name what failed, not only how many: a record that says "3/4 passed" is a number, one that says
+  // which assertion broke is a fix list.
+  const failures = (j.testResults ?? []).flatMap((f) =>
+    (f.assertionResults ?? [])
+      .filter((a) => a.status === "failed")
+      .map((a) => `${a.fullName}: ${String(a.failureMessages?.[0] ?? "").split(/\r?\n/)[0].slice(0, 160)}`),
+  );
+  return { passed: j.numPassedTests ?? 0, failed: j.numFailedTests ?? 0, total: j.numTotalTests ?? 0, error: null, failures };
 }
 
 function globMatch(pattern, path) {
@@ -61,7 +68,7 @@ export function grade({ repo, task, hiddenDir, adapter, base = "HEAD" }) {
     const target = join(repo, "test", "hidden");
     cpSync(hiddenDir, target, { recursive: true });
     hidden = runVitest(repo, ["test/hidden"]);
-    ok("hidden_tests_green", hidden.failed === 0 && hidden.total > 0 && !hidden.error, `${hidden.passed}/${hidden.total} passed${hidden.error ? ", " + hidden.error : ""}`);
+    ok("hidden_tests_green", hidden.failed === 0 && hidden.total > 0 && !hidden.error, `${hidden.passed}/${hidden.total} passed${hidden.error ? ", " + hidden.error : ""}${hidden.failures?.length ? "; " + hidden.failures.join(" | ") : ""}`);
   }
 
   // 3. Declarative checks.
