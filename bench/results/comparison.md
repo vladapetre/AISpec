@@ -27,11 +27,11 @@
 | fast-04-listen-error-log | fast | 3 | 100% | 100% | 100% | 100% | 1.39 | 0.20 | 103 | 104 | 38 | 0.0 | 1.0 | 24 | 22 | 0.3 | 95% | 32831 |
 | fast-05-page-size-default | fast | 3 | 100% | 100% | 100% | 100% | 1.11 | 0.10 | 81 | 103 | 36 | 0.0 | 1.3 | 24 | 22 | 0.0 | 96% | 75012 |
 | fast-06-tax-rounding | fast | 3 | 100% | 100% | 100% | 100% | 1.16 | 0.09 | 126 | 129 | 58 | 0.0 | 1.3 | 27 | 25 | 0.0 | 96% | 100687 |
-| gate-13-api-key-auth | design | 1 | 100% | 100% | 100% | 100% | 9.80 | 0.00 | 1418 | 1418 | 160 | 3.0 | 0.0 | 12 | 210 | 20.0 | 99% | 4844 |
+| gate-13-api-key-auth | design | 1 | 100% | 100% | 100% | 100% | 7.35 | 0.00 | 936 | 936 | 227 | 2.0 | 0.0 | 8 | 133 | 8.0 | 99% | 2592 |
 | gate-14-status-migration | design | 1 | 100% | 100% | 100% | 100% | 11.56 | 0.00 | 1803 | 1803 | 191 | 4.0 | 12.0 | 56 | 218 | 17.0 | 98% | 9715 |
 | order-07-summary-endpoint | order | 1 | 100% | 100% | 100% | 100% | 2.97 | 0.00 | 303 | 303 | 105 | 1.0 | 3.0 | 25 | 69 | 9.0 | 97% | 32222 |
-| order-08-validation | order | 1 | 100% | 100% | 100% | 100% | 4.33 | 0.00 | 472 | 472 | 149 | 2.0 | 3.0 | 40 | 95 | 12.0 | 98% | 9751 |
-| order-09-csv-export | order | 1 | 100% | 100% | 100% | 100% | 4.40 | 0.00 | 496 | 496 | 116 | 2.0 | 5.0 | 26 | 102 | 3.0 | 98% | 10349 |
+| order-08-validation | order | 1 | 100% | 100% | 100% | 100% | 3.95 | 0.00 | 446 | 446 | 166 | 1.0 | 1.0 | 40 | 90 | 10.0 | 98% | 11102 |
+| order-09-csv-export | order | 1 | 100% | 100% | 100% | 100% | 3.55 | 0.00 | 370 | 370 | 143 | 1.0 | 0.0 | 25 | 84 | 6.0 | 97% | 9192 |
 | order-10-idempotency | order | 1 | 100% | 100% | 100% | 100% | 4.69 | 0.00 | 642 | 642 | 193 | 2.0 | 7.0 | 30 | 108 | 6.0 | 98% | 12853 |
 | research-11-pricing | research | 1 | 100% | 100% | 100% | 100% | 2.38 | 0.00 | 404 | 404 | 76 | 2.0 | 0.0 | 14 | 54 | 6.0 | 98% | - |
 | research-12-lifecycle | research | 1 | 100% | 100% | 100% | 100% | 3.07 | 0.00 | 446 | 446 | 70 | 1.0 | 0.0 | 4 | 51 | 9.0 | 99% | - |
@@ -44,17 +44,17 @@
 | pass^k | 93% ±7% | 100% ±0% | +7% |
 | route agreement | 100% ±0% | 100% ±0% | +0% |
 | lane as intended | 57% ±14% | 100% ±0% | +43% |
-| cost per task $ | 3.37 ±0.86 | 3.61 ±0.88 | +0.24 |
+| cost per task $ | 3.37 ±0.86 | 3.35 ±0.79 | -0.02 |
 | cost CV | 0.00 ±0.00 | 0.05 ±0.02 | +0.05 |
-| wall p50 s | 374 ±127 | 475 ±139 | +101 |
-| time to first reviewable p50 s | 130 ±36 | 98 ±15 | -32 |
-| stops per task | 0.5 ±0.3 | 1.2 ±0.4 | +0.7 |
-| permission prompts per task | 3.1 ±0.9 | 2.9 ±0.9 | -0.2 |
-| turns per task | 25 ±2 | 25 ±3 | +0 |
-| tool calls per task | 51 ±15 | 74 ±18 | +24 |
-| re-reads per task | 4.6 ±2.7 | 5.9 ±1.8 | +1.3 |
+| wall p50 s | 374 ±127 | 429 ±125 | +55 |
+| time to first reviewable p50 s | 130 ±36 | 106 ±17 | -24 |
+| stops per task | 0.5 ±0.3 | 1.0 ±0.3 | +0.5 |
+| permission prompts per task | 3.1 ±0.9 | 2.4 ±0.9 | -0.7 |
+| turns per task | 25 ±2 | 25 ±3 | 0 |
+| tool calls per task | 51 ±15 | 67 ±15 | +16 |
+| re-reads per task | 4.6 ±2.7 | 5.1 ±1.4 | +0.5 |
 | cache hit ratio | 91% ±1% | 97% ±0% | +6% |
-| tokens per added line | 54678 ±24183 | 36676 ±9873 | -18003 |
+| tokens per added line | 54678 ±24183 | 36504 ±9927 | -18174 |
 
 ### Lane fast (6 task(s))
 
@@ -74,25 +74,25 @@
 | metric | baseline (±SE) | candidate (±SE) | delta |
 |---|---|---|---|
 | pass^k | 100% ±0% | 100% ±0% | +0% |
-| cost per task $ | 9.30 ±2.46 | 10.68 ±0.88 | +1.37 |
-| wall p50 s | 1298 ±313 | 1610 ±193 | +313 |
-| time to first reviewable p50 s | 393 ±4 | 176 ±16 | -217 |
-| stops per task | 2.0 ±1.0 | 3.5 ±0.5 | +1.5 |
+| cost per task $ | 9.30 ±2.46 | 9.45 ±2.10 | +0.15 |
+| wall p50 s | 1298 ±313 | 1370 ±434 | +72 |
+| time to first reviewable p50 s | 393 ±4 | 209 ±18 | -184 |
+| stops per task | 2.0 ±1.0 | 3.0 ±1.0 | +1.0 |
 | permission prompts per task | 6.5 ±5.5 | 6.0 ±6.0 | -0.5 |
-| re-reads per task | 25.0 ±8.0 | 18.5 ±1.5 | -6.5 |
-| cache hit ratio | 94% ±2% | 99% ±0% | +5% |
+| re-reads per task | 25.0 ±8.0 | 12.5 ±4.5 | -12.5 |
+| cache hit ratio | 94% ±2% | 99% ±0% | +4% |
 
 ### Lane order (4 task(s))
 
 | metric | baseline (±SE) | candidate (±SE) | delta |
 |---|---|---|---|
 | pass^k | 100% ±0% | 100% ±0% | +0% |
-| cost per task $ | 3.76 ±1.54 | 4.10 ±0.38 | +0.34 |
-| wall p50 s | 398 ±206 | 478 ±69 | +80 |
-| time to first reviewable p50 s | 141 ±59 | 141 ±20 | -1 |
-| stops per task | 0.8 ±0.5 | 1.8 ±0.3 | +1.0 |
-| permission prompts per task | 5.0 ±0.7 | 4.5 ±1.0 | -0.5 |
-| re-reads per task | 3.5 ±3.5 | 7.5 ±1.9 | +4.0 |
+| cost per task $ | 3.76 ±1.54 | 3.79 ±0.36 | +0.03 |
+| wall p50 s | 398 ±206 | 440 ±73 | +42 |
+| time to first reviewable p50 s | 141 ±59 | 152 ±19 | +10 |
+| stops per task | 0.8 ±0.5 | 1.3 ±0.3 | +0.5 |
+| permission prompts per task | 5.0 ±0.7 | 2.8 ±1.5 | -2.2 |
+| re-reads per task | 3.5 ±3.5 | 7.8 ±1.0 | +4.3 |
 | cache hit ratio | 93% ±1% | 98% ±0% | +4% |
 
 ### Lane research (2 task(s))

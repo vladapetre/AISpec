@@ -36,4 +36,4 @@ test/                      kernel, hook and budget tests: npm test
 
 ## Status
 
-PLAN.md carries the plan, the research it rests on, the status table and the 2026-09-11 head-to-head against trunk (section 4.1); `bench/results/comparison.md` is the full report. Headline: 14 of 14 tasks pass against trunk's 13, every task on its intended lane against 57%, first reviewable output 98 s against 130 s, cache 97% against 91%; the fast lane costs $1.23 per task against $1.59, the heavier lanes cost more because they run the gates trunk skipped.
+PLAN.md carries the plan, the research it rests on, the status table and the 2026-09-11 head-to-head against trunk (section 4.1); `bench/results/comparison.md` is the full report. Headline: 14 of 14 tasks pass against trunk's 13, every task on its intended lane against 57%, first reviewable output 106 s against 130 s, cache 97% against 91%, 2.4 permission prompts per task against 3.1, at the same cost per task ($3.35 against $3.37); the fast lane costs $1.23 per task against $1.59.

@@ -2375,138 +2375,6 @@
       "run_dir": null
     },
     {
-      "task": "order-09-csv-export",
-      "lane_expected": "order",
-      "harness": "rework",
-      "run": 1,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-11T11:03:45.798Z",
-      "session_ids": [
-        "925b61b0-972a-450b-8041-9530092950cb",
-        "925b61b0-972a-450b-8041-9530092950cb",
-        "925b61b0-972a-450b-8041-9530092950cb"
-      ],
-      "stops": 2,
-      "gates": [
-        "approval",
-        "approval"
-      ],
-      "denials": 3,
-      "turns": 26,
-      "cost_usd": 4.3951632499999995,
-      "usage": {
-        "input_tokens": 50,
-        "cache_read_input_tokens": 1680938,
-        "cache_creation_input_tokens": 42857,
-        "output_tokens": 4384
-      },
-      "api_ms": 443709,
-      "wall_ms": 495793,
-      "tool_calls": 102,
-      "tool_counts": {
-        "Bash": 50,
-        "Skill": 1,
-        "Agent": 4,
-        "Read": 36,
-        "Write": 6,
-        "ToolSearch": 1,
-        "SendMessage": 1,
-        "Edit": 3
-      },
-      "reads": 36,
-      "unique_reads": 33,
-      "rereads": 3,
-      "subagents": 4,
-      "first_write_ms": 115915,
-      "first_tool_ms": 7089,
-      "first_reviewable_ms": 115915,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "▶ 20260911-csv-invoice-export-endpoint · phase 1/2 done · Pure `src/export/invoiceCsv.ts` renders the header and rows with RFC 4180 quoting, no I/O.\nTests: passed · Lint: passed · Verified: `npm test` → 10 unit tests green (no drivable surface in a pure module)\nFiles: src/export/invoiceCsv.ts, test/invoiceCsv.test.ts\n[a] approve · [r] run through 2 · [x] reject: \\<why\\>",
-        "▶ 20260911-csv-invoice-export-endpoint · phase 2/2 done · `GET /invoices.csv` serves all invoices newest first as `text/csv; charset=utf-8`.\nTests: passed · Lint: passed · Verified: server started, `curl localhost:3000/invoices.csv` returned the header plus rows with correct content type\nFiles: src/http/handlers.ts, test/router.test.ts\n[a] approve · [x] reject: \\<why\\>",
-        "## Order closed: 20260911-csv-invoice-export-endpoint\n\n`GET /invoices.csv` now returns every invoice newest first as `text/csv; charset=utf-8`, with totals at the configured tax rate and RFC 4180 quoting, formatted by the pure `src/export/invoiceCsv.ts` module.\nPhases: 2 · commits 9bfb490..f526d5c · review: APPROVED"
-      ],
-      "error": null,
-      "port": 8104,
-      "orphans": 0,
-      "prompt_log": [
-        {
-          "tool": "Bash",
-          "command": "ls -lt \"C:/Users/vlad.apetre/.claude/projects/\"*/*.jsonl 2>/dev/null | head -5",
-          "decision": "allow"
-        },
-        {
-          "tool": "Bash",
-          "command": "T=\"C:/Users/vlad.apetre/.claude/projects/D--workspace-github-AISpec--worktrees-rework-bench--runs-order-09-csv-export-r1-mtwulvz9-repo/925b61b0-972a-450b-8041-9530092950cb/subagents\"; ls -lt \"$T\"; n",
-          "decision": "allow"
-        }
-      ],
-      "prompts": 2,
-      "cache_hit_ratio": 0.9751,
-      "tokens_total": 1728229,
-      "base_sha": "c24023d675084650b7e4d11860af0d6b3054ed12",
-      "changed_files": [
-        "src/export/invoiceCsv.ts",
-        "src/http/handlers.ts",
-        "test/invoiceCsv.test.ts",
-        "test/router.test.ts"
-      ],
-      "lines_added": 167,
-      "signals": {
-        "lane": "order",
-        "verdicts": [
-          "APPROVED"
-        ],
-        "route": "order:APPROVED"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 34,
-          "failed": 0,
-          "total": 34,
-          "error": null
-        },
-        "hidden": {
-          "passed": 2,
-          "failed": 0,
-          "total": 2,
-          "error": null
-        },
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "34/34 passed"
-          },
-          {
-            "name": "hidden_tests_green",
-            "ok": true,
-            "detail": "2/2 passed"
-          },
-          {
-            "name": "grep:src/http/handlers.ts:invoices\\.csv",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "untouched:src/storage/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:data/**",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-11T11:12:05.138Z",
-      "run_dir": null
-    },
-    {
       "task": "order-10-idempotency",
       "lane_expected": "order",
       "harness": "rework",
@@ -2787,285 +2655,6 @@
       "run_dir": null
     },
     {
-      "task": "gate-13-api-key-auth",
-      "lane_expected": "design",
-      "harness": "rework",
-      "run": 1,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-11T12:07:11.171Z",
-      "session_ids": [
-        "e0052ce0-5257-4fe1-9951-efcc943b36be",
-        "e0052ce0-5257-4fe1-9951-efcc943b36be",
-        "e0052ce0-5257-4fe1-9951-efcc943b36be",
-        "e0052ce0-5257-4fe1-9951-efcc943b36be"
-      ],
-      "stops": 3,
-      "gates": [
-        "approval",
-        "approval",
-        "approval"
-      ],
-      "denials": 0,
-      "turns": 12,
-      "cost_usd": 9.801116550000001,
-      "usage": {
-        "input_tokens": 22,
-        "cache_read_input_tokens": 1092722,
-        "cache_creation_input_tokens": 9101,
-        "output_tokens": 2595
-      },
-      "api_ms": 1408938,
-      "wall_ms": 1417650,
-      "tool_calls": 210,
-      "tool_counts": {
-        "Bash": 71,
-        "Skill": 1,
-        "Read": 78,
-        "Agent": 6,
-        "Write": 22,
-        "Edit": 19,
-        "Grep": 9,
-        "ToolSearch": 1,
-        "SendMessage": 2,
-        "ListAgents": 1
-      },
-      "reads": 78,
-      "unique_reads": 58,
-      "rereads": 20,
-      "subagents": 6,
-      "first_write_ms": 160263,
-      "first_tool_ms": 8463,
-      "first_reviewable_ms": 160263,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "▶ 20260911-api-key-auth-for-all-endpoints · phase 1/3 done · `Config` now carries `auth.apiKey`, defaulting to empty and overridable by `API_KEY`; no HTTP behaviour changed.\nTests: passed · Lint: passed · Verified: `harness verify <id> 1` → ok (all must_haves green)\nFiles: src/config.ts, data/config.json, test/config.test.ts\nNote: phase 2 creates `src/auth/`, a security path, so a run grant stops before it.\n[a] approve · [r] run through 3 · [x] reject: \\<why\\>",
-        "▶ 20260911-api-key-auth-for-all-endpoints · phase 2/3 done · `src/auth/` now holds the constant-time comparison and the `withApiKeyAuth` guard, unwired, so runtime behaviour is unchanged.\nTests: passed · Lint: passed · Verified: `harness verify <id> 2` → ok (all must_haves green, 9 auth tests)\nFiles: src/auth/apiKeyGuard.ts, src/auth/constantTimeEqual.ts, test/auth.test.ts\n[a] approve · [r] run through 3 · [x] reject: \\<why\\>",
-        "▶ 20260911-api-key-auth-for-all-endpoints · phase 3/3 done · The guard now wraps the router in `src/main.ts`, so every endpoint except `GET /health` answers 401 without a valid `x-api-key`.\nTests: passed · Lint: passed · Verified: driven against the running server (6 drive commands observed; T-3.2 to T-3.5 real requests)\nFiles: src/main.ts, src/http/router.ts, src/http/server.ts, src/auth/apiKeyGuard.ts, README.md\nNote: `apiKeyGuard.ts` was edited outside phase 3's touch set, dropping its local `RequestHandler` copy for the one now exported from `router.ts`. The cumulative review sees it next.\n[a] approve · [x] reject: \\<why\\>",
-        "## Design closed: 20260911-api-key-auth-for-all-endpoints\n\nEvery endpoint except `GET /health` now requires a matching `x-api-key` header, checked in constant time in front of the router, with an empty key denying everything.\nPhases: 3 · decisions: 4 (0 amended) · commits a32e21d..09409e7 · review: APPROVED\n\nSet `API_KEY` (or `auth.apiKey` in `data/config.json`) before `npm start`; unset, the server warns at startup and 401s every guarded route."
-      ],
-      "error": null,
-      "port": 8100,
-      "orphans": 0,
-      "prompt_log": [],
-      "prompts": 0,
-      "cache_hit_ratio": 0.9917,
-      "tokens_total": 1104440,
-      "base_sha": "83236cd5a9a4877799ff25913eaf6f14dd3c34aa",
-      "changed_files": [
-        "README.md",
-        "data/config.json",
-        "src/auth/apiKeyGuard.ts",
-        "src/auth/constantTimeEqual.ts",
-        "src/config.ts",
-        "src/http/router.ts",
-        "src/http/server.ts",
-        "src/main.ts",
-        "test/auth.test.ts",
-        "test/config.test.ts"
-      ],
-      "lines_added": 228,
-      "signals": {
-        "lane": "design",
-        "verdicts": [
-          "APPROVED"
-        ],
-        "route": "design:APPROVED"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 34,
-          "failed": 0,
-          "total": 34,
-          "error": null,
-          "failures": []
-        },
-        "hidden": {
-          "passed": 4,
-          "failed": 0,
-          "total": 4,
-          "error": null,
-          "failures": []
-        },
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "34/34 passed"
-          },
-          {
-            "name": "hidden_tests_green",
-            "ok": true,
-            "detail": "4/4 passed"
-          },
-          {
-            "name": "exists:src/auth/*.ts",
-            "ok": true,
-            "detail": "src/auth/apiKeyGuard.ts, src/auth/constantTimeEqual.ts"
-          },
-          {
-            "name": "grep:src/auth/*.ts:timingSafeEqual",
-            "ok": true,
-            "detail": "2 file(s) scanned"
-          },
-          {
-            "name": "grep:src/config.ts:apiKey",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "untouched:src/storage/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/domain/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:data/invoices.json",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-11T12:30:52.567Z",
-      "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\gate-13-api-key-auth-r1-mtwwvg8d",
-      "regraded": "2026-09-11 hidden test broadened to accept the {apiKey} option shape"
-    },
-    {
-      "task": "order-08-validation",
-      "lane_expected": "order",
-      "harness": "rework",
-      "run": 1,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-11T12:30:53.191Z",
-      "session_ids": [
-        "5a6bfb07-a8b5-4a70-b5e2-162b106be00d",
-        "5a6bfb07-a8b5-4a70-b5e2-162b106be00d",
-        "5a6bfb07-a8b5-4a70-b5e2-162b106be00d"
-      ],
-      "stops": 2,
-      "gates": [
-        "approval",
-        "approval"
-      ],
-      "denials": 3,
-      "turns": 40,
-      "cost_usd": 4.32529145,
-      "usage": {
-        "input_tokens": 62,
-        "cache_read_input_tokens": 2382820,
-        "cache_creation_input_tokens": 58312,
-        "output_tokens": 6337
-      },
-      "api_ms": 422618,
-      "wall_ms": 471628,
-      "tool_calls": 95,
-      "tool_counts": {
-        "Bash": 36,
-        "Skill": 2,
-        "Read": 37,
-        "Agent": 4,
-        "Write": 6,
-        "Edit": 7,
-        "ToolSearch": 1,
-        "SendMessage": 1,
-        "ListAgents": 1
-      },
-      "reads": 37,
-      "unique_reads": 25,
-      "rereads": 12,
-      "subagents": 4,
-      "first_write_ms": 148858,
-      "first_tool_ms": 7448,
-      "first_reviewable_ms": 148858,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "## Phase 1 done: validator module and its unit tests\n\n`src/http/validateNewInvoice.ts` now checks a `POST /invoices` body and returns either `{ ok: true, value }` or `{ ok: false, error: { field, message } }`, with 125 lines of direct unit tests covering every rule (for example a body whose second line has `quantity: -1` reports `lines[1].quantity`).\n\nChanged: `src/http/validateNewInvoice.ts` (new), `test/validation.test.ts` (new). Commit `d0bdfc8`. Nothing is wired into the router yet, so the endpoint still accepts anything.\n\nPhase 2 wires it into the handler and adds router-level tests.\n\n[a] approve · [r] run through 2 · [x] reject: `<why>`",
-        "## Phase 2 done: validator wired into POST /invoices\n\n`POST /invoices` now calls `validateNewInvoice(req.body)` before touching the repository and answers 400 with `{ error: { field, message } }` on the first bad field; the `as NewInvoice` cast is gone. A body with `quantity: -1` returns `lines[0].quantity` and leaves the store unchanged instead of saving and then 500ing in the totals.\n\nChanged: `src/http/handlers.ts`, `test/router.test.ts`. Commit `48ff607`. All 44 tests pass across 6 files.\n\nThat is the last phase; approving sends it to the cumulative review.\n\n[a] approve · [x] reject: `<why>`",
-        "## Order closed: 20260911-validate-invoice-creation-request-body\n\n`POST /invoices` now rejects a malformed body with 400 and `{ error: { field, message } }` naming the first bad field, instead of storing it and throwing later in the totals.\nPhases: 2 · commits d0bdfc8..48ff607 · review: APPROVED"
-      ],
-      "error": null,
-      "port": 8101,
-      "orphans": 0,
-      "prompt_log": [],
-      "prompts": 0,
-      "cache_hit_ratio": 0.9761,
-      "tokens_total": 2447531,
-      "base_sha": "83236cd5a9a4877799ff25913eaf6f14dd3c34aa",
-      "changed_files": [
-        "src/http/handlers.ts",
-        "src/http/validateNewInvoice.ts",
-        "test/router.test.ts",
-        "test/validation.test.ts"
-      ],
-      "lines_added": 251,
-      "signals": {
-        "lane": "order",
-        "verdicts": [
-          "APPROVED"
-        ],
-        "route": "order:APPROVED"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 44,
-          "failed": 0,
-          "total": 44,
-          "error": null,
-          "failures": []
-        },
-        "hidden": {
-          "passed": 6,
-          "failed": 0,
-          "total": 6,
-          "error": null,
-          "failures": []
-        },
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "44/44 passed"
-          },
-          {
-            "name": "hidden_tests_green",
-            "ok": true,
-            "detail": "6/6 passed"
-          },
-          {
-            "name": "exists:src/http/valid*.ts",
-            "ok": true,
-            "detail": "src/http/validateNewInvoice.ts"
-          },
-          {
-            "name": "untouched:src/storage/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/domain/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:data/**",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-11T12:38:48.218Z",
-      "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\order-08-validation-r1-mtwxpxg8"
-    },
-    {
       "task": "research-12-lifecycle",
       "lane_expected": "research",
       "harness": "rework",
@@ -3208,6 +2797,398 @@
       "pass": true,
       "finished": "2026-09-11T12:46:17.331Z",
       "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\research-12-lifecycle-r1-mtwy04gs"
+    },
+    {
+      "task": "gate-13-api-key-auth",
+      "lane_expected": "design",
+      "harness": "rework",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-11T15:16:08.407Z",
+      "session_ids": [
+        "641b9020-a5a1-46b9-882b-70c0964cf080",
+        "641b9020-a5a1-46b9-882b-70c0964cf080",
+        "641b9020-a5a1-46b9-882b-70c0964cf080"
+      ],
+      "stops": 2,
+      "gates": [
+        "approval",
+        "approval"
+      ],
+      "denials": 0,
+      "turns": 8,
+      "cost_usd": 7.3469208,
+      "usage": {
+        "input_tokens": 14,
+        "cache_read_input_tokens": 683171,
+        "cache_creation_input_tokens": 6382,
+        "output_tokens": 2445
+      },
+      "api_ms": 959292,
+      "wall_ms": 935792,
+      "tool_calls": 133,
+      "tool_counts": {
+        "Skill": 1,
+        "Bash": 50,
+        "Read": 46,
+        "Agent": 6,
+        "Write": 6,
+        "Edit": 14,
+        "Grep": 5,
+        "Glob": 1,
+        "ToolSearch": 1,
+        "SendMessage": 3
+      },
+      "reads": 46,
+      "unique_reads": 38,
+      "rereads": 8,
+      "subagents": 6,
+      "first_write_ms": 226815,
+      "first_tool_ms": 7918,
+      "first_reviewable_ms": 226815,
+      "model": "claude-opus-5[1m]",
+      "terminal": "completed",
+      "texts": [
+        "▶ 20260911-api-key-auth-for-all-endpoints · phase 1/3 done · `loadConfig` now carries `auth.apiKey`, defaulting to empty, overridable by `API_KEY`, trimmed so a whitespace-only value counts as unset.\nTests: passed · Lint: passed · Verified: no drivable surface (phase 1 declares `drive: false`, covered by test/config.test.ts)\nFiles: src/config.ts, data/config.json, test/config.test.ts\n[a] approve · [r] run through 3 · [x] reject: \\<why>\n\nNote on `[r]`: phases 2 and 3 both touch `src/auth/`, a security path, so a run grant stops at each of them anyway. Approving phase by phase costs you the same number of stops.",
+        "▶ 20260911-api-key-auth-for-all-endpoints · phase 2/3 done · the `x-api-key` guard now lives in `src/auth/apiKey.ts`: SHA-256 digests compared with `timingSafeEqual`, `GET /health` on an explicit allow list, 401 `{\"error\":{\"message\":\"unauthorized\"}}` for everything else.\nTests: passed · Lint: passed · Verified: `harness verify … 2` all green; no drivable surface yet, nothing is wired (phase 2 declares `drive: false`)\nFiles: src/auth/apiKey.ts, src/http/router.ts, test/auth.test.ts · commit 0d62d32\n[a] approve · [x] reject: \\<why>\n\nYour run grant through 3 wrote a `2.approved` marker, but `src/auth/` is a security path, so the grant does not carry past it and the developer stopped. Phase 3 (wiring plus driving the real server) also takes its own approval. No `[r]` option here.",
+        "## Design closed: 20260911-api-key-auth-for-all-endpoints\n\nEvery endpoint now needs `x-api-key` matching `auth.apiKey` (env `API_KEY` wins), compared as SHA-256 digests through `timingSafeEqual`, with `GET /health` on an explicit allow list and `401 {\"error\":{\"message\":\"unauthorized\"}}` otherwise.\nPhases: 3 · decisions: 5 (0 amended) · commits 73d345e..988750e · review: APPROVED\n\n35 tests pass across 7 files, `test/router.test.ts` untouched. The guard is a decorator around the router in `src/main.ts`, so handlers never see the header. A blank key refuses to start: `npm start` now needs `API_KEY=<key>`.\n\nTwo open questions the design left to you: whether the guard should run before the request body is read in `src/http/server.ts` (OQ-001), and whether any environment needs two valid keys at once for rotation (OQ-002)."
+      ],
+      "error": null,
+      "port": 8100,
+      "orphans": 0,
+      "prompt_log": [],
+      "prompts": 0,
+      "cache_hit_ratio": 0.9907,
+      "tokens_total": 692012,
+      "base_sha": "c86951a333d44ed7a89e87245fa5031e29eeb73d",
+      "changed_files": [
+        "data/config.json",
+        "src/auth/apiKey.ts",
+        "src/config.ts",
+        "src/http/router.ts",
+        "src/http/server.ts",
+        "src/main.ts",
+        "test/auth.test.ts",
+        "test/config.test.ts"
+      ],
+      "lines_added": 267,
+      "signals": {
+        "lane": "design",
+        "verdicts": [
+          "APPROVED"
+        ],
+        "route": "design:APPROVED"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 35,
+          "failed": 0,
+          "total": 35,
+          "error": null,
+          "failures": []
+        },
+        "hidden": {
+          "passed": 4,
+          "failed": 0,
+          "total": 4,
+          "error": null,
+          "failures": []
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "35/35 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "4/4 passed"
+          },
+          {
+            "name": "exists:src/auth/*.ts",
+            "ok": true,
+            "detail": "src/auth/apiKey.ts"
+          },
+          {
+            "name": "grep:src/auth/*.ts:timingSafeEqual",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/config.ts:apiKey",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/invoices.json",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-11T15:31:47.547Z",
+      "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\gate-13-api-key-auth-r1-mtx3mg2h"
+    },
+    {
+      "task": "order-08-validation",
+      "lane_expected": "order",
+      "harness": "rework",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-11T15:49:46.843Z",
+      "session_ids": [
+        "7af145a1-88e9-487e-ab3e-1e131c0d0e05",
+        "7af145a1-88e9-487e-ab3e-1e131c0d0e05"
+      ],
+      "stops": 1,
+      "gates": [
+        "approval"
+      ],
+      "denials": 1,
+      "turns": 40,
+      "cost_usd": 3.9489715500000004,
+      "usage": {
+        "input_tokens": 58,
+        "cache_read_input_tokens": 2178387,
+        "cache_creation_input_tokens": 55821,
+        "output_tokens": 8399
+      },
+      "api_ms": 400181,
+      "wall_ms": 446248,
+      "tool_calls": 90,
+      "tool_counts": {
+        "Skill": 3,
+        "Bash": 32,
+        "Read": 38,
+        "Agent": 4,
+        "Write": 3,
+        "Edit": 6,
+        "ToolSearch": 1,
+        "SendMessage": 1,
+        "ListAgents": 1,
+        "Grep": 1
+      },
+      "reads": 38,
+      "unique_reads": 28,
+      "rereads": 10,
+      "subagents": 4,
+      "first_write_ms": 165504,
+      "first_tool_ms": 7757,
+      "first_reviewable_ms": 165504,
+      "model": "claude-opus-5[1m]",
+      "terminal": "completed",
+      "texts": [
+        "▶ 20260911-validate-invoice-create-request-body · phase 1/2 done · `src/http/validation.ts` now validates an invoice create body and returns the first offending field, with unit tests covering each rule.\nTests: passed · Lint: passed · Verified: `npm test` → 5 files, all green (validation.test.ts added)\nFiles: src/http/validation.ts, test/validation.test.ts\n[a] approve · [r] run through 2 · [x] reject: \\<why>",
+        "## Order closed: 20260911-validate-invoice-create-request-body\n\n`POST /invoices` now rejects a malformed body with 400 and `{ error: { field, message } }` naming the first offending field (for example `lines[0].quantity`), validated by a standalone `src/http/validation.ts` that is unit tested directly and through the router.\nPhases: 2 · commits e8836e3..ba581f1 · review: APPROVED"
+      ],
+      "error": null,
+      "port": 8100,
+      "orphans": 0,
+      "prompt_log": [],
+      "prompts": 0,
+      "cache_hit_ratio": 0.975,
+      "tokens_total": 2242665,
+      "base_sha": "47ec3cba3f1ebebba9eef68dfa25c71e965cd655",
+      "changed_files": [
+        "src/http/handlers.ts",
+        "src/http/validation.ts",
+        "test/router.test.ts",
+        "test/validation.test.ts"
+      ],
+      "lines_added": 202,
+      "signals": {
+        "lane": "order",
+        "verdicts": [
+          "APPROVED"
+        ],
+        "route": "order:APPROVED"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 42,
+          "failed": 0,
+          "total": 42,
+          "error": null,
+          "failures": []
+        },
+        "hidden": {
+          "passed": 6,
+          "failed": 0,
+          "total": 6,
+          "error": null,
+          "failures": []
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "42/42 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "6/6 passed"
+          },
+          {
+            "name": "exists:src/http/valid*.ts",
+            "ok": true,
+            "detail": "src/http/validation.ts"
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-11T15:57:16.235Z",
+      "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\order-08-validation-r1-mtx4tpie"
+    },
+    {
+      "task": "order-09-csv-export",
+      "lane_expected": "order",
+      "harness": "rework",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-11T16:05:43.447Z",
+      "session_ids": [
+        "af5776b4-14f4-45ac-ae99-61b8e7dab603",
+        "af5776b4-14f4-45ac-ae99-61b8e7dab603"
+      ],
+      "stops": 1,
+      "gates": [
+        "approval"
+      ],
+      "denials": 0,
+      "turns": 25,
+      "cost_usd": 3.5505959500000004,
+      "usage": {
+        "input_tokens": 48,
+        "cache_read_input_tokens": 1651896,
+        "cache_creation_input_tokens": 43691,
+        "output_tokens": 4795
+      },
+      "api_ms": 334224,
+      "wall_ms": 370216,
+      "tool_calls": 84,
+      "tool_counts": {
+        "Skill": 1,
+        "Bash": 32,
+        "Grep": 2,
+        "Read": 35,
+        "Agent": 3,
+        "Write": 3,
+        "ToolSearch": 1,
+        "SendMessage": 2,
+        "Edit": 5
+      },
+      "reads": 35,
+      "unique_reads": 29,
+      "rereads": 6,
+      "subagents": 3,
+      "first_write_ms": 143099,
+      "first_tool_ms": 6711,
+      "first_reviewable_ms": 143099,
+      "model": "claude-opus-5[1m]",
+      "terminal": "completed",
+      "texts": [
+        "▶ 20260911-csv-export-of-all-invoices · phase 1/2 done · Pure `src/export/csv.ts` module renders RFC 4180 rows (quoting commas, quotes and newlines) with no I/O, plus 12 unit tests.\nTests: passed · Lint: passed · Verified: `npm test` → 12 new CSV tests pass, no drivable surface yet\nFiles: src/export/csv.ts, test/csv.test.ts\n[a] approve · [r] run through 2 · [x] reject: `<why>`",
+        "## Order closed: 20260911-csv-export-of-all-invoices\n\n`GET /invoices.csv` now returns every invoice newest first as RFC 4180 CSV, with totals from the configured tax rate and formatting in the pure `src/export/csv.ts` module.\nPhases: 2 · commits 2ca5aa1..691e50c · review: APPROVED"
+      ],
+      "error": null,
+      "port": 8100,
+      "orphans": 0,
+      "prompt_log": [],
+      "prompts": 0,
+      "cache_hit_ratio": 0.9742,
+      "tokens_total": 1700430,
+      "base_sha": "47ec3cba3f1ebebba9eef68dfa25c71e965cd655",
+      "changed_files": [
+        "src/export/csv.ts",
+        "src/http/handlers.ts",
+        "test/csv.test.ts",
+        "test/router.test.ts"
+      ],
+      "lines_added": 185,
+      "signals": {
+        "lane": "order",
+        "verdicts": [
+          "APPROVED"
+        ],
+        "route": "order:APPROVED"
+      },
+      "grade": {
+        "pass": true,
+        "own": {
+          "passed": 36,
+          "failed": 0,
+          "total": 36,
+          "error": null,
+          "failures": []
+        },
+        "hidden": {
+          "passed": 2,
+          "failed": 0,
+          "total": 2,
+          "error": null,
+          "failures": []
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "36/36 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": true,
+            "detail": "2/2 passed"
+          },
+          {
+            "name": "grep:src/http/handlers.ts:invoices\\.csv",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": true,
+      "finished": "2026-09-11T16:11:56.842Z",
+      "run_dir": "D:\\workspace\\github\\AISpec\\.worktrees\\rework\\bench\\.runs\\order-09-csv-export-r1-mtx5e7mq"
     }
   ]
 }
