@@ -26,7 +26,10 @@ export function parse(text) {
       const inner = s.slice(1, -1).trim();
       return inner === "" ? [] : splitInline(inner).map(scalar);
     }
-    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) return s.slice(1, -1);
+    // Quoted scalars carry escapes: "lines\\[0\\]" is the regex lines\[0\] (an architect writing a
+    // grep pattern in double quotes doubles the backslashes, as YAML requires), '' inside '…' is '.
+    if (s.startsWith('"') && s.endsWith('"') && s.length >= 2) return s.slice(1, -1).replace(/\\(["\\/nrt])/g, (_, c) => ({ n: "\n", r: "\r", t: "\t" })[c] ?? c);
+    if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) return s.slice(1, -1).replaceAll("''", "'");
     return s;
   }
   function splitInline(s) {

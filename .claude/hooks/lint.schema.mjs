@@ -38,6 +38,19 @@ try {
   for (const p of fmPhases) {
     if (!Array.isArray(p.files)) problems.push(`phases[n=${p.n}].files must be a list`);
     if (!headings.includes(Number(p.n))) problems.push(`frontmatter phase ${p.n} has no "## Phase ${p.n}" heading`);
+    // A grep must_have that can never match stalls the developer on a defect it may not fix.
+    for (const g of Array.isArray(p.greps) ? p.greps : []) {
+      if (!g?.path || !g?.pattern) {
+        problems.push(`phases[n=${p.n}].greps entries need path and pattern`);
+        continue;
+      }
+      try {
+        new RegExp(g.pattern, g.flags ?? "m");
+      } catch (err) {
+        problems.push(`phases[n=${p.n}] grep pattern ${JSON.stringify(g.pattern)} is not a valid regex: ${err.message}`);
+      }
+      if (/\\\\/.test(g.pattern)) problems.push(`phases[n=${p.n}] grep pattern ${JSON.stringify(g.pattern)} contains a doubled backslash after parsing; write the regex once, e.g. pattern: lines\\[0\\]\\.quantity`);
+    }
   }
   const maxPhases = lane === "order" ? 3 : 10;
   if (headings.length > maxPhases) problems.push(`${headings.length} phases; the ${lane} cap is ${maxPhases}`);
