@@ -26,7 +26,7 @@ Lane check for this request:
 |---|---|
 | `write_artifact` by analyst | `steps/10-outline.md`: open the work item, spawn the analyst for the outline |
 | `approve_phase` by user (outline present) | render the packet below, stop; on `d`, `steps/20-deep.md`; on `a`, close |
-| `close` | `harness set <id> status=done`, print the report path, stop |
+| `close` | `harness set <id> status=done`, print the closing block below, stop |
 
 ## The packet
 
@@ -38,6 +38,15 @@ Sources next: <the deep-pass source list, one line>
 ```
 
 `d` continues the analyst with `work: <id>`, `deep pass`, plus any redirect. `x <what>` continues it with the redirect and asks for a new outline. The deep pass ends with the same packet minus the `[d]` option.
+
+## Closing block
+
+```
+## Report: <id>
+
+<the report's one-sentence answer>
+Report: work/<id>/report.md · findings: <n> · architect review: <yes: R-00x | no>
+```
 
 ## Rules of the lane
 

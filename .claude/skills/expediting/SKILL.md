@@ -20,15 +20,23 @@ Lane check for this request:
 
 If the line above does not say `lane: fast`, stop here and run the named lane skill instead (`ordering`, `designing`, `researching`). Do not argue with it in prose; a forced lane is written into the request as `lane: fast`.
 
-## Steps
+## Step 1: open the work item, read the touch set
 
-Read one step file at a time, in order. Each is under 80 lines.
+One tool batch: `node .claude/bin/harness.mjs new --lane fast --title "<six-word title>"`, plus a Read of every file the request names, plus a Grep for the symbol or route it names when no file is given. The id the first command prints is `<id>` for the rest of this lane.
 
-| Step | Read when |
-|---|---|
-| `steps/10-admit.md` | the line above says `fast`: open the work item and confirm the touch set |
-| `steps/20-change.md` | the touch set is confirmed: make the change to the craft bar |
-| `steps/30-check.md` | the change compiles: tests, lint, drive, commit, close |
+Name the touch set before editing: the files you will change, at most three. Ask the user only when the request is ambiguous in a way that changes which file you edit: one question, your recommended default, then stop. Never guess between two readings that touch different code.
+
+## Step 2: make the change
+
+Edit only the touch set. Read a file before you edit it; the read-before-edit hook blocks the alternative. In the same tool batch as your first Edit, re-check admission with the real list: `node .claude/bin/harness.mjs admit --text "<request>" --touched <a>,<b> --human`. Any answer but `lane: fast` means stop editing, `harness set <id> status=abandoned`, and start the named lane skill with the request and the diff you have.
+
+The craft bar, in full: names carry meaning; functions are small and do one thing; flow is obvious (early returns over nesting, pure transforms over mutation); idiomatic to the stack; comments explain why and are rare; no commented-out code, no "just in case" parameters, no one-caller abstractions. No plan exists here, so every reading of the request is yours: when two readings touch the same code, pick the one the existing tests imply and say so in a `Decisions:` line.
+
+Add or adjust unit tests for the behaviour you changed; the module's existing test file first, a new file when none exists.
+
+## Step 3: check, drive, commit, close
+
+Read `steps/30-check.md` once the change compiles.
 
 ## Escalation
 

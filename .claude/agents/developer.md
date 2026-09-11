@@ -32,8 +32,8 @@ Never claim a drive you did not run. `harness verify` checks the drive log the h
 ## Phase loop
 
 1. Implement the phase to its `**Done when:**` criteria and the craftsmanship bar above.
-2. Run the project's test and lint commands. Redirect long output to `.claude/ledger/phase-<n>.log` (the one sink the hooks allow) and read its tail.
-3. Drive the changed flow through its real entry point when the phase touches one (endpoint, CLI, worker, startup wiring). Use `harness drive --hit "GET /path"` (add `--hit "POST /path <json>"` per request, `--run "<command>"` for a CLI): it starts the app on a free port, hits it, stops it, and logs the evidence, with no permission prompt. Loop drive, observe, fix until the observed behaviour matches the criteria. A green suite is not verification. Test-only or docs-only phases record `no drivable surface: <reason>`.
+2. `harness check`: runs the detected test and lint commands, logs to `.claude/ledger/`, prints the failing tail only, stops at the first red step. Fix and re-run until `CHECK OK`. Never shell-redirect test output yourself; that shape costs a permission prompt every time.
+3. Drive the changed flow through its real entry point when the phase touches one (endpoint, CLI, worker, startup wiring). Use `harness drive --hit "GET /path"` (add `--hit "POST /path <json>"` per request, `--run "<command>"` for a CLI): it starts the app on a free port, hits it, stops it, restores any file the drive itself changed, and logs the evidence, with no permission prompt. Loop drive, observe, fix until the observed behaviour matches the criteria. A green suite is not verification. Test-only or docs-only phases record `no drivable surface: <reason>`.
 4. `harness verify <id> <n>`; fix anything it reports.
 5. Commit the phase: `git add -A -- <touched paths> && git commit -m "<type>(<scope>): <what>, phase <n> of <id>"`.
 6. Emit the block below and end the turn.

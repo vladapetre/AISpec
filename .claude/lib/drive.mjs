@@ -76,6 +76,35 @@ function killTree(child) {
   } catch {}
 }
 
+/** Tracked files with uncommitted changes, as repo-relative paths; [] outside a repo. */
+function modifiedTracked(root) {
+  try {
+    return execSync("git status --porcelain --untracked-files=no", { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((l) => l.slice(3).trim().replace(/^"(.*)"$/, "$1"));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A drive is verification, so what it changes on disk is a side effect, not work: the invoice the
+ * POST created, the log the CLI wrote. Restore tracked files the drive dirtied so the tree is as the
+ * developer left it; untracked files are only reported (deleting is the developer's call).
+ */
+function restoreSideEffects(root, before, keep) {
+  const after = modifiedTracked(root);
+  const dirtied = after.filter((p) => !before.includes(p));
+  if (keep || !dirtied.length) return { dirtied, restored: [] };
+  try {
+    execSync(`git checkout -- ${dirtied.map((p) => `"${p}"`).join(" ")}`, { cwd: root, stdio: "ignore" });
+    return { dirtied, restored: dirtied };
+  } catch {
+    return { dirtied, restored: [] };
+  }
+}
+
 function logRow(root, row) {
   const dir = join(root, ".claude", "ledger");
   mkdirSync(dir, { recursive: true });
@@ -90,6 +119,7 @@ function logRow(root, row) {
  * @param {number|string} [o.port]  default: $PORT, else a free port; exported to the server as PORT
  * @param {string} [o.wait]      path polled until the server answers; default: the first hit's path
  * @param {number} [o.timeoutMs] boot and per-request timeout, default 20000
+ * @param {boolean} [o.keepChanges] leave files the drive changed in place instead of restoring them
  * @param {string} [o.id]        work item the evidence belongs to; default: the newest open one
  * @param {number} [o.phase]
  * @param {string} [o.root]
@@ -101,6 +131,8 @@ export async function drive(o = {}) {
   const timeoutMs = Number(o.timeoutMs ?? 20_000);
   const row = { ts: new Date().toISOString(), kind: "drive", source: "harness drive", work_id: work.work_id, phase: work.phase };
 
+  const before = modifiedTracked(root);
+
   if (o.run) {
     const t = Date.now();
     let output = "";
@@ -111,7 +143,8 @@ export async function drive(o = {}) {
       code = err.status ?? 1;
       output = `${err.stdout ?? ""}${err.stderr ?? ""}` || err.message;
     }
-    const r = { ok: code === 0, mode: "run", command: o.run, exit_code: code, ms: Date.now() - t, output: String(output).slice(-4000) };
+    const side = restoreSideEffects(root, before, o.keepChanges);
+    const r = { ok: code === 0, mode: "run", command: o.run, exit_code: code, ms: Date.now() - t, output: String(output).slice(-4000), ...side };
     logRow(root, { ...row, command: `harness drive --run ${o.run}`.slice(0, 200), ok: r.ok, exit_code: code });
     return r;
   }
@@ -158,6 +191,7 @@ export async function drive(o = {}) {
   while (Date.now() - tKill < 3000 && (await portOpen(port))) await sleep(100);
   result.stopped = !(await portOpen(port));
   result.server_log_tail = serverLog.slice(-1500);
+  Object.assign(result, restoreSideEffects(root, before, o.keepChanges));
   logRow(root, {
     ...row,
     command: `harness drive --start "${start}" ${hits.map((h) => `--hit "${h.method} ${h.path}"`).join(" ")}`.slice(0, 200),
@@ -171,16 +205,17 @@ export async function drive(o = {}) {
 /** One-screen human rendering; the last line is DRIVE OK or DRIVE FAILED. */
 export function renderDrive(v) {
   const one = (s) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+  const side = () => (v.restored?.length ? [`restored ${v.restored.join(", ")} (changed by the drive, not by you)`] : v.dirtied?.length ? [`left dirty: ${v.dirtied.join(", ")}`] : []);
   if (v.mode === "run") {
     const tail = v.output.trim().split(/\r?\n/).slice(-15).join("\n");
-    return `${v.command} → exit ${v.exit_code} (${v.ms} ms)\n${tail}\n${v.ok ? "DRIVE OK" : "DRIVE FAILED"}`;
+    return [`${v.command} → exit ${v.exit_code} (${v.ms} ms)`, tail, ...side(), v.ok ? "DRIVE OK" : "DRIVE FAILED"].join("\n");
   }
   const lines = [];
   if (v.hits.length || v.ok) lines.push(`${v.start} on :${v.port} · up in ${v.wait_ms} ms`);
   else lines.push(`${v.start} on :${v.port} · no answer on ${v.wait} within ${v.wait_ms} ms${v.server_exit !== null ? ` (exited ${v.server_exit})` : ""}`);
   for (const h of v.hits) lines.push(`${h.method} ${h.path} → ${h.status ?? h.error} (${h.ms} ms) ${one(h.body)}`);
   if (!v.ok && v.server_log_tail) lines.push("--- server log", v.server_log_tail.trim());
-  lines.push(v.stopped ? "server stopped" : `server still listening on :${v.port}`);
+  lines.push(v.stopped ? "server stopped" : `server still listening on :${v.port}`, ...side());
   lines.push(v.ok ? "DRIVE OK" : "DRIVE FAILED");
   return lines.join("\n");
 }

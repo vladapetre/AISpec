@@ -96,6 +96,29 @@ test("drive fails fast when the app never answers, and says why", () => {
   assert.ok(r.json.wait_ms < 5000, "exits as soon as the process dies, not at the timeout");
 });
 
+test("drive restores tracked files its own requests changed, and reports untracked leftovers", () => {
+  const root = fixture();
+  writeFileSync(
+    join(root, "store.mjs"),
+    `import http from "node:http"; import { writeFileSync } from "node:fs";
+http.createServer((req, res) => { writeFileSync("data.json", "[1]"); writeFileSync("new.log", "x"); res.end("ok"); }).listen(Number(process.env.PORT), "127.0.0.1");`,
+  );
+  writeFileSync(join(root, "data.json"), "[]");
+  const git = (args) => execFileSync("git", ["-C", root, ...args], { stdio: "ignore" });
+  git(["init", "-q"]);
+  git(["-c", "user.email=t@t", "-c", "user.name=t", "add", "-A"]);
+  git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "base"]);
+  const r = run(root, ["drive", "--start", "node store.mjs", "--hit", "POST /invoices"]);
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual(r.json.restored, ["data.json"]);
+  assert.equal(readFileSync(join(root, "data.json"), "utf8"), "[]", "the drive's write is undone");
+  assert.equal(existsSync(join(root, "new.log")), true, "untracked files are left for the developer to judge");
+  const kept = run(root, ["drive", "--start", "node store.mjs", "--hit", "POST /invoices", "--keep-changes"]);
+  assert.deepEqual(kept.json.restored, []);
+  assert.deepEqual(kept.json.dirtied, ["data.json"]);
+  assert.equal(readFileSync(join(root, "data.json"), "utf8"), "[1]");
+});
+
 test("parseHit reads method, path and body", () => {
   assert.deepEqual(parseHit("/x"), { method: "GET", path: "/x", body: undefined });
   assert.deepEqual(parseHit("DELETE /x/1"), { method: "DELETE", path: "/x/1", body: undefined });

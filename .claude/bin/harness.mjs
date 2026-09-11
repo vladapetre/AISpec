@@ -16,10 +16,13 @@
 //   harness find-verdict --text "<block>"
 //   harness drive --hit "GET /path" [--hit "POST /path <json>"]... [--start "<cmd>"] [--port N] [--wait /path]
 //   harness drive --run "<cli command>"
+//   harness check [--steps test,lint,build] [--only "<command>"]
 //
 import { readFileSync } from "node:fs";
 import { admit } from "../lib/admit.mjs";
 import { drive, renderDrive } from "../lib/drive.mjs";
+import { check, renderCheck } from "../lib/check.mjs";
+import { dirtyPaths } from "../lib/git.mjs";
 import { createWork, deriveState, listWork, projectRoot, readState, writeState } from "../lib/work.mjs";
 import { next } from "../lib/next.mjs";
 import { preflight } from "../lib/preflight.mjs";
@@ -102,7 +105,9 @@ async function main(argv) {
       }
       if (st.status !== "blocked") delete st.blocked_reason;
       writeState(st, root);
-      out({ ...st, next: next(st.id, root) }, opt, (v) => `${v.id}: status ${v.status}${v.blocked_reason ? " (" + v.blocked_reason + ")" : ""} · next: ${v.next.action}`);
+      // Closing with uncommitted changes in the tree is the most common way a drive's side effect ships.
+      const dirty = st.status === "done" ? (dirtyPaths(root) ?? []) : [];
+      out({ ...st, dirty, next: next(st.id, root) }, opt, (v) => `${v.id}: status ${v.status}${v.blocked_reason ? " (" + v.blocked_reason + ")" : ""} · next: ${v.next.action}${v.dirty.length ? `\nWARNING: uncommitted changes: ${v.dirty.join(", ")} (commit them or \`git checkout -- <path>\` before you print the closing block)` : ""}`);
       return 0;
     }
     case "next": {
@@ -152,14 +157,21 @@ async function main(argv) {
         port: opt.port,
         wait: opt.wait,
         timeoutMs: opt.timeout ? Number(opt.timeout) * 1000 : undefined,
+        keepChanges: opt["keep-changes"] === true,
         id: opt.work,
         phase: opt.phase,
       });
       out(r, opt, renderDrive);
       return r.ok ? 0 : 2;
     }
+    case "check": {
+      // Runs the detected test and lint commands, logs to .claude/ledger/, stops at the first failure.
+      const r = check({ root, steps: opt.steps ? String(opt.steps).split(",").filter(Boolean) : undefined, only: opt.only === true ? undefined : opt.only, timeoutMs: opt.timeout ? Number(opt.timeout) * 1000 : undefined });
+      out(r, opt, renderCheck);
+      return r.ok ? 0 : 2;
+    }
     default:
-      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive`);
+      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive check`);
   }
 }
 
