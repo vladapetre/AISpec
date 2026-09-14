@@ -1,73 +1,71 @@
-import { describe, expect, it } from "vitest";
-import { readdirSync } from "node:fs";
-import { DEFAULT_CONFIG } from "../../src/config.js";
-import { buildRouter } from "../../src/http/handlers.js";
-import { MemoryInvoiceRepository } from "../../src/storage/jsonRepository.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer } from "node:net";
 
-type Handle = (req: any) => Promise<any>;
-type Guard = (handle: Handle, key: string) => Handle;
+// Black-box: the task says "wire it in front of the router so handlers stay unaware", so the only
+// contract the grader may hold the candidate to is the HTTP surface with API_KEY set. Earlier
+// versions of this test discovered the guard by function signature and failed two legitimate designs
+// ((handler, key) vs (handler, { apiKey }) vs a guard closing over loaded config). The app boots via
+// the project's own start script; the key arrives the way the task names: the API_KEY variable.
+const KEY = "hidden-test-secret";
+let child: ChildProcess | null = null;
+let base = "";
 
-// The task fixes the module directory (src/auth/) but not the export name or signature, so the
-// hidden test discovers the guard by behaviour: for every exported function and every common
-// calling shape, build a guarded handler and keep the first one that really lets the right key in
-// and keeps the wrong key out. Accepted shapes for the key argument: a string, `{ apiKey }`,
-// `{ auth: { apiKey } }`; accepted wrapping shapes: (handle, key), ({ handle }, key), (key)(handle).
-const KEY_SHAPES: Array<(k: string) => any> = [(k) => k, (k) => ({ apiKey: k }), (k) => ({ auth: { apiKey: k } })];
-
-async function loadGuard(): Promise<Guard> {
-  const files = readdirSync(new URL("../../src/auth/", import.meta.url)).filter((f) => f.endsWith(".ts"));
-  const probeRouter = buildRouter({ repo: new MemoryInvoiceRepository([]), config: DEFAULT_CONFIG });
-  const probe: Handle = (r) => probeRouter.handle(r);
-  const candidates: Guard[] = [];
-  for (const f of files) {
-    const mod: any = await import(`../../src/auth/${f.replace(/\.ts$/, ".js")}`);
-    for (const value of Object.values(mod)) {
-      if (typeof value !== "function") continue;
-      const fn: any = value;
-      for (const shape of KEY_SHAPES) {
-        candidates.push((h, k) => fn(h, shape(k)));
-        candidates.push((h, k) => (req) => fn({ handle: h }, shape(k)).handle(req));
-        candidates.push((h, k) => fn(shape(k))(h));
-      }
-    }
-  }
-  for (const c of candidates) {
-    try {
-      const guarded = c(probe, "secret");
-      if (typeof guarded !== "function") continue;
-      const right = await guarded({ method: "GET", url: "/invoices", headers: { "x-api-key": "secret" } });
-      const wrong = await guarded({ method: "GET", url: "/invoices", headers: { "x-api-key": "nope" } });
-      if (right?.status === 200 && wrong?.status === 401) return c;
-    } catch {}
-  }
-  throw new Error("no auth guard found under src/auth/ that admits the right key and rejects a wrong one");
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.on("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address() as { port: number };
+      srv.close(() => resolve(port));
+    });
+  });
 }
 
-describe("hidden: API key guard", () => {
-  const router = buildRouter({ repo: new MemoryInvoiceRepository([]), config: DEFAULT_CONFIG });
+async function waitFor(url: string, ms: number): Promise<void> {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    try {
+      await fetch(url, { signal: AbortSignal.timeout(1000) });
+      return;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`server did not answer on ${url} within ${ms} ms`);
+}
 
+beforeAll(async () => {
+  const port = await freePort();
+  base = `http://127.0.0.1:${port}`;
+  child = spawn("npm", ["start"], { cwd: process.cwd(), shell: true, env: { ...process.env, PORT: String(port), API_KEY: KEY }, stdio: "ignore", windowsHide: true });
+  await waitFor(`${base}/health`, 30_000);
+}, 40_000);
+
+afterAll(() => {
+  if (!child || child.exitCode !== null) return;
+  if (process.platform === "win32") spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+  else process.kill(-child.pid!, "SIGKILL");
+});
+
+describe("hidden: API key guard over HTTP", () => {
   it("lets /health through without a key", async () => {
-    const guard = await loadGuard();
-    const res = await guard((r) => router.handle(r), "secret")({ method: "GET", url: "/health", headers: {} });
+    const res = await fetch(`${base}/health`);
     expect(res.status).toBe(200);
   });
 
-  it("rejects a missing key with 401", async () => {
-    const guard = await loadGuard();
-    const res = await guard((r) => router.handle(r), "secret")({ method: "GET", url: "/invoices", headers: {} });
+  it("rejects a missing key with 401 and the agreed body", async () => {
+    const res = await fetch(`${base}/invoices`);
     expect(res.status).toBe(401);
-    expect(JSON.parse(res.body).error.message).toBe("unauthorized");
+    expect((await res.json()).error.message).toBe("unauthorized");
   });
 
   it("rejects a wrong key", async () => {
-    const guard = await loadGuard();
-    const res = await guard((r) => router.handle(r), "secret")({ method: "GET", url: "/invoices", headers: { "x-api-key": "nope" } });
+    const res = await fetch(`${base}/invoices`, { headers: { "x-api-key": "nope" } });
     expect(res.status).toBe(401);
   });
 
   it("accepts the right key", async () => {
-    const guard = await loadGuard();
-    const res = await guard((r) => router.handle(r), "secret")({ method: "GET", url: "/invoices", headers: { "x-api-key": "secret" } });
+    const res = await fetch(`${base}/invoices`, { headers: { "x-api-key": KEY } });
     expect(res.status).toBe(200);
   });
 });

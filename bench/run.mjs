@@ -14,6 +14,7 @@ import { runClaude } from "./lib/claude.mjs";
 import { grade, changedFiles, linesAdded } from "./lib/grade.mjs";
 import { addUsage, cacheHitRatio, totalTokens, round } from "./lib/metrics.mjs";
 import { nextPort, killListeners } from "./lib/ports.mjs";
+import { trustWorkspace, untrustWorkspace } from "./lib/trust.mjs";
 
 const BENCH = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(BENCH, "..");
@@ -155,6 +156,9 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
   // leftover from an earlier run, and whatever is still listening when the run ends is ours to kill.
   const port = nextPort();
   record.port = port;
+  // Untrusted workspaces get their permissions.allow ignored; the harness under test must have its own rules apply.
+  record.trusted = trustWorkspace(repo);
+  const timeoutMs = task.timeout_ms ?? 25 * 60_000;
   for (let step = 0; step <= maxStops; step++) {
     const r = await runClaude({
       cwd: repo,
@@ -165,7 +169,7 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
       allowedTools: adapter.allowedTools,
       maxBudgetUsd: args.budget ?? task.budget_usd ?? 10,
       maxTurns: task.max_turns ?? 150,
-      timeoutMs: task.timeout_ms ?? 25 * 60_000,
+      timeoutMs,
       eventsPath,
       approver,
       t0,
@@ -174,7 +178,9 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
     record.rate_limits = (record.rate_limits ?? 0) + (r.summary.rateLimits ?? 0);
     if (!res) {
       record.error = `no result event (exit ${r.exitCode}, signal ${r.signal ?? "none"}, ${r.summary.events} events): ${r.stderr.slice(-500)}`;
-      record.terminal = "error";
+      // A run that took several times its own timeout to be killed was frozen with the host
+      // (laptop asleep): the clock jumped, the timer fired on wake. Not a measurement of anything.
+      record.terminal = r.wallMs > 2 * timeoutMs ? "suspended" : "error";
       break;
     }
     record.session_ids.push(res.session_id);
@@ -218,6 +224,7 @@ async function runOnce({ task, run, adapter, harnessRoot, template, args, log })
     log(`    gate ${record.stops} (${g.kind}) → "${g.reply}"`);
   }
   record.wall_ms = Date.now() - t0;
+  untrustWorkspace(repo);
   const orphans = killListeners(port);
   if (orphans.length) log(`    killed ${orphans.length} server process(es) left listening on :${port}`);
   record.orphans = orphans.length;
@@ -300,6 +307,11 @@ async function main() {
         log(`  ${task.id} run ${run}: quota exhausted (${rec.error.slice(0, 120)}); stopping. Re-run the same command later, it resumes.`);
         process.exitCode = 3;
         return;
+      }
+      if (rec.terminal === "suspended") {
+        // The host slept through the run. Record nothing; the next invocation re-runs it.
+        log(`  ${task.id} run ${run}: host suspended mid-run (${Math.round(rec.wall_ms / 1000)} s wall for a ${Math.round((task.timeout_ms ?? 25 * 60_000) / 1000)} s timeout); not recorded.`);
+        continue;
       }
       existing.records.push(rec);
       save();
