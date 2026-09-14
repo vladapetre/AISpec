@@ -3,6 +3,28 @@
 import { appendVerdict, deriveState, hasMarker, projectRoot, readArtifact, readState, setMarker, writeState } from "./work.mjs";
 import { next } from "./next.mjs";
 import { securityPaths } from "./admit.mjs";
+import { commitStaged } from "./git.mjs";
+import { readBlock, parseBlock } from "./packet.mjs";
+
+/**
+ * Approval turns the developer's staged work into a commit. The message is the one the developer
+ * proposed in its block (`Commit: feat(http): …`), or a plain fallback. The work item's state rides
+ * along, so the commit that added `phases/N.approved` IS the phase commit:
+ * `git log -1 --format=%h -- work/<id>/phases/N.approved` names it, no marker needed.
+ */
+function commitPhase(id, phase, root, applied) {
+  const s = deriveState(id, root);
+  const b = parseBlock(readBlock(id, phase, root) ?? "");
+  const proposed = b.fields.commit && !/^[0-9a-f]{7,40}$/i.test(b.fields.commit) ? b.fields.commit.replace(/\s*\(staged.*\)$/i, "") : null;
+  const title = s.phases.find((p) => p.n === Number(phase))?.title ?? `phase ${phase}`;
+  const message = proposed ?? `${title}, phase ${phase} of ${id}`;
+  try {
+    const sha = commitStaged(root, message, [`work/${id}`]);
+    applied.push(sha ? `committed ${sha}: ${message}` : "nothing staged to commit");
+  } catch (err) {
+    applied.push(err.message);
+  }
+}
 
 export const VERDICTS = Object.freeze({
   // reviewer
@@ -63,6 +85,7 @@ export function route(o) {
   const s = deriveState(o.id, root);
   const phase = o.phase ?? s.current_phase ?? null;
   const applied = [];
+  let commitAfter = null; // the phase whose staged work this approval commits, once the verdict row is on disk
 
   switch (spec.effect) {
     case "phase_done": {
@@ -83,6 +106,7 @@ export function route(o) {
         } else {
           setMarker(o.id, phase, "approved", root);
           applied.push(`phases/${phase}.approved (run grant through ${st.run_through})`);
+          commitAfter = phase;
         }
       }
       break;
@@ -92,6 +116,7 @@ export function route(o) {
       if (!hasMarker(o.id, phase, "done", root)) throw new Error(`phase ${phase} is not done; cannot approve`);
       setMarker(o.id, phase, "approved", root);
       applied.push(`phases/${phase}.approved`);
+      commitAfter = phase;
       if (o.through && o.through > phase) {
         const st = readState(o.id, root);
         st.run_through = o.through;
@@ -132,5 +157,6 @@ export function route(o) {
   }
 
   appendVerdict(o.id, { agent: o.agent, verdict: o.verdict, phase, scope: o.scope ?? null, through: o.through ?? null }, root);
+  if (commitAfter != null) commitPhase(o.id, commitAfter, root, applied);
   return { id: o.id, verdict: o.verdict, phase, applied, next: next(o.id, root) };
 }

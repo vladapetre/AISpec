@@ -44,16 +44,18 @@ Re-run `harness admit --text "<request>" --touched <comma-separated paths you ha
 
 ## Output
 
-The fast lane prints one block and stops. No routing suggestions, no offers.
+The fast lane prints one block, staged and uncommitted, and stops for a one-word answer. No routing suggestions, no offers.
 
 ```
 ## Expedited: <id>
 
-<one sentence: what now works that did not>
+<one sentence under 90 characters: what now works that did not>
 
 Files: <path>, <path>
 Tests: passed | failed: <what> | no suite detected
 Lint: passed | failed: <what> | none detected
 Verified: <command> → <observed result> | no drivable surface: <reason>
-Commit: <sha>
+Commit: <type>(<scope>): <what>   (staged; your answer commits it)
+
+[c] commit   [x] discard: <why>
 ```

@@ -48,7 +48,7 @@ test("the gate packet is fixed-shape, width-capped, and ends with the options", 
   assert.match(text, /^  tests {5}passed \(374\/374 Rent\.Fleet\.Tests\)$/m);
   assert.match(text, /^  files {5}CarTelematicsColumnEvaluator\.cs, CarTelematicsColumnChanges\.cs, \+8 more$/m, "whole paths only, the rest counted");
   assert.equal(lines.filter((l) => /^ {12}· /.test(l) || /^  decisions/.test(l)).length, 3, "three decisions, one per line");
-  assert.match(text, /^  commit {4}3f9c2a1$/m);
+  assert.match(text, /^  commit {4}3f9c2a1 \(staged; approval commits it\)$/m);
   assert.equal(lines.at(-1), "[a] approve   [r] run through 2   [x] reject: <why>");
   assert.equal(lines.at(-2), "");
   rmSync(root, { recursive: true, force: true });

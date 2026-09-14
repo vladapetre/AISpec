@@ -29,9 +29,9 @@ Apply the reply, then continue in the same turn:
 
 | Reply | Command | Then |
 |---|---|---|
-| `a`, `approved`, `ok`, `yes` | `harness route <id> --verdict approved --agent user --phase <n>` | `harness next`: next phase or review |
+| `a`, `approved`, `ok`, `yes` | `harness route <id> --verdict approved --agent user --phase <n>` (this commits the staged phase with the developer's proposed message; the output names the sha) | `harness next`: next phase or review |
 | `r <m>`, `approved through <m>`, `run to <m>` | `harness route <id> --verdict approved --agent user --phase <n> --through <m>` | continue the developer with `run through <m>` |
-| `x <why>`, `reject: <why>`, anything else with a reason | `harness route <id> --verdict rejected --agent user --phase <n> --reason "<why>"` | `SendMessage` the developer: `work: <id>`, `phase: <n>`, `rejected: <why verbatim>` |
+| `x <why>`, `reject: <why>`, anything else with a reason | `harness route <id> --verdict rejected --agent user --phase <n> --reason "<why>"` (nothing is committed; the staged work stays in the index for the developer to fix) | `SendMessage` the developer: `work: <id>`, `phase: <n>`, `rejected: <why verbatim>` |
 | a question | answer it | re-render the packet |
 
 A reply that is neither an approval, a run grant, a rejection with a reason, nor a question is asked back once: "approve, run through, or reject with a reason?" Silence is not approval.

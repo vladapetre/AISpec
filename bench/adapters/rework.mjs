@@ -28,7 +28,7 @@ export function gate(text, task) {
   if (run) return { isGate: true, kind: "approval", reply: `r ${run[1]}` };
   if (/\[d\]\s*deep pass/i.test(tail)) return { isGate: true, kind: "approval", reply: "d" };
   if (/\[a\]\s*(approve|accept)/i.test(tail)) return { isGate: true, kind: "approval", reply: "a" };
-  if (/\[c\]\s*(continue|close)/i.test(tail)) return { isGate: true, kind: /fresh developer|redesign/i.test(tail) ? "stalled" : "approval", reply: "c" };
+  if (/\[c\]\s*(continue|close|commit)/i.test(tail)) return { isGate: true, kind: /fresh developer|redesign/i.test(tail) ? "stalled" : "approval", reply: "c" };
   if (/^\s*PREFLIGHT FAILED|\bask(ing)? (you|the user)\b.*\?/im.test(tail) && /\?\s*$/.test(tail.trim())) return { isGate: true, kind: "ask", reply: task.answer ?? "Proceed with your recommended option; do not ask again unless blocked." };
   return trunk.gate(text, task);
 }

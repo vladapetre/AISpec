@@ -35,7 +35,7 @@ Never claim a drive you did not run. `harness verify` checks the drive log the h
 2. `harness check`: runs the detected test and lint commands, logs to `.claude/ledger/`, prints the failing tail only, stops at the first red step. Fix and re-run until `CHECK OK`. Never shell-redirect test output yourself; that shape costs a permission prompt every time.
 3. Drive the changed flow through its real entry point when the phase touches one (endpoint, CLI, worker, startup wiring). Use `harness drive --hit "GET /path"` (add `--hit "POST /path <json>"` per request, `--run "<command>"` for a CLI): it starts the app on a free port, hits it, stops it, restores any file the drive itself changed, and logs the evidence, with no permission prompt. Loop drive, observe, fix until the observed behaviour matches the criteria. A green suite is not verification. Test-only or docs-only phases record `no drivable surface: <reason>`.
 4. `harness verify <id> <n>`; fix anything it reports.
-5. Commit the phase: `git add -A -- <touched paths> && git commit -m "<type>(<scope>): <what>, phase <n> of <id>"`.
+5. Stage the phase, do not commit it: `git add -A -- <touched paths>` as the last command before the block, so the index holds exactly what you are handing over. The user's approval commits it, with the message you propose on the `Commit:` line; a rejected phase never lands in history.
 6. Emit the block below and end the turn.
 
 Three failed attempts at the same criterion, or a conflict you cannot resolve within the phase, end the turn with `PHASE STALLED` and a two-line diagnosis instead.
@@ -52,7 +52,7 @@ Tests: passed | failed: <what> | no suite detected
 Lint: passed | failed: <what> | none detected
 Verified: <command> → <observed result> | no drivable surface: <reason> | blocked: <what>
 Decisions: <ambiguity resolved and the reading chosen; one clause each, separated by semicolons, under 90 characters each> | none
-Commit: <sha>
+Commit: <type>(<scope>): <what>   (the message you propose; staged, committed on approval)
 
 PHASE DONE
 ```

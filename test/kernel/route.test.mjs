@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { createWork, deriveState } from "../../.claude/lib/work.mjs";
 import { route, findVerdict } from "../../.claude/lib/route.mjs";
+import { saveBlock } from "../../.claude/lib/packet.mjs";
 
 function setup() {
   const root = mkdtempSync(join(tmpdir(), "harness-route-"));
@@ -62,6 +64,47 @@ test("a run grant never crosses a security path or an irreversible step; that ph
   r = route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 3, root });
   assert.ok(r.applied.some((a) => a.includes("irreversible")), r.applied.join(" | "));
   assert.deepEqual([r.next.action, r.next.phase], ["approve_phase", 3]);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("approval commits the staged phase with the developer's proposed message; rejection commits nothing", () => {
+  const root = mkdtempSync(join(tmpdir(), "harness-route-"));
+  mkdirSync(join(root, ".claude"));
+  const git = (...a) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...a], { encoding: "utf8" }).trim();
+  git("init", "-q");
+  writeFileSync(join(root, "README.md"), "base\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "base");
+  const s = createWork({ lane: "order", title: "Csv", root });
+  writeFileSync(join(root, "work", s.id, "order.md"), "---\nlane: order\n---\n# O\n\n## Phase 1: Add csv\n\nt\n\n## Phase 2: Wire route\n\nt\n");
+  git("add", "-A");
+  git("commit", "-q", "-m", "order");
+
+  // the developer stages phase 1 and proposes a message
+  mkdirSync(join(root, "src"), { recursive: true });
+  writeFileSync(join(root, "src", "csv.ts"), "export const csv = 1;\n");
+  git("add", "-A", "--", "src/csv.ts");
+  saveBlock(s.id, 1, `## Phase 1 of ${s.id}: Add csv\n\nCSV module in place.\n\nFiles: src/csv.ts\nTests: passed\nLint: passed\nVerified: no drivable surface: pure module\nDecisions: none\nCommit: feat(export): add the csv formatter\n\nPHASE DONE`, root);
+  route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 1, root });
+  assert.equal(git("log", "-1", "--format=%s"), "order", "PHASE DONE alone commits nothing");
+
+  let r = route({ id: s.id, verdict: "rejected", agent: "user", phase: 1, reason: "rename it", root });
+  assert.equal(git("log", "-1", "--format=%s"), "order", "rejection commits nothing");
+  assert.equal(git("diff", "--cached", "--name-only"), "src/csv.ts", "the staged work stays for the fix");
+
+  r = route({ id: s.id, verdict: "approved", agent: "user", phase: 1, root });
+  assert.equal(git("log", "-1", "--format=%s"), "feat(export): add the csv formatter");
+  assert.ok(r.applied.some((a) => a.startsWith("committed ")), r.applied.join(" | "));
+  assert.equal(git("status", "--porcelain"), "", "tree clean after the approval: the work item's state rode along");
+  assert.match(git("show", "--stat", "--format=", "HEAD"), /phases\/1\.approved/, "the phase commit carries the approval marker, so git log on that marker names the sha");
+  assert.equal(git("log", "-1", "--format=%s", "--", `work/${s.id}/phases/1.approved`), "feat(export): add the csv formatter");
+
+  // a phase with no saved block and no code staged still commits its state, under a plain message
+  route({ id: s.id, verdict: "PHASE DONE", agent: "developer", phase: 2, root });
+  r = route({ id: s.id, verdict: "approved", agent: "user", phase: 2, root });
+  assert.ok(r.applied.some((a) => a.startsWith("committed ")), r.applied.join(" | "));
+  assert.equal(git("log", "-1", "--format=%s"), `Wire route, phase 2 of ${s.id}`);
+  assert.equal(git("status", "--porcelain"), "");
   rmSync(root, { recursive: true, force: true });
 });
 

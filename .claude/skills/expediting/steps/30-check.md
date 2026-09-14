@@ -17,16 +17,18 @@ node .claude/bin/harness.mjs drive --run "npm run cli -- list" --human    # a CL
 
 Add one `--hit "POST /path <json>"` per request the change affects; `--start "<cmd>"` overrides the detected start script. Files the drive itself changes (a record the POST created) are restored so the tree stays yours. Read the statuses and bodies it prints; fix and re-run until they match the request. A green suite is not verification. A change with no runtime surface (a pure function, a test, docs) records `no drivable surface: <reason>` instead. Never describe a drive you did not run; the ledger shows the gap.
 
-Fix what the checks find, then commit the touch set:
+Fix what the checks find, then stage the touch set, and only stage it:
 
 ```
-git add -A -- <touched paths> && git commit -m "<type>(<scope>): <what>, <id>"
+git add -A -- <touched paths> work/<id>
 ```
 
-Close the work item:
+Emit the `## Expedited` block from `SKILL.md`, with the commit message you propose on its `Commit:` line and the options line last, and stop. Nothing is committed yet: the user looks at the block and answers.
 
-```
-node .claude/bin/harness.mjs set <id> status=done
-```
+| Reply | Do |
+|---|---|
+| `c`, `commit`, `ok`, `yes` | `git commit -m "<the proposed message>"`, then `node .claude/bin/harness.mjs set <id> status=done`; print `committed <sha>` and stop |
+| `x <why>`, `discard`, `reject: <why>` | leave the index as it is, print one line saying the change is staged and uncommitted, `harness set <id> status=abandoned`, stop; the user decides what to do with the working tree |
+| a question | answer it, re-print the options line |
 
-Emit the `## Expedited` block from `SKILL.md` and stop. No next-step suggestions, no offers, no routing chatter: the fast lane ends when the change is in.
+No next-step suggestions, no offers, no routing chatter: the fast lane ends when the change is in or the user has said no.

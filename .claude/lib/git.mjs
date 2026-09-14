@@ -52,3 +52,27 @@ export function linesAddedSince(root, base, exclude = [/^work\//, /^\.claude\//,
 export function log1(root) {
   return git(root, ["log", "-1", "--format=%h %s"]);
 }
+
+/** Paths in the index that differ from HEAD: what a commit would take right now. */
+export function stagedFiles(root) {
+  const out = git(root, ["diff", "--cached", "--name-only"]) ?? "";
+  return out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * Commit whatever is staged, nothing more, and return the short sha; null when nothing is staged.
+ * The developer stages a phase and ends its turn; the user's approval is what turns the index
+ * into a commit, so a rejected phase never lands in history.
+ */
+export function commitStaged(root, message, alsoAdd = []) {
+  // The work item's own state (markers, verdicts) rides along, so history shows the phase and the
+  // decision that let it in as one commit.
+  for (const p of alsoAdd) git(root, ["add", "-A", "--", p]);
+  if (!stagedFiles(root).length) return null;
+  try {
+    execFileSync("git", ["-C", root, "commit", "-q", "-m", message], { stdio: ["ignore", "ignore", "pipe"], encoding: "utf8" });
+  } catch (err) {
+    throw new Error(`git commit failed: ${String(err.stderr ?? err.message).trim().split("\n").at(-1)}`);
+  }
+  return git(root, ["rev-parse", "--short", "HEAD"]);
+}

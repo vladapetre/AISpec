@@ -128,7 +128,8 @@ export function packet(id, root = projectRoot(), { width = WIDTH } = {}) {
       lines.push(`  ${"decisions".padEnd(LABEL)}${dec[0].slice(2 + LABEL)}`);
       lines.push(...dec.slice(1));
     }
-    if (b.fields.commit) lines.push(field("commit", b.fields.commit, width));
+    // The developer stages and proposes a message; approval is what commits.
+    if (b.fields.commit) lines.push(field("commit", `${b.fields.commit.replace(/\s*\(staged.*\)$/i, "")}  (staged; approval commits it)`, width));
   } else if (n.action === "approve_phase") {
     const art = readArtifact(id, root);
     const summary = art.body.match(/^## Summary\s*\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] ?? "";
