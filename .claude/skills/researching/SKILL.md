@@ -30,14 +30,23 @@ Lane check for this request:
 
 ## The packet
 
+Rendered by code from the report on disk; print it verbatim and nothing else:
+
 ```
-▶ <id> · outline ready · <the analyst's one-sentence line>
-Top: <R-001 one line> · <R-002 one line>
-Sources next: <the deep-pass source list, one line>
-[a] accept the outline as the answer · [d] deep pass · [x] redirect: <what to look at instead>
+node .claude/bin/harness.mjs packet <id>
 ```
 
-`d` continues the analyst with `work: <id>`, `deep pass`, plus any redirect. `x <what>` continues it with the redirect and asks for a new outline. The deep pass ends with the same packet minus the `[d]` option.
+```
+▶ outline ready · <id>
+  <the report's first Summary sentence>
+
+  report    work/<id>/report.md
+  findings  4
+
+[a] accept   [d] deeper pass   [x] reject: <why>
+```
+
+`d` continues the analyst with `work: <id>`, `deep pass`, plus any redirect. `x <what>` continues it with the redirect and asks for a new outline. The deep pass ends with the same packet, headed `report ready`.
 
 ## Closing block
 

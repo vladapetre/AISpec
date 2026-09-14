@@ -1,0 +1,70 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createWork, setMarker } from "../../.claude/lib/work.mjs";
+import { packet, parseBlock, saveBlock, cut, WIDTH } from "../../.claude/lib/packet.mjs";
+
+// The block the user's screenshot came from, in the developer's contract shape.
+const BLOCK = `## Phase 1 of X: Stop the poll write
+
+The telematics poll can no longer write WAGENS.TANKINHOUD on either cycle: the column left the evaluator, the diff record and the applier, so no diff the poll can produce reaches Car.TankSize.
+
+Files: CarTelematicsColumnEvaluator.cs, CarTelematicsColumnChanges.cs, RunTelematicsPollCommandHandler.cs, ICarRepository.cs (+6 more)
+Tests: passed (374/374 Rent.Fleet.Tests)
+Lint: none detected
+Verified: no drivable surface (background poll worker, no HTTP or CLI entry point); behaviour driven through HandleAsync against a real EF InMemory RentDbContext
+Decisions: followed the Changes paragraph over T-1.1's grep list where they contradict (a third TankSize hit at RunTelematicsPollCommandHandler.cs:422, removed by Phase 2); re-seeded three LowFuel tests that computed expected litres from the deleted write; turned the applier commit-boundary test into a regression guard
+Commit: 3f9c2a1
+
+PHASE DONE`;
+
+function setup() {
+  const root = mkdtempSync(join(tmpdir(), "harness-packet-"));
+  mkdirSync(join(root, ".claude"));
+  const s = createWork({ lane: "order", title: "Stop poll write", root });
+  writeFileSync(join(root, "work", s.id, "order.md"), "---\nlane: order\n---\n# O\n\n## Phase 1: Stop the write\n\nt\n\n## Phase 2: Remove the column\n\nt\n");
+  return { root, id: s.id };
+}
+
+test("parseBlock reads the developer block into fields", () => {
+  const b = parseBlock(BLOCK);
+  assert.equal(b.title, "Phase 1 of X: Stop the poll write");
+  assert.match(b.headline, /^The telematics poll can no longer write/);
+  assert.equal(b.fields.tests, "passed (374/374 Rent.Fleet.Tests)");
+  assert.equal(b.fields.commit, "3f9c2a1");
+  assert.equal(b.verdict, "PHASE DONE");
+});
+
+test("the gate packet is fixed-shape, width-capped, and ends with the options", () => {
+  const { root, id } = setup();
+  setMarker(id, 1, "done", root);
+  saveBlock(id, 1, BLOCK, root);
+  const { lines, text } = packet(id, root);
+  assert.equal(lines[0], `▶ phase 1/2 done · ${id}`);
+  assert.equal(lines[1], "  The telematics poll can no longer write WAGENS.TANKINHOUD on either cycle…", "the claim survives, the explanation after the colon goes");
+  for (const l of lines) assert.ok(l.length <= WIDTH, `line over ${WIDTH} chars: ${l}`);
+  assert.match(text, /^  tests {5}passed \(374\/374 Rent\.Fleet\.Tests\)$/m);
+  assert.match(text, /^  files {5}CarTelematicsColumnEvaluator\.cs, CarTelematicsColumnChanges\.cs, \+8 more$/m, "whole paths only, the rest counted");
+  assert.equal(lines.filter((l) => /^ {12}· /.test(l) || /^  decisions/.test(l)).length, 3, "three decisions, one per line");
+  assert.match(text, /^  commit {4}3f9c2a1$/m);
+  assert.equal(lines.at(-1), "[a] approve   [r] run through 2   [x] reject: <why>");
+  assert.equal(lines.at(-2), "");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("a missing block degrades to 'not reported', a blocked item shows the reason", () => {
+  const { root, id } = setup();
+  setMarker(id, 1, "done", root);
+  const p = packet(id, root);
+  assert.match(p.text, /tests {5}not reported/);
+  assert.match(p.lines[1], /Stop the write/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("cut keeps short strings and ends long ones with an ellipsis inside the limit", () => {
+  assert.equal(cut("short", 10), "short");
+  assert.equal(cut("a".repeat(20), 10).length, 10);
+  assert.ok(cut("a".repeat(20), 10).endsWith("…"));
+});

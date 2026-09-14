@@ -1,17 +1,29 @@
 # Ordering, step 3: the user gate
 
-`harness next <id>` said `approve_phase` by user, with `phase: n` and `options`. This is the one place the lane stops. Render one packet, send a push notification when the tool exists, and end the turn.
+`harness next <id>` said `approve_phase` by user, with `phase: n` and `options`. This is the one place the lane stops. Print the packet, send a push notification when the tool exists, and end the turn.
 
-Packet, built from the developer's last block and `harness next`:
+The packet is rendered by code from the developer's saved block, so it has the same shape and width every time:
 
 ```
-▶ <id> · phase <n>/<total> done · <the developer's one-sentence line>
-Tests: <passed|failed> · Lint: <passed|failed> · Verified: <command → result | no drivable surface>
-Files: <path>, <path> (+<k> more)
-[a] approve · [r] run through <m> · [x] reject: <why>
+node .claude/bin/harness.mjs packet <id>
 ```
 
-The `[r]` option appears only when `harness next` listed it. Add one line `Decisions: …` when the developer recorded any. Nothing else: no summary of the plan, no restatement of the contract.
+Print its output verbatim, as plain lines, nothing before it and nothing after it: no summary of the plan, no restatement of the contract, no advice on which option to pick. It looks like this:
+
+```
+▶ phase 1/2 done · 20260914-rc-7287-stop-poll-write
+  The telematics poll can no longer write TANKINHOUD on either cycle.
+
+  tests     passed (374/374)
+  lint      none detected
+  verified  no drivable surface (background worker); HandleAsync driven against an InMemory context
+  files     CarTelematicsColumnEvaluator.cs, CarTelematicsColumnChanges.cs, RunTelematicsPollCommandHandler.cs, +6 more
+  decisions · followed the Changes paragraph over T-1.1's grep list where they contradict
+            · re-seeded three LowFuel tests that computed litres from the deleted write
+  commit    3f9c2a1
+
+[a] approve   [r] run through 2   [x] reject: <why>
+```
 
 Apply the reply, then continue in the same turn:
 

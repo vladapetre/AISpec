@@ -40,6 +40,7 @@ test("route.verdict applies PHASE DONE from a developer block and reports the ne
   assert.match(out.hookSpecificOutput.additionalContext, /PHASE DONE applied/);
   assert.match(out.hookSpecificOutput.additionalContext, /approve_phase by user/);
   assert.equal(deriveState(id, root).phases[0].done, true);
+  assert.equal(existsSync(join(root, "work", id, "phases", "1.block.md")), true, "the developer block is saved for the gate packet");
   rmSync(root, { recursive: true, force: true });
 });
 

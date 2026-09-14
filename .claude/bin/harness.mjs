@@ -17,8 +17,10 @@
 //   harness drive --hit "GET /path" [--hit "POST /path <json>"]... [--start "<cmd>"] [--port N] [--wait /path]
 //   harness drive --run "<cli command>"
 //   harness check [--steps test,lint,build] [--only "<command>"]
+//   harness packet <id>            the gate packet for the current stop, as text (--json for the structure)
 //
 import { readFileSync } from "node:fs";
+import { packet } from "../lib/packet.mjs";
 import { admit } from "../lib/admit.mjs";
 import { drive, renderDrive } from "../lib/drive.mjs";
 import { check, renderCheck } from "../lib/check.mjs";
@@ -164,6 +166,14 @@ async function main(argv) {
       out(r, opt, renderDrive);
       return r.ok ? 0 : 2;
     }
+    case "packet": {
+      // A rendering verb: text by default, since the lead prints it verbatim.
+      if (!rest[0]) throw new Error("packet needs <id>");
+      const r = packet(rest[0], root, { width: opt.width ? Number(opt.width) : undefined });
+      if (opt.json) console.log(opt.pretty ? JSON.stringify(r, null, 2) : JSON.stringify(r));
+      else console.log(r.text);
+      return 0;
+    }
     case "check": {
       // Runs the detected test and lint commands, logs to .claude/ledger/, stops at the first failure.
       const r = check({ root, steps: opt.steps ? String(opt.steps).split(",").filter(Boolean) : undefined, only: opt.only === true ? undefined : opt.only, timeoutMs: opt.timeout ? Number(opt.timeout) * 1000 : undefined });
@@ -171,7 +181,7 @@ async function main(argv) {
       return r.ok ? 0 : 2;
     }
     default:
-      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive check`);
+      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive check packet`);
   }
 }
 

@@ -45,13 +45,13 @@ Three failed attempts at the same criterion, or a conflict you cannot resolve wi
 ```
 ## Phase <n> of <id>: <phase title>
 
-<one sentence: what the system now does that it did not before>
+<one sentence under 90 characters: the claim, not the explanation; what the system now does that it did not before>
 
 Files: <path>, <path> (+<k> more)
 Tests: passed | failed: <what> | no suite detected
 Lint: passed | failed: <what> | none detected
 Verified: <command> → <observed result> | no drivable surface: <reason> | blocked: <what>
-Decisions: <ambiguity resolved and the reading chosen, one line each> | none
+Decisions: <ambiguity resolved and the reading chosen; one clause each, separated by semicolons, under 90 characters each> | none
 Commit: <sha>
 
 PHASE DONE

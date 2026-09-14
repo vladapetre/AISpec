@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { readTurn, spawnHints, blockLines } from "./lib/transcript.mjs";
 import { findVerdict, route } from "../lib/route.mjs";
 import { projectRoot } from "../lib/work.mjs";
+import { saveBlock } from "../lib/packet.mjs";
 
 const HEADINGS = [
   [/^##\s+Phase\s+(\d+)\s+of\s+([a-z0-9-]+)/m, (m) => ({ agent: "developer", phase: Number(m[1]), id: m[2] })],
@@ -42,6 +43,12 @@ try {
       const phase = info?.phase ?? hints.phase ?? undefined;
       const agent = info?.agent ?? (["approved", "rejected"].includes(verdict) ? "user" : data.agent_type ?? "lead");
       const amend = text.match(/^AMENDMENT NEEDED:.*$/m)?.[0] ?? null;
+      // The developer's block is what the gate packet renders from; keep it next to the phase markers.
+      if (info?.agent === "developer" && phase != null) {
+        try {
+          saveBlock(id, phase, text, projectRoot(data.cwd));
+        } catch {}
+      }
       const r = route({ id, verdict, agent, phase, scope, root: projectRoot(data.cwd), reason: amend ?? undefined });
       const n = r.next;
       out = `harness: ${verdict} applied to ${id}${phase ? ` phase ${phase}` : ""} (${r.applied.join(", ") || "recorded"}). Next: ${n.action}${n.actor ? ` by ${n.actor}` : ""}${n.phase ? ` · phase ${n.phase}` : ""}. ${n.detail}${n.options?.length ? ` Options: ${n.options.join(" · ")}` : ""}${amend ? `\n${amend}` : ""}`;
