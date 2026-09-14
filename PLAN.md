@@ -179,9 +179,9 @@ Each phase is one or more commits on `rework`, benchmarks re-run at the end of e
 | 2 contract | landed (d8d4f90) | CLAUDE.md 1.5 KB; 4 rules; 4 agents ≤120 lines; 14 skills with step files; budgets test green |
 | 3 hooks | landed (c563f09) | 9 hooks, 7 hook tests, all under 200 ms cold; ledger v2 rows verified in a bench run |
 | 4 UX | landed with 3 | gate packets in the lane skills, `/resuming`, `/inspecting`, `statusline.mjs`; notifications are in the step files |
-| 5 bench head-to-head | done (2026-09-11) | 14 tasks both harnesses; rework fast lane at N=3, heavier lanes at N=1; report in `bench/results/comparison.md`; three tuning rounds (4929fb4, 3c82928, 56379b6), each re-run on the tasks it touched; $201 of bench spend in total |
+| 5 bench head-to-head | done (2026-09-14) | clean run at a380774 in `bench/results/rework-clean.json`: 26/26, no re-runs except two host-suspension kills and one grader rewrite (section 4.2); tuning-era | 14 tasks both harnesses; rework fast lane at N=3, heavier lanes at N=1; report in `bench/results/comparison.md`; three tuning rounds (4929fb4, 3c82928, 56379b6), each re-run on the tasks it touched; $201 of bench spend in total |
 
-### 4.1 Head-to-head, 2026-09-11
+### 4.1 Head-to-head during tuning, 2026-09-11 (superseded by 4.2)
 
 Trunk at 18adac4, rework at 4929fb4, same fixture commit, same scripted approver, Claude Code 2.1.263 to 2.1.268. Full tables: `bench/results/comparison.md`.
 
@@ -209,6 +209,26 @@ Reading: the rework wins on correctness, routing predictability, time to the fir
 Caveats: the scripted user approves everything, so stops measure gates shown, not judgement exercised. Trunk gate-14 needed three runs before the detector understood the lead's own approval and confirmation wording; the kept run is the third. Rework gate-13 first failed a hidden assertion that only accepted a `(handler, key)` guard signature; the developer's `(handler, { apiKey })` is a legitimate reading of "read the key from config", so the hidden test now accepts both and the kept run was re-graded, not re-run. Trunk's earlier gate-13 pass stands: the broadened test is a superset.
 
 Second and third tuning rounds, from the kept run logs: every hook payload names the main session transcript even for a tool call inside a subagent, so the read-before-edit guard denied 17 legitimate developer edits in one design run (fixed in 3c82928: hooks resolve the agent's own transcript under `<session>/subagents/`; gate-13 went from $9.80 and 1418 s to $7.35 and 936 s, re-reads 20 to 8). A run grant now approves the phases it covers and a passed review closes without a gate, so an order stops once (order-08 and order-09: 2 stops to 1). The YAML reader kept doubled backslashes in quoted grep patterns, so a correct `"lines\\[0\\]\\.quantity"` could never match and the developer stalled on a must_have it could not fix (fixed in 56379b6, with a schema lint that rejects a pattern that does not compile). The lead now invokes the lane skill directly instead of running admit twice, and spawn messages carry the step section inline.
+
+### 4.2 Clean run, 2026-09-14
+
+An adversarial review of the work found that the 4.1 table mixed single-shot trunk records with rework records re-run after each harness fix. This run is the un-cherry-picked number: the whole suite once at a380774 (fast lane three times), against the same trunk baseline, in `bench/results/rework-clean.json` with the report in `bench/results/comparison-clean.md`. The as-run file with nothing dropped is `rework-clean-raw.json`.
+
+| metric (14 tasks) | trunk | rework, clean | read |
+|---|---|---|---|
+| pass@1 | 93% | 100% | 26/26 records |
+| lane as intended | 57% | 100% | |
+| cost per task | $3.37 | $2.97 | design lane $9.30 → $7.25; research $2.02 → $3.47 |
+| wall p50 | 374 s | 370 s | design lane 1298 s → 902 s; research 192 s → 601 s |
+| first reviewable output p50 | 130 s | 96 s | fast lane 42 s → 31 s, design 393 s → 180 s |
+| stops per task | 0.5 | 0.8 | order 1.0 (run grant), research 2.0 (outline gate), design 1.5 |
+| permission prompts per task | 3.1 | 0.4 | 0.0 on the order lane; every run trusted the workspace |
+| cache hit ratio | 91% | 97% | |
+| tokens per added line | 54.7k | 41.9k | |
+
+Paired per task: pass^k +7% ±7% (worse on none), cost $-0.40 ±$0.46 (dearer on 5 of 14: the two research tasks, two orders, one fast). The research lane is the one lane the rework loses: the outline gate costs a stop and about 400 s, and the deep pass re-reads the sources (13.5 re-reads per task). Trunk failed one of the two research tasks by answering in chat.
+
+Three records of the 26 were not first attempts, all disclosed: two fast runs were killed after 3.4 h and 19.5 h because the laptop slept mid-run (the runner now marks these suspended and re-runs them), and gate-13 first failed a hidden test that guessed the guard's signature and missed a third legitimate design; that test now boots the app with `API_KEY` set and checks the HTTP surface, and the task was run once more under it. The review also found that every run so far, both harnesses, ran with the workspace untrusted, so Claude Code ignored each harness's own `permissions.allow` list and only the shared CLI list applied; symmetric, but not interactive behaviour. The clean run is the first with trusted workspaces. 71 rate-limit events were seen on the rework side (throttling by the API, not harness latency); the bench now counts them. Total bench spend across the project: about $275.
 
 Decisions taken during the build, beyond the plan: `harness check` and drive side-effect restore came out of the head-to-head (order-08 closed with a record the drive's POST had written into `data/invoices.json`, which the developer rightly refused to touch; test-and-lint redirects to the ledger cost a permission prompt on every run); `harness drive` was added after the first rework smoke run spent 5 of its 7 permission prompts and about 60 s hunting a port collision with an orphaned fixture server (the bench now gives every run its own PORT and kills leftovers); the kernel carries no runtime dependency (`yaml-lite` instead of a YAML package) so it can be copied into any host project; `harness set` and `harness review-summary` were added because the lane skills needed them; `guard.bash` and the drive-evidence classifier are kept from trunk because they were tested and correct; the bench routes permission prompts to an auto-approving MCP tool and counts them as interruptions instead of letting headless mode deny them.
 

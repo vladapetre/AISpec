@@ -371,6 +371,100 @@
       "task": "fast-02-config-guard",
       "lane_expected": "fast",
       "harness": "rework",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-11T19:13:40.134Z",
+      "session_ids": [],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 0,
+      "cost_usd": 0,
+      "usage": {},
+      "api_ms": 0,
+      "wall_ms": 12267374,
+      "tool_calls": 0,
+      "tool_counts": {},
+      "reads": 0,
+      "unique_reads": 0,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": null,
+      "first_tool_ms": null,
+      "first_reviewable_ms": null,
+      "model": null,
+      "terminal": "error",
+      "texts": [],
+      "error": "no result event (exit null, signal SIGTERM, 45 events): Ignoring 24 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects[\"D:/workspace/github/AISpec/.worktrees/rework/bench/.runs/fast-02-config-guard-r1-mtxc3wt6/repo\"].hasTrustDialogAccepted: true in C:\\Users\\vlad.apetre\\.claude.json.\n\n[bench] timeout after 1500000 ms, killing",
+      "port": 8103,
+      "rate_limits": 1,
+      "orphans": 0,
+      "prompt_log": [],
+      "prompts": 0,
+      "cache_hit_ratio": null,
+      "tokens_total": 0,
+      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
+      "changed_files": [
+        "src/config.ts",
+        "test/config.test.ts"
+      ],
+      "lines_added": 41,
+      "signals": {
+        "lane": "direct",
+        "verdicts": [],
+        "route": "direct:-"
+      },
+      "grade": {
+        "pass": false,
+        "own": {
+          "passed": 0,
+          "failed": 0,
+          "total": 0,
+          "error": "no vitest output"
+        },
+        "hidden": {
+          "passed": 0,
+          "failed": 0,
+          "total": 0,
+          "error": "no vitest output"
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": false,
+            "detail": "0/0 passed, no vitest output"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": false,
+            "detail": "0/0 passed, no vitest output"
+          },
+          {
+            "name": "grep:src/config.ts:raw\\.server!",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/http/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": false,
+      "finished": "2026-09-12T04:45:40.661Z",
+      "run_dir": null,
+      "events": "bench/.runs/events/fast-02-config-guard-r1-mtxc3wt6.jsonl"
+    },
+    {
+      "task": "fast-02-config-guard",
+      "lane_expected": "fast",
+      "harness": "rework",
       "run": 2,
       "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
       "started": "2026-09-12T04:45:42.603Z",
@@ -1065,6 +1159,110 @@
       "finished": "2026-09-12T04:54:09.711Z",
       "run_dir": null,
       "events": "bench/.runs/events/fast-04-listen-error-log-r1-mtxwso6m.jsonl"
+    },
+    {
+      "task": "fast-04-listen-error-log",
+      "lane_expected": "fast",
+      "harness": "rework",
+      "run": 2,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-12T04:54:10.439Z",
+      "session_ids": [],
+      "stops": 0,
+      "gates": [],
+      "denials": 0,
+      "turns": 0,
+      "cost_usd": 0,
+      "usage": {},
+      "api_ms": 0,
+      "wall_ms": 70301159,
+      "tool_calls": 0,
+      "tool_counts": {},
+      "reads": 0,
+      "unique_reads": 0,
+      "rereads": 0,
+      "subagents": 0,
+      "first_write_ms": null,
+      "first_tool_ms": null,
+      "first_reviewable_ms": null,
+      "model": null,
+      "terminal": "error",
+      "texts": [],
+      "error": "no result event (exit null, signal SIGTERM, 43 events): Ignoring 24 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects[\"D:/workspace/github/AISpec/.worktrees/rework/bench/.runs/fast-04-listen-error-log-r2-mtxwug14/repo\"].hasTrustDialogAccepted: true in C:\\Users\\vlad.apetre\\.claude.json.\n\n[bench] timeout after 1500000 ms, killing",
+      "port": 8110,
+      "rate_limits": 2,
+      "orphans": 0,
+      "prompt_log": [],
+      "prompts": 0,
+      "cache_hit_ratio": null,
+      "tokens_total": 0,
+      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
+      "changed_files": [
+        "src/http/server.ts",
+        "test/server.test.ts"
+      ],
+      "lines_added": 72,
+      "signals": {
+        "lane": "direct",
+        "verdicts": [],
+        "route": "direct:-"
+      },
+      "grade": {
+        "pass": false,
+        "own": {
+          "passed": 0,
+          "failed": 0,
+          "total": 0,
+          "error": "no vitest output"
+        },
+        "hidden": null,
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": false,
+            "detail": "0/0 passed, no vitest output"
+          },
+          {
+            "name": "grep:src/http/server.ts:EADDRINUSE",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/http/server.ts:console\\.error",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/http/server.ts:process\\.exit\\(1\\)",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/http/handlers.ts",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/http/router.ts",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": false,
+      "finished": "2026-09-14T00:16:29.960Z",
+      "run_dir": null,
+      "events": "bench/.runs/events/fast-04-listen-error-log-r2-mtxwug14.jsonl"
     },
     {
       "task": "fast-04-listen-error-log",
@@ -1925,6 +2123,169 @@
       "finished": "2026-09-14T06:37:01.598Z",
       "run_dir": null,
       "events": "bench/.runs/events/fast-06-tax-rounding-r3-mu0vcc9e.jsonl"
+    },
+    {
+      "task": "gate-13-api-key-auth",
+      "lane_expected": "design",
+      "harness": "rework",
+      "run": 1,
+      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
+      "started": "2026-09-14T06:37:02.853Z",
+      "session_ids": [
+        "13b4441c-18e5-4aac-8e24-935b9d326366",
+        "13b4441c-18e5-4aac-8e24-935b9d326366",
+        "13b4441c-18e5-4aac-8e24-935b9d326366",
+        "13b4441c-18e5-4aac-8e24-935b9d326366"
+      ],
+      "stops": 3,
+      "gates": [
+        "approval",
+        "approval",
+        "approval"
+      ],
+      "denials": 0,
+      "turns": 10,
+      "cost_usd": 6.446851049999999,
+      "usage": {
+        "input_tokens": 20,
+        "cache_read_input_tokens": 907227,
+        "cache_creation_input_tokens": 7006,
+        "output_tokens": 2016
+      },
+      "api_ms": 826862,
+      "wall_ms": 854378,
+      "tool_calls": 134,
+      "tool_counts": {
+        "Bash": 51,
+        "Skill": 1,
+        "Read": 47,
+        "Agent": 3,
+        "Glob": 2,
+        "Write": 6,
+        "Edit": 14,
+        "ToolSearch": 2,
+        "SendMessage": 5,
+        "ListAgents": 1,
+        "Grep": 2
+      },
+      "reads": 47,
+      "unique_reads": 35,
+      "rereads": 12,
+      "subagents": 3,
+      "first_write_ms": 194246,
+      "first_tool_ms": 7659,
+      "first_reviewable_ms": 194246,
+      "model": "claude-opus-5[1m]",
+      "terminal": "completed",
+      "texts": [
+        "▶ 20260914-api-key-auth-for-all-endpoints · phase 1/3 done · `auth.apiKey` now loads from config with an `API_KEY` environment override, defaulting to the empty string; nothing reads it yet.\nCross-check: ALIGNED · Tests: passed · Lint: passed · Verified: `harness verify … 1` → VERIFIED (no runtime surface yet)\nFiles: src/config.ts, data/config.json, test/config.test.ts\n[a] approve · [r] run through 3 · [x] reject: <why>\n\nNote on `[r]`: phase 3 is the cutover and touches a security path, so a run grant stops before it regardless. It would carry you through phase 2 only.",
+        "▶ 20260914-api-key-auth-for-all-endpoints · phase 2/3 done · `requireApiKey` decorator added under `src/auth/` with the `RequestHandler` seam on the router; still unwired, so no runtime behaviour changed.\nTests: passed · Lint: passed · Verified: `harness verify … 2` → VERIFIED\nFiles: src/auth/apiKey.ts, src/http/router.ts, test/auth.test.ts\n[a] approve · [x] reject: <why>\n\nThe run grant ended here: phase 3 is the cutover, touches a security path, and takes its own approval. Before you approve it, OQ-001 wants an answer: do the current callers already have the key and send `x-api-key`? After phase 3 lands, any client without the header gets 401.",
+        "▶ 20260914-api-key-auth-for-all-endpoints · phase 3/3 done · The decorator is wired in front of the router at `src/main.ts`, so every endpoint except `GET /health` now needs `x-api-key`.\nTests: passed · Lint: passed · Verified: real server driven, `GET /health` 200 without a header, `GET /invoices` 401 without one and 200 with the right key\nFiles: src/main.ts, src/http/server.ts, README.md\n[a] approve · [x] reject: <why>\n\nThis is the cutover: approving it means existing callers without the header start getting 401.",
+        "## Design closed: 20260914-api-key-auth-for-all-endpoints\n\nEvery endpoint except `GET /health` now requires a matching `x-api-key` header, checked by a `requireApiKey` decorator wrapped around the router at the composition root, so no handler knows about it.\nPhases: 3 · decisions: 6 (0 amended) · commits 4414a8c..4d72827 · review: APPROVED\n\nTwo things to act on before this reaches a real deployment. `auth.apiKey` ships empty, and an empty expected key denies everything rather than disabling the check, so a server started without `API_KEY` answers 401 on every endpoint but `/health`. And OQ-002 is still open: this is one shared static key with no rotation or per-caller keys. Want a follow-up for that?"
+      ],
+      "error": null,
+      "port": 8100,
+      "rate_limits": 10,
+      "orphans": 0,
+      "prompt_log": [
+        {
+          "tool": "Bash",
+          "command": "awk '/^## Phase/{name=$0; c=0} /^## /{if(name!=\"\"&&$0!=name){print name\": \"c; name=\"\"}} {if(name!=\"\")c++} END{if(name!=\"\")print name\": \"c}' work/20260914-api-key-auth-for-all-endpoints/design.md",
+          "decision": "allow"
+        }
+      ],
+      "prompts": 1,
+      "cache_hit_ratio": 0.9923,
+      "tokens_total": 916269,
+      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
+      "changed_files": [
+        "README.md",
+        "data/config.json",
+        "src/auth/apiKey.ts",
+        "src/config.ts",
+        "src/http/router.ts",
+        "src/http/server.ts",
+        "src/main.ts",
+        "test/auth.test.ts",
+        "test/config.test.ts"
+      ],
+      "lines_added": 236,
+      "signals": {
+        "lane": "design",
+        "verdicts": [
+          "ALIGNED",
+          "APPROVED"
+        ],
+        "route": "design:ALIGNED>APPROVED"
+      },
+      "grade": {
+        "pass": false,
+        "own": {
+          "passed": 32,
+          "failed": 0,
+          "total": 32,
+          "error": null,
+          "failures": []
+        },
+        "hidden": {
+          "passed": 0,
+          "failed": 4,
+          "total": 4,
+          "error": null,
+          "failures": [
+            " hidden: API key guard lets /health through without a key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one",
+            " hidden: API key guard rejects a missing key with 401: no auth guard found under src/auth/ that admits the right key and rejects a wrong one",
+            " hidden: API key guard rejects a wrong key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one",
+            " hidden: API key guard accepts the right key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one"
+          ]
+        },
+        "checks": [
+          {
+            "name": "own_suite_green",
+            "ok": true,
+            "detail": "32/32 passed"
+          },
+          {
+            "name": "hidden_tests_green",
+            "ok": false,
+            "detail": "0/4 passed;  hidden: API key guard lets /health through without a key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one |  hidden: API key guard rejects a missing key with 401: no auth guard found under src/auth/ that admits the right key and rejects a wrong one |  hidden: API key guard rejects a wrong key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one |  hidden: API key guard accepts the right key: no auth guard found under src/auth/ that admits the right key and rejects a wrong one"
+          },
+          {
+            "name": "exists:src/auth/*.ts",
+            "ok": true,
+            "detail": "src/auth/apiKey.ts"
+          },
+          {
+            "name": "grep:src/auth/*.ts:timingSafeEqual",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "grep:src/config.ts:apiKey",
+            "ok": true,
+            "detail": "1 file(s) scanned"
+          },
+          {
+            "name": "untouched:src/storage/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:src/domain/**",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "name": "untouched:data/invoices.json",
+            "ok": true,
+            "detail": ""
+          }
+        ]
+      },
+      "pass": false,
+      "finished": "2026-09-14T06:51:20.531Z",
+      "run_dir": null,
+      "events": "bench/.runs/events/gate-13-api-key-auth-r1-mu0vefzz.jsonl"
     },
     {
       "task": "gate-14-status-migration",
@@ -2852,400 +3213,6 @@
       "finished": "2026-09-14T07:55:37.624Z",
       "run_dir": null,
       "events": "bench/.runs/events/research-12-lifecycle-r1-mu0xth0m.jsonl"
-    },
-    {
-      "task": "fast-02-config-guard",
-      "lane_expected": "fast",
-      "harness": "rework",
-      "run": 1,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-14T07:59:40.941Z",
-      "session_ids": [
-        "f5b180d4-e071-4d26-a9e7-ad637feb3b00"
-      ],
-      "stops": 0,
-      "gates": [],
-      "denials": 1,
-      "turns": 24,
-      "cost_usd": 1.111743,
-      "usage": {
-        "input_tokens": 38,
-        "cache_read_input_tokens": 1246226,
-        "cache_creation_input_tokens": 37784,
-        "output_tokens": 4383
-      },
-      "api_ms": 69895,
-      "wall_ms": 88351,
-      "tool_calls": 22,
-      "tool_counts": {
-        "Bash": 10,
-        "Skill": 1,
-        "Grep": 1,
-        "Read": 5,
-        "Glob": 1,
-        "Edit": 1,
-        "Write": 3
-      },
-      "reads": 5,
-      "unique_reads": 5,
-      "rereads": 0,
-      "subagents": 0,
-      "first_write_ms": 29469,
-      "first_tool_ms": 6398,
-      "first_reviewable_ms": 29469,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "## Expedited: 20260914-config-loader-deep-default-fallback\n\n`loadConfig()` now reads `server.port` and `server.host` through the same `?? DEFAULT_CONFIG` fallback as listing, tax and storage, so a config file missing the whole block (or just one field in it) loads instead of throwing.\n\nFiles: src/config.ts, test/config.test.ts\nTests: passed\nLint: passed\nVerified: `harness drive --hit \"GET /invoices\"` with `data/config.json` set to `{}` → server up on :8100, `200 {\"page\":1,\"size\":20,\"total\":6,...}`; config.json restored to its committed contents afterwards\nCommit: 18eb7e9"
-      ],
-      "error": null,
-      "port": 8100,
-      "trusted": true,
-      "rate_limits": 2,
-      "orphans": 0,
-      "prompt_log": [],
-      "prompts": 0,
-      "cache_hit_ratio": 0.9705,
-      "tokens_total": 1288431,
-      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
-      "changed_files": [
-        "src/config.ts",
-        "test/config.test.ts"
-      ],
-      "lines_added": 37,
-      "signals": {
-        "lane": "fast",
-        "verdicts": [],
-        "route": "fast:-"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 24,
-          "failed": 0,
-          "total": 24,
-          "error": null,
-          "failures": []
-        },
-        "hidden": {
-          "passed": 3,
-          "failed": 0,
-          "total": 3,
-          "error": null,
-          "failures": []
-        },
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "24/24 passed"
-          },
-          {
-            "name": "hidden_tests_green",
-            "ok": true,
-            "detail": "3/3 passed"
-          },
-          {
-            "name": "grep:src/config.ts:raw\\.server!",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "untouched:src/http/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/domain/**",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-14T08:01:13.162Z",
-      "run_dir": null,
-      "events": "bench/.runs/events/fast-02-config-guard-r1-mu0ycppr.jsonl"
-    },
-    {
-      "task": "fast-04-listen-error-log",
-      "lane_expected": "fast",
-      "harness": "rework",
-      "run": 2,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-14T08:01:13.969Z",
-      "session_ids": [
-        "02d28c70-4b85-4d9b-9b7f-4ef8b88d9556"
-      ],
-      "stops": 0,
-      "gates": [],
-      "denials": 0,
-      "turns": 24,
-      "cost_usd": 1.0410515,
-      "usage": {
-        "input_tokens": 32,
-        "cache_read_input_tokens": 1052197,
-        "cache_creation_input_tokens": 39347,
-        "output_tokens": 4811
-      },
-      "api_ms": 66825,
-      "wall_ms": 87483,
-      "tool_calls": 22,
-      "tool_counts": {
-        "Bash": 9,
-        "Read": 5,
-        "Skill": 1,
-        "Glob": 2,
-        "Edit": 2,
-        "Write": 2,
-        "Grep": 1
-      },
-      "reads": 5,
-      "unique_reads": 5,
-      "rereads": 0,
-      "subagents": 0,
-      "first_write_ms": 29215,
-      "first_tool_ms": 5885,
-      "first_reviewable_ms": 29215,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "## Expedited: 20260914-log-listen-error-before-exiting\n\nA failed `listen` now prints why on stderr instead of exiting silently: `ledgerlite cannot listen on http://127.0.0.1:8123: address already in use` for EADDRINUSE, the error's own message otherwise.\n\nFiles: src/http/server.ts, test/server.test.ts\nTests: passed (22 tests, 6 files)\nLint: passed\nVerified: started the app with `PORT=8123` while another process held 127.0.0.1:8123 → stderr `ledgerlite cannot listen on http://127.0.0.1:8123: address already in use`, exit code 1\nCommit: 041354c"
-      ],
-      "error": null,
-      "port": 8101,
-      "trusted": true,
-      "rate_limits": 2,
-      "orphans": 0,
-      "prompt_log": [],
-      "prompts": 0,
-      "cache_hit_ratio": 0.9639,
-      "tokens_total": 1096387,
-      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
-      "changed_files": [
-        "src/http/server.ts",
-        "test/server.test.ts"
-      ],
-      "lines_added": 27,
-      "signals": {
-        "lane": "fast",
-        "verdicts": [],
-        "route": "fast:-"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 22,
-          "failed": 0,
-          "total": 22,
-          "error": null,
-          "failures": []
-        },
-        "hidden": null,
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "22/22 passed"
-          },
-          {
-            "name": "grep:src/http/server.ts:EADDRINUSE",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "grep:src/http/server.ts:console\\.error",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "grep:src/http/server.ts:process\\.exit\\(1\\)",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "untouched:src/domain/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/storage/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/http/handlers.ts",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/http/router.ts",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-14T08:02:43.419Z",
-      "run_dir": null,
-      "events": "bench/.runs/events/fast-04-listen-error-log-r2-mu0yepg0.jsonl"
-    },
-    {
-      "task": "gate-13-api-key-auth",
-      "lane_expected": "design",
-      "harness": "rework",
-      "run": 1,
-      "fixture_sha": "eb8a5e0e8784da1014394e345a03ec0baa880921",
-      "started": "2026-09-14T08:02:44.409Z",
-      "session_ids": [
-        "3129dd4b-2a73-4eef-8a09-8104f723f669",
-        "3129dd4b-2a73-4eef-8a09-8104f723f669",
-        "3129dd4b-2a73-4eef-8a09-8104f723f669"
-      ],
-      "stops": 2,
-      "gates": [
-        "approval",
-        "approval"
-      ],
-      "denials": 0,
-      "turns": 8,
-      "cost_usd": 5.984995849999999,
-      "usage": {
-        "input_tokens": 16,
-        "cache_read_input_tokens": 696368,
-        "cache_creation_input_tokens": 5653,
-        "output_tokens": 1555
-      },
-      "api_ms": 816394,
-      "wall_ms": 838122,
-      "tool_calls": 144,
-      "tool_counts": {
-        "Bash": 54,
-        "Skill": 1,
-        "Read": 54,
-        "Agent": 6,
-        "Glob": 2,
-        "Grep": 4,
-        "Write": 7,
-        "Edit": 12,
-        "Monitor": 1,
-        "SendMessage": 2,
-        "ListAgents": 1
-      },
-      "reads": 54,
-      "unique_reads": 44,
-      "rereads": 10,
-      "subagents": 6,
-      "first_write_ms": 170846,
-      "first_tool_ms": 8201,
-      "first_reviewable_ms": 170846,
-      "model": "claude-opus-5[1m]",
-      "terminal": "completed",
-      "texts": [
-        "▶ 20260914-api-key-auth-for-endpoints · phase 1/3 done · `auth.apiKey` now resolves from config with an `API_KEY` environment override, empty by default, and nothing reads it yet.\nTests: passed · Lint: passed · Verified: no drivable surface (config only, covered by `test/config.test.ts`)\nFiles: src/config.ts, data/config.json, test/config.test.ts\nCross-check: ALIGNED\n[a] approve · [r] run through 3 (a run stops at phase 2 anyway: `src/auth/` is a security path and takes its own approval) · [x] reject: <why>",
-        "▶ 20260914-api-key-auth-for-endpoints · phase 2/3 done · The auth module exists (`x-api-key` read, SHA-256 digests compared with `timingSafeEqual`, `OPEN_ROUTES` holding only `GET /health`) with nothing wired in yet, so running behaviour is unchanged.\nTests: passed · Lint: passed · Verified: no drivable surface yet (nothing imports the guard; covered by `test/auth.test.ts`, 4 required cases plus empty-key and header-casing)\nFiles: src/auth/apiKey.ts, src/auth/guard.ts, src/http/router.ts, test/auth.test.ts\n[a] approve · [r] run through 3 · [x] reject: <why>",
-        "## Design closed: 20260914-api-key-auth-for-endpoints\n\nEvery endpoint except `GET /health` now requires a matching `x-api-key` header, checked by a guard in front of the router so no handler knows about it.\nPhases: 3 · decisions: 5 (0 amended) · commits cd4af75..a68715a · review: APPROVED\n\nTwo advisories the reviewer raised and did not block on: `keysMatch` has an early-exit branch before the constant-time compare (it returns false when the header is absent or the configured key is empty, which leaks nothing about the key itself), and the path normalisation is written twice, once in `Router.handle` and once in the guard. Want either cleaned up?"
-      ],
-      "error": null,
-      "port": 8100,
-      "trusted": true,
-      "rate_limits": 7,
-      "orphans": 0,
-      "prompt_log": [
-        {
-          "tool": "Bash",
-          "command": "for n in 1 2 3; do node .claude/bin/harness.mjs verify 20260914-api-key-auth-for-endpoints $n 2>&1 | head -12; done",
-          "decision": "allow"
-        }
-      ],
-      "prompts": 1,
-      "cache_hit_ratio": 0.9919,
-      "tokens_total": 703592,
-      "base_sha": "080ef69963a321deacefae7e7058f446c63d13d5",
-      "changed_files": [
-        "README.md",
-        "data/config.json",
-        "src/auth/apiKey.ts",
-        "src/auth/guard.ts",
-        "src/config.ts",
-        "src/http/router.ts",
-        "src/http/server.ts",
-        "src/main.ts",
-        "test/auth.test.ts",
-        "test/config.test.ts"
-      ],
-      "lines_added": 276,
-      "signals": {
-        "lane": "design",
-        "verdicts": [
-          "ALIGNED",
-          "APPROVED"
-        ],
-        "route": "design:ALIGNED>APPROVED"
-      },
-      "grade": {
-        "pass": true,
-        "own": {
-          "passed": 38,
-          "failed": 0,
-          "total": 38,
-          "error": null,
-          "failures": []
-        },
-        "hidden": {
-          "passed": 4,
-          "failed": 0,
-          "total": 4,
-          "error": null,
-          "failures": []
-        },
-        "checks": [
-          {
-            "name": "own_suite_green",
-            "ok": true,
-            "detail": "38/38 passed"
-          },
-          {
-            "name": "hidden_tests_green",
-            "ok": true,
-            "detail": "4/4 passed"
-          },
-          {
-            "name": "exists:src/auth/*.ts",
-            "ok": true,
-            "detail": "src/auth/apiKey.ts, src/auth/guard.ts"
-          },
-          {
-            "name": "grep:src/auth/*.ts:timingSafeEqual",
-            "ok": true,
-            "detail": "2 file(s) scanned"
-          },
-          {
-            "name": "grep:src/config.ts:apiKey",
-            "ok": true,
-            "detail": "1 file(s) scanned"
-          },
-          {
-            "name": "untouched:src/storage/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:src/domain/**",
-            "ok": true,
-            "detail": ""
-          },
-          {
-            "name": "untouched:data/invoices.json",
-            "ok": true,
-            "detail": ""
-          }
-        ]
-      },
-      "pass": true,
-      "finished": "2026-09-14T08:16:48.179Z",
-      "run_dir": null,
-      "events": "bench/.runs/events/gate-13-api-key-auth-r1-mu0ygn9l.jsonl"
     }
   ]
 }
