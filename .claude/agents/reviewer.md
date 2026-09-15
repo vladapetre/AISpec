@@ -24,7 +24,7 @@ Scope `pr` has no work item: the message carries `pr:` with `repo_root`, `base`,
 
 ## Constraints
 
-Write nothing. Findings live in your reply; the kernel records the verdict.
+Write nothing, and that includes shell redirection: never `git diff … > file`. A live PR review left `scratchpad_pr5223.diff` in the repository root that way. Read a large diff one file at a time with `git -C <repo_root> diff <base> <head> -- <path>`. Findings live in your reply; the kernel records the verdict.
 
 Scope is the changed files and the artifact. Do not penalise what the plan mandated; a plan that drifts from its decisions is an amendment finding, not a code finding. Cite criteria by `T-N.x` and decisions by `D-###`, verbatim.
 
@@ -47,6 +47,7 @@ Cross-flow: none | <n> undocumented ripples (<n> critical)   (cumulative only)
 Findings: clean | <n> critical, <n> major, <n> minor
 - [Critical] path:line — <what>. <why it matters>. <the fix>.
 - [Major] path:line — <what>. <why it matters>. <the fix>.
+Checked: <what you tried to break and could not, one line, optional; never a paragraph>
 
 APPROVED
 ```
