@@ -81,6 +81,16 @@ test("guard.scope denies kernel-owned writes and unread edits, allows the rest",
   rmSync(root, { recursive: true, force: true });
 });
 
+test("route.verdict keeps a pull request review in the ledger instead of routing it", () => {
+  const { root } = project();
+  const block = "## Review: pr-7287 · pr\n\nApproved: the diff does what the description says.\n\nAlignment: PASS\nFindings: clean\n\nAPPROVED";
+  const tp = transcript(root, [user("scope: pr"), assistant([{ type: "text", text: block }])]);
+  const out = run("route.verdict.mjs", { hook_event_name: "SubagentStop", session_id: "s3", transcript_path: tp, cwd: root, agent_type: "reviewer" }, root);
+  assert.match(out.hookSpecificOutput.additionalContext, /APPROVED recorded for pr-7287/);
+  assert.equal(readFileSync(join(root, ".claude", "ledger", "pr-7287.review.md"), "utf8").trim(), block);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("guard.bash judges the command a harness verb would run, so the allow rule is not a bypass", () => {
   const { root } = project();
   const decision = (command) => run("guard.bash.mjs", { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, cwd: root }, root)?.hookSpecificOutput?.permissionDecision ?? null;

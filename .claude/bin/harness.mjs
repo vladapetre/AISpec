@@ -18,9 +18,14 @@
 //   harness drive --run "<cli command>"
 //   harness check [--steps test,lint,build] [--only "<command>"]
 //   harness packet <id>            the gate packet for the current stop, as text (--json for the structure)
+//   harness review-summary --range <base>..<head>
+//   harness pr <url>               resolve, fetch and summarise a pull request for the reviewer
+//   harness pr <url> --post <review.md> [--dry-run]   post a reviewer block back as PR threads
 //
 import { readFileSync } from "node:fs";
 import { packet } from "../lib/packet.mjs";
+import { preparePullRequest, parsePullRequestUrl, postReview } from "../lib/pr.mjs";
+import { reviewSummaryRange } from "../lib/review.mjs";
 import { admit } from "../lib/admit.mjs";
 import { drive, renderDrive } from "../lib/drive.mjs";
 import { check, renderCheck } from "../lib/check.mjs";
@@ -136,7 +141,14 @@ async function main(argv) {
       return 0;
     }
     case "review-summary": {
-      if (!rest[0]) throw new Error("review-summary needs <id>");
+      if (opt.range) {
+        const m = String(opt.range).match(/^(.+?)\.\.\.?(.+)$/);
+        if (!m) throw new Error("--range needs <base>..<head>");
+        const r = reviewSummaryRange(root, m[1], m[2]);
+        out(r, opt, (v) => `${v.size} · ${v.changed_files.length} file(s), +${v.lines_added}/-${v.lines_removed} · frameworks ${v.frameworks.join(",") || "-"} · concerns ${v.concerns.join(",") || "-"} · security ${v.security_path ? "yes" : "no"} · ${v.base.slice(0, 8)}..${v.head.slice(0, 8)}`);
+        return 0;
+      }
+      if (!rest[0]) throw new Error("review-summary needs <id> or --range <base>..<head>");
       const r = reviewSummary(rest[0], { root, base: opt.base });
       out(r, opt, (v) => `${v.size} · ${v.changed_files.length} file(s), +${v.lines_added}/-${v.lines_removed} · frameworks ${v.frameworks.join(",") || "-"} · concerns ${v.concerns.join(",") || "-"} · security ${v.security_path ? "yes" : "no"} · base ${v.base.slice(0, 8)}`);
       return 0;
@@ -174,6 +186,24 @@ async function main(argv) {
       else console.log(r.text);
       return 0;
     }
+    case "pr": {
+      if (!rest[0]) throw new Error("pr needs <url>");
+      if (opt.post) {
+        // Outward action: the skill asks the user before calling this; --dry-run shows the payloads.
+        const pr = parsePullRequestUrl(rest[0]);
+        const r = await postReview(pr, readFileSync(String(opt.post), "utf8"), { dryRun: opt["dry-run"] === true });
+        out(r, opt, (v) => (opt["dry-run"] ? `${v.threads.length} thread(s) would be posted:\n${v.threads.map((t) => `- ${t.threadContext ? `${t.threadContext.filePath}:${t.threadContext.rightFileStart.line} ` : ""}${t.comments[0].content.split("\n")[0].slice(0, 90)}`).join("\n")}` : `posted ${v.posted} thread(s) to PR ${pr.id}`));
+        return 0;
+      }
+      const r = await preparePullRequest(rest[0], { root });
+      out(r, opt, (v) => [
+        `${v.review_id} · ${v.pr.provider} · ${v.pr.repo} · remote ${v.remote}`,
+        `  ${v.meta ? `"${v.meta.title}" by ${v.meta.author ?? "?"} · ${v.meta.source_ref?.replace("refs/heads/", "") ?? "?"} → ${v.meta.target_ref?.replace("refs/heads/", "") ?? "?"}` : `title and description unavailable: ${v.meta_reason}`}`,
+        `  ${v.summary.size} · ${v.summary.changed_files.length} file(s), +${v.summary.lines_added}/-${v.summary.lines_removed} · frameworks ${v.summary.frameworks.join(",") || "-"} · concerns ${v.summary.concerns.join(",") || "-"} · security ${v.summary.security_path ? "yes" : "no"}`,
+        `  base ${v.base.slice(0, 10)} · head ${v.head.slice(0, 10)} (${v.ref})`,
+      ].join("\n"));
+      return 0;
+    }
     case "check": {
       // Runs the detected test and lint commands, logs to .claude/ledger/, stops at the first failure.
       const r = check({ root, steps: opt.steps ? String(opt.steps).split(",").filter(Boolean) : undefined, only: opt.only === true ? undefined : opt.only, timeoutMs: opt.timeout ? Number(opt.timeout) * 1000 : undefined });
@@ -181,7 +211,7 @@ async function main(argv) {
       return r.ok ? 0 : 2;
     }
     default:
-      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive check packet`);
+      throw new Error(`unknown verb "${verb ?? ""}". Verbs: admit new list state set next preflight verify route review-summary cost find-verdict drive check packet pr`);
   }
 }
 

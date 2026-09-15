@@ -9,9 +9,9 @@ import * as git from "./git.mjs";
 
 export const SIZE = Object.freeze({ small: { files: 3, lines: 50 }, medium: { files: 10, lines: 400 } });
 
-function numstat(root, base) {
+function numstat(root, base, head = null) {
   try {
-    const out = execFileSync("git", ["-C", root, "diff", "--numstat", base], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    const out = execFileSync("git", ["-C", root, "diff", "--numstat", base, ...(head ? [head] : [])], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
     let added = 0;
     let removed = 0;
     for (const line of out.split(/\r?\n/)) {
@@ -81,6 +81,31 @@ function securityPaths(root) {
     } catch {}
   }
   return DEFAULT_SECURITY_PATHS;
+}
+
+/** The summary for a committed range (a pull request): `git diff base head`, nothing from the working tree. */
+export function reviewSummaryRange(root, base, head) {
+  let changed = [];
+  try {
+    changed = execFileSync("git", ["-C", root, "diff", "--name-only", base, head], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter((f) => f && !/^(work\/|\.claude\/|artifacts\/)/.test(f))
+      .sort();
+  } catch {}
+  const { added, removed } = numstat(root, base, head);
+  const sec = securityPaths(root);
+  return {
+    base,
+    head,
+    size: sizeClass(changed.length, added + removed),
+    changed_files: changed,
+    lines_added: added,
+    lines_removed: removed,
+    frameworks: detectFrameworks(root),
+    concerns: detectConcerns(root, changed),
+    security_path: changed.some((f) => sec.some((p) => f.startsWith(p))),
+  };
 }
 
 /**

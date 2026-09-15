@@ -8,7 +8,8 @@ description: >
   lands and an APPROVED or CHANGES REQUIRED verdict is due, when the user says "review
   this phase", "review the diff", or "run an alignment check", or when CROSS_CHECK_REQUESTED
   or /cross-check asks whether a design record's decisions and phases agree (ALIGNED or
-  DRIFT DETECTED). Invoke standalone via /reviewing.
+  DRIFT DETECTED). `/reviewing <pull request URL>` reviews a pull request on Azure DevOps
+  (Server or Services) or GitHub from the local clone, and posts the findings back only when asked.
 user-invocable: true
 ---
 
@@ -88,6 +89,15 @@ The last line of a review is exactly `APPROVED` or `CHANGES REQUIRED`, alone. `A
 UNCLEAR blocks fail-closed because an unjudgeable criterion is a plan defect, not a developer defect: the verdict reason names the ambiguity so the team lead routes it to the architect, not back to the developer.
 
 The last line of a cross-check is exactly `ALIGNED` or `DRIFT DETECTED`, alone. Any Critical or Major row gives `DRIFT DETECTED`; Minor rows are recorded and do not block.
+
+## Pull request mode (`/reviewing <url>`, lead only)
+
+Run from the clone of the PR's repository; the kernel finds the remote by the repository name in the URL and fails with a clear line when none matches (clone first, or run from the right checkout). Sequence, in one turn:
+
+1. `node .claude/bin/harness.mjs pr <url> --human`. It fetches `refs/pull/<id>/merge`, computes base and head, the review summary over that range, and the PR's title and description (Azure DevOps: a PAT in `AZDO_PAT`; GitHub: the `gh` CLI). A missing PAT is reported, not fatal: the review runs code-only. Any other error: print it and stop.
+2. Spawn the reviewer once, named `reviewer`, with `scope: pr`, `pr: <the JSON from step 1, verbatim>`, `step: .claude/skills/reviewing/steps/10-alignment.md`. Its verdict routes nowhere; the hook saves the block to `.claude/ledger/pr-<id>.review.md`.
+3. Print the reviewer's block verbatim, then one options line: `[p] post to the PR   [d] done`. Nothing is written to the PR before `p`.
+4. On `p`: `node .claude/bin/harness.mjs pr <url> --post .claude/ledger/pr-<id>.review.md --dry-run --human` shows what would go; print it and ask once more with `[y] post   [n] keep local`; on `y`, the same command without `--dry-run`. Azure DevOps only; on GitHub, tell the user to use `gh pr review`.
 
 ## Layout
 

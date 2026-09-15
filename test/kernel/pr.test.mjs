@@ -1,0 +1,111 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { parsePullRequestUrl, findRemote, fetchPullRequest, parseFindings, buildThreads, postReview, preparePullRequest } from "../../.claude/lib/pr.mjs";
+
+test("parsePullRequestUrl reads Server, Services, legacy and GitHub forms", () => {
+  const server = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7287");
+  assert.equal(server.provider, "azdo");
+  assert.equal(server.collection_url, "https://tfs.corp.local/tfs/DefaultCollection");
+  assert.deepEqual([server.project, server.repo, server.id], ["Fleet", "Rent", 7287]);
+  assert.equal(server.api_base, "https://tfs.corp.local/tfs/DefaultCollection/Fleet/_apis/git/repositories/Rent/pullRequests/7287");
+
+  const services = parsePullRequestUrl("https://dev.azure.com/acme/Fleet/_git/Rent%20Core/pullrequest/12?_a=files");
+  assert.equal(services.collection_url, "https://dev.azure.com/acme");
+  assert.equal(services.repo, "Rent Core");
+  assert.equal(services.api_base, "https://dev.azure.com/acme/Fleet/_apis/git/repositories/Rent%20Core/pullRequests/12");
+
+  const legacy = parsePullRequestUrl("https://acme.visualstudio.com/Fleet/_git/Rent/pullrequest/3");
+  assert.equal(legacy.collection_url, "https://acme.visualstudio.com");
+
+  const gh = parsePullRequestUrl("https://github.com/acme/rent/pull/42");
+  assert.deepEqual([gh.provider, gh.owner, gh.repo, gh.id], ["github", "acme", "rent", 42]);
+
+  assert.throws(() => parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent"), /not an Azure DevOps pull request URL/);
+  assert.throws(() => parsePullRequestUrl("nope"), /not a URL/);
+});
+
+// A bare "server" repo publishing refs/pull/7/merge, and a clone whose remote is named after the real
+// Azure DevOps URL but fetches from the bare repo: findRemote matches on the name, fetch stays local.
+test("findRemote, fetchPullRequest and preparePullRequest work against a repo that publishes the merge ref", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "harness-pr-"));
+  const server = join(dir, "Fleet", "Rent.git"); // project and repo names in the path, as a real remote URL carries them
+  const work = join(dir, "work");
+  const g = (cwd, ...a) => execFileSync("git", ["-C", cwd, "-c", "user.email=t@t", "-c", "user.name=t", ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  mkdirSync(join(dir, "Fleet"));
+  execFileSync("git", ["init", "-q", "--bare", server]);
+  execFileSync("git", ["init", "-q", "-b", "main", work]);
+  writeFileSync(join(work, "package.json"), JSON.stringify({ name: "rent", devDependencies: { typescript: "5" } }));
+  mkdirSync(join(work, "src"));
+  writeFileSync(join(work, "src", "a.ts"), "export const a = 1;\n");
+  g(work, "add", "-A");
+  g(work, "commit", "-q", "-m", "base");
+  const base = g(work, "rev-parse", "HEAD");
+  g(work, "checkout", "-q", "-b", "feature");
+  writeFileSync(join(work, "src", "b.ts"), "export const b = 2;\n");
+  g(work, "add", "-A");
+  g(work, "commit", "-q", "-m", "add b");
+  const source = g(work, "rev-parse", "HEAD");
+  g(work, "checkout", "-q", "main");
+  g(work, "merge", "-q", "--no-ff", "--no-edit", "feature");
+  const merge = g(work, "rev-parse", "HEAD");
+  g(work, "reset", "-q", "--hard", base); // main goes back; the merge lives only under the PR ref on the server
+  g(work, "remote", "add", "origin", `https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent`);
+  g(work, "remote", "set-url", "origin", server); // fetchable locally; the name match is what findRemote checks
+  g(work, "push", "-q", server, `${merge}:refs/pull/7/merge`);
+
+  const pr = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7");
+  const r = findRemote(work, pr);
+  assert.equal(r.remote, "origin", r.reason);
+
+  const refs = fetchPullRequest(work, "origin", 7);
+  assert.equal(refs.head, merge);
+  assert.equal(refs.base, base);
+  assert.equal(refs.source, source);
+
+  const prep = await preparePullRequest(pr.url, { root: work, pat: null });
+  assert.equal(prep.review_id, "pr-7");
+  assert.deepEqual(prep.summary.changed_files, ["src/b.ts"]);
+  assert.equal(prep.summary.size, "small");
+  assert.deepEqual(prep.summary.frameworks, ["typescript"]);
+  assert.equal(prep.meta, null);
+  assert.match(prep.meta_reason, /no PAT/);
+
+  assert.throws(() => fetchPullRequest(work, "origin", 8), /could not fetch refs\/pull\/8\/merge/);
+  const other = findRemote(work, parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Other/pullrequest/1"));
+  assert.equal(other.remote, null);
+  assert.match(other.reason, /clone it first/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a reviewer block becomes one summary thread plus one located thread per finding; dry run posts nothing", async () => {
+  const block = `## Review: pr-7 · pr
+
+Changes required: the new handler swallows the repository error.
+
+Alignment: PASS
+Findings: 1 critical, 1 minor
+- [Critical] src/http/handlers.ts:42 — the catch returns 200 with an empty body. A failed write looks like success to the caller. Rethrow or map to 500.
+- [Minor] src/http/handlers.ts — naming: \`tmp\` says nothing. Readers guess. Call it \`draft\`.
+
+CHANGES REQUIRED`;
+  const f = parseFindings(block);
+  assert.equal(f.length, 2);
+  assert.deepEqual([f[0].severity, f[0].path, f[0].line], ["Critical", "src/http/handlers.ts", 42]);
+  assert.equal(f[1].line, null);
+  const threads = buildThreads(block);
+  assert.equal(threads.length, 3);
+  assert.match(threads[0].comments[0].content, /CHANGES REQUIRED/);
+  assert.equal(threads[0].status, 1, "active while changes are required");
+  assert.deepEqual(threads[1].threadContext, { filePath: "/src/http/handlers.ts", rightFileStart: { line: 42, offset: 1 }, rightFileEnd: { line: 42, offset: 1 } });
+  assert.equal(threads[2].threadContext, undefined, "a finding without a line is a general comment");
+  const pr = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7");
+  const dry = await postReview(pr, block, { dryRun: true, pat: null });
+  assert.equal(dry.posted, 0);
+  assert.equal(dry.threads.length, 3);
+  await assert.rejects(postReview(pr, block, { pat: null }), /no PAT/);
+  await assert.rejects(postReview(parsePullRequestUrl("https://github.com/a/b/pull/1"), block, { dryRun: true }), /Azure DevOps only/);
+});

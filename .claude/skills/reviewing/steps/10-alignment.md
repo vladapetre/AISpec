@@ -2,6 +2,10 @@
 
 Two parts. The alignment check maps every acceptance criterion of the phase to code evidence; it is a mechanical mapping, not a quality judgement. The authoring floors check what the diff adds against the developer's standing rules on comments and tests; they are cheap and run at every size because small diffs are where a stray narration comment or a sneaked-in integration test slips through.
 
+## Alignment: pull requests
+
+Scope `pr` has no plan. The PR description stands in for it: split it into its claims ("adds X", "fixes Y", "no behaviour change"), number them `P-1`, `P-2` in source order, and run the procedure below on those. An empty or one-line description gives no table; write `Alignment: N/A (no description)` and grade the code alone. A claim the diff contradicts is a FAIL and blocks, as a criterion would.
+
 ## Alignment: procedure
 
 1. Extract every bullet under the phase's `**Done when:**` (or the plan's own label: "Acceptance criteria", "Exit criteria"). Each bullet leads with its `T-<phase>.<seq>` id; record it verbatim.
