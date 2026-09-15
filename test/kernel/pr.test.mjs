@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { parsePullRequestUrl, findRemote, fetchPullRequest, parseFindings, buildThreads, postReview, preparePullRequest } from "../../.claude/lib/pr.mjs";
+import { parsePullRequestUrl, findRemote, fetchPullRequest, parseFindings, buildThreads, postReview, preparePullRequest, patFromEnv } from "../../.claude/lib/pr.mjs";
 
 test("parsePullRequestUrl reads Server, Services, legacy and GitHub forms", () => {
   const server = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7287");
@@ -79,6 +79,17 @@ test("findRemote, fetchPullRequest and preparePullRequest work against a repo th
   assert.equal(other.remote, null);
   assert.match(other.reason, /clone it first/);
   rmSync(dir, { recursive: true, force: true });
+});
+
+test("the PAT comes from the environment, else from the untracked local settings env block, else nothing", () => {
+  const root = mkdtempSync(join(tmpdir(), "harness-pat-"));
+  mkdirSync(join(root, ".claude"));
+  assert.equal(patFromEnv({}, root), null);
+  writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({ env: { AZDO_PAT: "from-local-settings" } }));
+  assert.equal(patFromEnv({}, root), "from-local-settings");
+  assert.equal(patFromEnv({ AZDO_PAT: "from-env" }, root), "from-env", "the process environment wins");
+  assert.equal(patFromEnv({ AZURE_DEVOPS_EXT_PAT: "az-cli-name" }, "/nonexistent"), "az-cli-name");
+  rmSync(root, { recursive: true, force: true });
 });
 
 test("a reviewer block becomes one summary thread plus one located thread per finding; dry run posts nothing", async () => {

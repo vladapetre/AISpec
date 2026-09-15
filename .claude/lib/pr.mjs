@@ -4,6 +4,8 @@
 // already has; the PR's title and description, and posting findings back, use the Azure DevOps REST
 // API with a PAT (AZDO_PAT, or AZURE_DEVOPS_EXT_PAT as the az CLI names it) or the gh CLI for GitHub.
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { reviewSummaryRange } from "./review.mjs";
 
 export const PAT_VARS = ["AZDO_PAT", "AZURE_DEVOPS_EXT_PAT"];
@@ -81,8 +83,18 @@ export function fetchPullRequest(root, remote, id) {
   return { ref: local, head, base: parents[0], source: parents[1] };
 }
 
-function patFromEnv(env = process.env) {
+/**
+ * The PAT, from the process environment first (a `setx AZDO_PAT …` user variable, or the `env`
+ * block of .claude/settings.local.json that Claude Code applies to the session), then from that
+ * local settings file directly, so `harness pr` also works from a plain shell. Never from a tracked
+ * file, and never printed.
+ */
+export function patFromEnv(env = process.env, root = process.cwd()) {
   for (const v of PAT_VARS) if (env[v]) return env[v];
+  try {
+    const local = JSON.parse(readFileSync(join(root, ".claude", "settings.local.json"), "utf8"));
+    for (const v of PAT_VARS) if (local?.env?.[v]) return String(local.env[v]);
+  } catch {}
   return null;
 }
 
@@ -100,7 +112,7 @@ async function azdoRequest(pr, path, { method = "GET", body, pat, apiVersion = "
 }
 
 /** Title, description and refs. Without a PAT (or gh) returns null with the reason; the review still runs code-only. */
-export async function pullRequestMeta(pr, { pat = patFromEnv(), root } = {}) {
+export async function pullRequestMeta(pr, { pat = patFromEnv(process.env, root), root } = {}) {
   if (pr.provider === "github") {
     try {
       const j = JSON.parse(execFileSync("gh", ["pr", "view", String(pr.id), "--repo", `${pr.owner}/${pr.repo}`, "--json", "title,body,headRefName,baseRefName,author,state"], { encoding: "utf8", cwd: root, stdio: ["ignore", "pipe", "pipe"] }));
@@ -149,7 +161,7 @@ export function buildThreads(reviewText) {
 }
 
 /** Post the review as PR threads. Dry run returns the payloads and posts nothing. */
-export async function postReview(pr, reviewText, { pat = patFromEnv(), dryRun = false } = {}) {
+export async function postReview(pr, reviewText, { root = process.cwd(), pat = patFromEnv(process.env, root), dryRun = false } = {}) {
   if (pr.provider !== "azdo") throw new Error("posting is implemented for Azure DevOps only; use gh pr review for GitHub");
   const threads = buildThreads(reviewText);
   if (dryRun) return { posted: 0, threads };
@@ -172,6 +184,6 @@ export async function preparePullRequest(url, { root, pat } = {}) {
   if (!r.remote) throw new Error(r.reason);
   const refs = fetchPullRequest(root, r.remote, pr.id);
   const summary = reviewSummaryRange(root, refs.base, refs.head);
-  const { meta, reason } = await pullRequestMeta(pr, { pat, root });
+  const { meta, reason } = await pullRequestMeta(pr, { pat: pat === undefined ? patFromEnv(process.env, root) : pat, root });
   return { pr, remote: r.remote, ...refs, summary, meta, meta_reason: reason, review_id: `pr-${pr.id}` };
 }

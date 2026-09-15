@@ -31,3 +31,6 @@ bench/results/probe*.json
 # per-feature worktrees and the branching manifest (machine-local)
 .worktrees/
 .claude/branching/
+
+# per-machine Claude Code settings; may carry secrets such as AZDO_PAT in its env block
+.claude/settings.local.json
