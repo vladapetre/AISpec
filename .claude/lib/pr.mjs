@@ -4,7 +4,7 @@
 // already has; the PR's title and description, and posting findings back, use the Azure DevOps REST
 // API with a PAT (AZDO_PAT, or AZURE_DEVOPS_EXT_PAT as the az CLI names it) or the gh CLI for GitHub.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { reviewSummaryRange } from "./review.mjs";
 
@@ -40,6 +40,31 @@ export function parsePullRequestUrl(raw) {
 
 function git(root, args, opts = {}) {
   return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts }).trim();
+}
+
+/**
+ * Where the PR's repository is checked out: the root itself, or a nested repo one or two levels
+ * down (an umbrella with `src/Rent` as its own clone is the common shape here). Returns the repo
+ * path and the remote name, or null with the reason.
+ */
+export function locateRepo(root, pr) {
+  const candidates = [root];
+  for (const sub of ["src", "repos", "packages", "."]) {
+    const dir = join(root, sub);
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".") && e.name !== "node_modules");
+    } catch {}
+    for (const e of entries) candidates.push(join(dir, e.name));
+  }
+  const seen = [];
+  for (const dir of candidates) {
+    if (!existsSync(join(dir, ".git"))) continue;
+    const r = findRemote(dir, pr);
+    if (r.remote) return { repo_root: dir, remote: r.remote, url: r.url };
+    seen.push(...r.seen.map((s) => `${dir}: ${s}`));
+  }
+  return { repo_root: null, remote: null, reason: `no clone of ${pr.repo} (${pr.host}) found in ${root} or its nested repositories; clone it first, or pass --repo <path>` };
 }
 
 /** The local remote that points at the PR's repository, or null with the remotes seen. */
@@ -178,12 +203,13 @@ export async function postReview(pr, reviewText, { root = process.cwd(), pat = p
  * Everything the lead needs to spawn the reviewer for a PR: the parsed URL, the remote, the fetched
  * base and head, the review summary over that range, and the PR's title and description when reachable.
  */
-export async function preparePullRequest(url, { root, pat } = {}) {
+export async function preparePullRequest(url, { root, repo, pat } = {}) {
   const pr = parsePullRequestUrl(url);
-  const r = findRemote(root, pr);
+  const r = repo ? { repo_root: repo, ...findRemote(repo, pr) } : locateRepo(root, pr);
   if (!r.remote) throw new Error(r.reason);
-  const refs = fetchPullRequest(root, r.remote, pr.id);
-  const summary = reviewSummaryRange(root, refs.base, refs.head);
-  const { meta, reason } = await pullRequestMeta(pr, { pat: pat === undefined ? patFromEnv(process.env, root) : pat, root });
-  return { pr, remote: r.remote, ...refs, summary, meta, meta_reason: reason, review_id: `pr-${pr.id}` };
+  const repoRoot = r.repo_root;
+  const refs = fetchPullRequest(repoRoot, r.remote, pr.id);
+  const summary = reviewSummaryRange(repoRoot, refs.base, refs.head);
+  const { meta, reason } = await pullRequestMeta(pr, { pat: pat === undefined ? patFromEnv(process.env, root) : pat, root: repoRoot });
+  return { pr, repo_root: repoRoot, remote: r.remote, ...refs, summary, meta, meta_reason: reason, review_id: `pr-${pr.id}` };
 }

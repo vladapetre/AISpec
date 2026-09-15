@@ -19,7 +19,7 @@
 //   harness check [--steps test,lint,build] [--only "<command>"]
 //   harness packet <id>            the gate packet for the current stop, as text (--json for the structure)
 //   harness review-summary --range <base>..<head>
-//   harness pr <url>               resolve, fetch and summarise a pull request for the reviewer
+//   harness pr <url> [--repo <path>]   resolve (root, or a nested clone under src/), fetch and summarise a pull request
 //   harness pr <url> --post <review.md> [--dry-run]   post a reviewer block back as PR threads
 //
 import { readFileSync } from "node:fs";
@@ -195,9 +195,9 @@ async function main(argv) {
         out(r, opt, (v) => (opt["dry-run"] ? `${v.threads.length} thread(s) would be posted:\n${v.threads.map((t) => `- ${t.threadContext ? `${t.threadContext.filePath}:${t.threadContext.rightFileStart.line} ` : ""}${t.comments[0].content.split("\n")[0].slice(0, 90)}`).join("\n")}` : `posted ${v.posted} thread(s) to PR ${pr.id}`));
         return 0;
       }
-      const r = await preparePullRequest(rest[0], { root });
+      const r = await preparePullRequest(rest[0], { root, repo: opt.repo === true ? undefined : opt.repo });
       out(r, opt, (v) => [
-        `${v.review_id} · ${v.pr.provider} · ${v.pr.repo} · remote ${v.remote}`,
+        `${v.review_id} · ${v.pr.provider} · ${v.pr.repo} · remote ${v.remote} · clone ${v.repo_root}`,
         `  ${v.meta ? `"${v.meta.title}" by ${v.meta.author ?? "?"} · ${v.meta.source_ref?.replace("refs/heads/", "") ?? "?"} → ${v.meta.target_ref?.replace("refs/heads/", "") ?? "?"}` : `title and description unavailable: ${v.meta_reason}`}`,
         `  ${v.summary.size} · ${v.summary.changed_files.length} file(s), +${v.summary.lines_added}/-${v.summary.lines_removed} · frameworks ${v.summary.frameworks.join(",") || "-"} · concerns ${v.summary.concerns.join(",") || "-"} · security ${v.summary.security_path ? "yes" : "no"}`,
         `  base ${v.base.slice(0, 10)} · head ${v.head.slice(0, 10)} (${v.ref})`,

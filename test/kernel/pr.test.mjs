@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { parsePullRequestUrl, findRemote, fetchPullRequest, parseFindings, buildThreads, postReview, preparePullRequest, patFromEnv } from "../../.claude/lib/pr.mjs";
+import { parsePullRequestUrl, findRemote, locateRepo, fetchPullRequest, parseFindings, buildThreads, postReview, preparePullRequest, patFromEnv } from "../../.claude/lib/pr.mjs";
 
 test("parsePullRequestUrl reads Server, Services, legacy and GitHub forms", () => {
   const server = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7287");
@@ -73,6 +73,18 @@ test("findRemote, fetchPullRequest and preparePullRequest work against a repo th
   assert.deepEqual(prep.summary.frameworks, ["typescript"]);
   assert.equal(prep.meta, null);
   assert.match(prep.meta_reason, /no PAT/);
+
+  // an umbrella whose src/Rent is the clone: the kernel finds the nested repository on its own
+  const umbrella = join(dir, "umbrella");
+  mkdirSync(join(umbrella, "src"), { recursive: true });
+  execFileSync("git", ["init", "-q", umbrella]);
+  execFileSync("git", ["clone", "-q", "--origin", "origin", server, join(umbrella, "src", "Rent")]);
+  g(join(umbrella, "src", "Rent"), "remote", "set-url", "origin", server);
+  const nested = locateRepo(umbrella, pr);
+  assert.equal(nested.repo_root, join(umbrella, "src", "Rent"));
+  const viaUmbrella = await preparePullRequest(pr.url, { root: umbrella, pat: null });
+  assert.equal(viaUmbrella.repo_root, join(umbrella, "src", "Rent"));
+  assert.deepEqual(viaUmbrella.summary.changed_files, ["src/b.ts"]);
 
   assert.throws(() => fetchPullRequest(work, "origin", 8), /could not fetch refs\/pull\/8\/merge/);
   const other = findRemote(work, parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Other/pullrequest/1"));
