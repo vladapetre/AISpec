@@ -113,14 +113,17 @@ Alignment: PASS
 Findings: 1 critical, 1 minor
 - [Critical] src/http/handlers.ts:42 — the catch returns 200 with an empty body. A failed write looks like success to the caller. Rethrow or map to 500.
 - [Minor] src/http/handlers.ts — naming: \`tmp\` says nothing. Readers guess. Call it \`draft\`.
+- [Major] Rent/Core/Handler.cs:113-165 — the additional-driver path skips the guard. A closed reservation still starts a session. Call the guard after resolving the token.
 
 CHANGES REQUIRED`;
   const f = parseFindings(block);
-  assert.equal(f.length, 2);
+  assert.equal(f.length, 3);
   assert.deepEqual([f[0].severity, f[0].path, f[0].line], ["Critical", "src/http/handlers.ts", 42]);
   assert.equal(f[1].line, null);
+  assert.deepEqual([f[2].line, f[2].end_line], [113, 165], "a line range is accepted");
   const threads = buildThreads(block);
-  assert.equal(threads.length, 3);
+  assert.equal(threads.length, 4);
+  assert.deepEqual(threads[3].threadContext, { filePath: "/Rent/Core/Handler.cs", rightFileStart: { line: 113, offset: 1 }, rightFileEnd: { line: 165, offset: 1 } });
   assert.match(threads[0].comments[0].content, /CHANGES REQUIRED/);
   assert.equal(threads[0].status, 1, "active while changes are required");
   assert.deepEqual(threads[1].threadContext, { filePath: "/src/http/handlers.ts", rightFileStart: { line: 42, offset: 1 }, rightFileEnd: { line: 42, offset: 1 } });

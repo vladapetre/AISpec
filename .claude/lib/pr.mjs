@@ -162,8 +162,9 @@ export async function pullRequestMeta(pr, { pat = patFromEnv(process.env, root),
 export function parseFindings(text) {
   const out = [];
   for (const line of String(text).split(/\r?\n/)) {
-    const m = line.match(/^- \[(Critical|Major|Minor|Nit)\]\s+([^\s:—]+)(?::(\d+))?\s+—\s+(.*)$/);
-    if (m) out.push({ severity: m[1], path: m[2], line: m[3] ? Number(m[3]) : null, text: m[4].trim() });
+    // `path:42`, `path:113-165` (a range, seen live), or a bare path for a file-level remark
+    const m = line.match(/^- \[(Critical|Major|Minor|Nit)\]\s+`?([^\s:—`]+)`?(?::(\d+)(?:-(\d+))?)?\s+—\s+(.*)$/);
+    if (m) out.push({ severity: m[1], path: m[2], line: m[3] ? Number(m[3]) : null, end_line: m[4] ? Number(m[4]) : m[3] ? Number(m[3]) : null, text: m[5].trim() });
   }
   return out;
 }
@@ -179,7 +180,7 @@ export function buildThreads(reviewText) {
   const threads = [{ comments: [{ parentCommentId: 0, content: summary, commentType: 1 }], status: verdict === "APPROVED" ? 2 : 1 }];
   for (const f of findings) {
     const t = { comments: [{ parentCommentId: 0, content: `**[${f.severity}]** ${f.text}`, commentType: 1 }], status: 1 };
-    if (f.line) t.threadContext = { filePath: `/${f.path.replace(/^\/+/, "")}`, rightFileStart: { line: f.line, offset: 1 }, rightFileEnd: { line: f.line, offset: 1 } };
+    if (f.line) t.threadContext = { filePath: `/${f.path.replace(/^\/+/, "")}`, rightFileStart: { line: f.line, offset: 1 }, rightFileEnd: { line: f.end_line ?? f.line, offset: 1 } };
     threads.push(t);
   }
   return threads;
