@@ -131,7 +131,7 @@ CHANGES REQUIRED`;
   const pr = parsePullRequestUrl("https://tfs.corp.local/tfs/DefaultCollection/Fleet/_git/Rent/pullrequest/7");
   const dry = await postReview(pr, block, { dryRun: true, pat: null });
   assert.equal(dry.posted, 0);
-  assert.equal(dry.threads.length, 3);
+  assert.equal(dry.threads.length, 4);
   await assert.rejects(postReview(pr, block, { pat: null }), /no PAT/);
   await assert.rejects(postReview(parsePullRequestUrl("https://github.com/a/b/pull/1"), block, { dryRun: true }), /Azure DevOps only/);
 });
